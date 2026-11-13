@@ -15,6 +15,26 @@ When a review or a QA question finds a trap that is not listed here, add it.
 - Which time zone defines a "day", a "month" (e.g. the delivery day in CET/CEST)?
 - Did the resolution change over the history (e.g. 60 --> 15 minutes on 2025-10-01 for
   day-ahead prices)? A plain average over such a period weighs the two parts differently.
+- Did it change on the same date for every series? ENTSO-E day-ahead prices, measured
+  2026-11-13: FR from delivery day 2025-09-30, DE_LU from 2025-10-01, CH from 2026-11-04.
+  Then one list of periods per dataset is wrong; store the resolution per row.
+- Is the published resolution the resolution of the market? FR's day-ahead prices of delivery
+  day 2025-09-30 come as 96 quarter-hours, but the four quarters of every hour are equal: the
+  auction was still hourly. Averages are not affected; counts of intervals are (4 per hour).
+
+## Fetching
+
+- Does the API cut a long request without an error? ENTSO-E does, by more than one rule: a
+  one-year request of day-ahead prices (one series per day) returned 100 days, and a 90-day
+  request for FR (15-minute prices) returned 73 days. Check that each response covers the
+  window it was asked for; counting series is not enough.
+- Does the client library reshape the data? entsoe-py's pandas client resamples day-ahead
+  prices before 2025-10-01 to hourly with `.first()`, which keeps the first quarter-hour of a
+  15-minute series. Measure on the raw response.
+- entsoe-py's pandas client drops one hour per year (2024-12-31 00:00 CET was missing from a
+  request for 2024; measured 2026-11-13) and includes the row at the requested end.
+- Does the source publish several series for one key? ENTSO-E DE_LU has two day-ahead
+  series (sequence 1 and 2); without a filter, each timestamp comes twice.
 
 ## Values
 

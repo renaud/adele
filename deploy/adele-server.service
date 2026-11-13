@@ -1,0 +1,18 @@
+[Unit]
+Description=adele: HTTP API and agent SQL (read-only on the data)
+After=network-online.target
+
+[Service]
+User=adele-query
+Group=adele
+ExecStart=/opt/adele/server/.venv/bin/adele-server --config /etc/adele/adele-server.toml serve --host 127.0.0.1 --port 8000
+Restart=on-failure
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ProtectHome=yes
+ReadOnlyPaths=/var/lib/adele /opt/adele
+ReadWritePaths=/var/log/adele
+
+[Install]
+WantedBy=multi-user.target

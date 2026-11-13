@@ -1,0 +1,8 @@
+q13|What was the average day-ahead price in Austria in 2020?
+q14|What was the average intraday price in Switzerland in 2025?
+q15|What was the average peak price in Germany in 2024?
+q16|In 2022, on how many delivery days was the Swiss daily average day-ahead price below the French one?
+q17|What was the largest change in the German day-ahead price between two consecutive hours in 2024?
+q18|What was the volume-weighted average day-ahead price in France in 2023?
+q19|What was the average German day-ahead price from 29 September to 5 October 2025?
+q20|Which of Switzerland, Germany and France had the most hours with a negative day-ahead price in 2024, and how many?

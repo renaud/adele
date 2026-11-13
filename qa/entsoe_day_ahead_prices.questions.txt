@@ -1,0 +1,12 @@
+q01|What was the average day-ahead price in Switzerland in 2024?
+q02|What was the average day-ahead price in Germany in 2017?
+q03|What was the average day-ahead price in Germany in 2018?
+q04|What was the average French day-ahead price in the second half of 2025?
+q05|How many hours had a negative day-ahead price in Germany in 2025?
+q06|Which delivery day had the highest average day-ahead price in France in 2022, and what was that average?
+q07|What was the Swiss day-ahead price for 08:00-09:00 on 30 March 2026?
+q08|How many price intervals did Switzerland have on 25 October 2026?
+q09|What was the average Swiss day-ahead price on each day from 1 to 7 November 2026, and over the whole week?
+q10|What was the average spread between the Swiss and the French day-ahead price in 2025?
+q11|Until which delivery day are Swiss day-ahead prices available?
+q12|What was the average Swiss day-ahead price over the last 7 days?

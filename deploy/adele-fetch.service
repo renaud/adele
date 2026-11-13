@@ -1,0 +1,17 @@
+[Unit]
+Description=adele: fetch the datasets whose refresh is due
+After=network-online.target
+
+[Service]
+Type=oneshot
+User=adele
+Group=adele
+UMask=0027
+EnvironmentFile=/etc/adele/env
+ExecStart=/opt/adele/server/.venv/bin/adele-server --config /etc/adele/adele-server.toml fetch --due
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ProtectHome=yes
+ReadOnlyPaths=/opt/adele
+ReadWritePaths=/var/lib/adele /var/log/adele
