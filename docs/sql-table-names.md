@@ -1,6 +1,7 @@
 # SQL table names: should the dataset id appear in the SQL?
 
-Status: open, started 2026-11-13.
+Status: decided 2026-11-13: option A (DECISIONS.md, D8). The recommendation below (C) was
+the first one and was not kept.
 
 ## Why the question comes up
 
