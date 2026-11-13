@@ -1,0 +1,53 @@
+# Definitions (titles, descriptions, labels, warnings, questions) are written by Renaud
+# (skills/add-dataset). Text taken from the sketch in SPEC.md is his. TODO(Renaud) marks the
+# definitions that are still missing; the agent does not fill them.
+name: entsoe_day_ahead_prices
+title: Day-ahead prices per bidding zone (ENTSO-E)
+# TODO(Renaud): description of the dataset
+# TODO(Renaud): licenses (ENTSO-E Transparency Platform terms)
+resources:
+  - name: prices
+    schema:
+      primaryKey: [bidding_zone, delivery_start]
+      fields:
+        - name: bidding_zone
+          type: string
+          description: Short zone name. Zones change over time (DE_AT_LU ended 2018-10-01).
+          categories:
+            - {value: CH, label: Switzerland}
+            - {value: DE_LU, label: Germany-Luxembourg}
+            - {value: DE_AT_LU, label: Germany-Luxembourg-Austria}
+            - {value: FR, label: France}
+        - name: delivery_start
+          type: datetime
+          description: Start of the delivery interval, UTC.
+        - name: resolution
+          type: duration
+          # Proposed column (normalization, measured 2026-11-13): the resolution changed on a
+          # different date in each zone. TODO(Renaud): description
+        - name: price
+          type: number
+          unit: EUR/MWh
+adele:
+  refresh:
+    every: PT1H  # proposal: prices of the next day appear around 13:00 CET
+    lookback: P3D
+    horizon: P2D
+  revisions: overwrite
+  # The sketch's `resolution` periods (PT1H from 2015-01-01, PT15M from 2025-10-01) are left
+  # out: the server computes the periods per zone from the `resolution` column.
+  warnings:
+    - A plain average over a period that spans 2025-10-01 gives the 15-minute rows 4 times the weight of the hourly rows.
+    - The delivery day is defined in CET/CEST, not UTC.
+  examples:
+    - question: Average day-ahead price in CH per delivery day in March 2026?
+      sql: |
+        SELECT date_trunc('day', delivery_start AT TIME ZONE 'Europe/Zurich') AS delivery_day,
+               avg(price) AS avg_price
+        FROM entsoe_day_ahead_prices.prices
+        WHERE bidding_zone = 'CH'
+          AND delivery_start >= TIMESTAMPTZ '2026-03-01 00:00:00+01'
+          AND delivery_start <  TIMESTAMPTZ '2026-04-01 00:00:00+02'
+        GROUP BY 1
+        ORDER BY 1
+      # verified_at: set when Renaud has confirmed the result
