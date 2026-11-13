@@ -1,0 +1,1042 @@
+{
+ "results": [
+  {
+   "angle": "in-house-data-agents",
+   "findings": [
+    {
+     "title": "Anthropic: How Anthropic enables self-service data analytics with Claude (June 2026)",
+     "url": "https://claude.com/blog/how-anthropic-enables-self-service-data-analytics-with-claude",
+     "source_type": "engineering-writeup",
+     "what": "Four layers: data foundations (a small set of canonical datasets, one repo for models, semantic layer and docs), ranked sources of truth (semantic layer > lineage graph > distilled query corpus > business context), skills (a knowledge skill that routes to about 30 domain reference files, plus a runbook skill with a dozen analysis patterns), and validation. Reported accuracy on their evals: at most 21% without skills, above 95% with skills. Giving the agent grep access to thousands of SQL files changed accuracy by less than one point, although about 80% of the missed questions had the answer in the corpus. Without maintenance, offline accuracy fell from about 95% to about 65% in one month; a code-review hook now flags model changes that do not touch a skill file (about 90% of data-model PRs include a skill change). An adversarial review step added 6% accuracy for 32% more tokens and 72% more latency. LLM-generated metric definitions were net-negative compared with a smaller human-curated layer.",
+     "lesson": "Access to raw material is not the bottleneck. Structure is: few canonical datasets, human-owned definitions, reference docs written for retrieval (grain, scope, exclusions, gotchas, routing triggers), and docs stored next to the code that produces the data so that one change updates both. Add a provenance footer to answers (source tier, freshness, owner). A sensible start is a few canonical datasets, a few dozen evals and one thin knowledge skill.",
+     "verified": "Read on the primary page (via WebFetch summary). The total size of the eval set and the warehouse are not given. All figures are self-reported by the vendor of the model, on internal evals."
+    },
+    {
+     "title": "OpenAI: Inside our in-house data agent (Jan 2026) and the ByteByteGo interview with Emma Tang",
+     "url": "https://openai.com/index/inside-our-in-house-data-agent/",
+     "source_type": "engineering-writeup",
+     "what": "One LLM, a context assembly step, about 13 tools (cut from about 40) and a runtime, over 70k+ datasets and 600+ PB. Six context layers: table usage (schema, lineage, query history ranked by trust), human annotations, a nightly Codex job that reads the pipeline code of each table (100 to 200 tables per night, 5 to 10 minutes each), institutional knowledge (Slack, Docs, Notion, access-controlled), memory of corrections (global or personal scope), and live runtime queries when offline context is missing or stale. Layers 1 to 3 are merged offline, daily, into one description per table, which is embedded. Interfaces: Slack, web, IDE, Codex CLI via MCP.",
+     "lesson": "Put the complexity in offline curation (one dense, pre-built description per table) and keep the online loop simple. Embedding all historical queries failed; ranking queries by trustworthiness (dashboard queries first, one-off exploration last) worked. Overlapping tools gave conflicting answers, so no two tools should do the same job. Prompts that state the goal worked better than step-by-step prompts.",
+     "verified": "The OpenAI page returned 403; I could not read it. Details come from the ByteByteGo write-up of an interview (secondary, read in full via WebFetch) and from search snippets. The secondary sources disagree on scale (600 PB / 70k datasets in Jan 2026 versus 1.5 EB / 90k in May 2026) and on the model version. The memory figure (22 min --> 1 min 22 s) comes from a search snippet only. Evaluation method was not described in what I read."
+    },
+    {
+     "title": "Vercel: We removed 80% of our agent's tools (d0, Dec 2025) and How to build agents with filesystems and bash (Jan 2026)",
+     "url": "https://vercel.com/blog/we-removed-80-percent-of-our-agents-tools",
+     "source_type": "engineering-writeup",
+     "what": "d0, an internal text-to-SQL agent in Slack, replaced 17 specialised tools (schema search, join path finder, plan finalisers, validators...) by a bash tool in a sandbox plus SQL execution. The sandbox is loaded with the Cube semantic layer as a directory of YAML, Markdown and JSON files that the model explores with grep, cat, find and ls. On 5 representative queries: success 4/5 --> 5/5, average time 274.8 s --> 77.4 s, tokens about 102k --> 61k, steps about 12 --> 7. Model: Claude Opus 4.5.",
+     "lesson": "If the descriptions of the data are well-structured, consistently named files, a coding agent with a shell needs almost no custom retrieval tools. The authors state the condition themselves: with messy naming or undocumented joins, file access only gives faster bad queries. The work moves from tooling to documentation.",
+     "verified": "Both posts read on the primary pages. The benchmark is 5 queries, so the numbers are an anecdote, not a measurement with any statistical weight. The second post promotes Vercel's own bash-tool and sandbox."
+    },
+    {
+     "title": "Pinterest: Unified Context-Intent Embeddings for Scalable Text-to-SQL (Analytics Agent, March 2026)",
+     "url": "https://medium.com/pinterest-engineering/unified-context-intent-embeddings-for-scalable-text-to-sql-793635e60aac",
+     "source_type": "engineering-writeup",
+     "what": "100k+ analytical tables, 2,500+ analysts. The catalog (PinCat, built on DataHub) holds tiers (Tier 1 strict docs, Tier 2 lighter, Tier 3 short retention), owners and glossary terms, and these governance fields enter the ranking of retrieved tables. Historical queries are enriched with catalog context, rewritten by an LLM into the analytical questions that they answer, then embedded; join keys, filters and aggregation patterns are extracted as reusable building blocks. Tools are exposed through MCP; validation checks that tables and columns exist, profiles column values (the 'WEB' versus 'web' case), runs EXPLAIN before execution and applies LIMIT 100. Explicit order when sources conflict: expert docs > catalog schema > query patterns > general knowledge.",
+     "lesson": "Declare a trust order between context sources, and show existing trusted assets before generating new SQL. Publish real values for categorical columns, because a query with a wrong literal runs without error and returns nothing. Governance metadata (tier, freshness, documentation completeness, owner) is useful to the agent as a ranking signal, not only to humans.",
+     "verified": "The Medium page returned 403. Details come from a third-party summary of the post (sysdesign-wiki, read in full) and from a DataHub recap of a Pinterest talk (vendor, read in full); the two agree. The post gives no accuracy figures and says that SQL generation 'has room for improvement'. Adoption (40% of analysts, 10x the next agent) is self-reported."
+    },
+    {
+     "title": "Ramp: Meet Ramp Research, our agentic data analyst (Sept 2025)",
+     "url": "https://engineering.ramp.com/post/meet-ramp-research",
+     "source_type": "engineering-writeup",
+     "what": "A Slack agent over a warehouse of thousands of tables. Context comes from indexed dbt, Looker and Snowflake metadata, plus technical documents written by the owner of each analytics domain and organised as a file system that the agent reads on demand. The agent can inspect column values, branch and backtrack. Evaluation moved from human review of each answer, to end-to-end tests, to a small Python framework inside the dbt project that asserts on intermediate steps (expected tool calls, tables referenced, query shape). 1,800+ questions, 300 users, 1,476 questions in four weeks against 66 in the human help channel. No access to PII.",
+     "lesson": "Tacit domain knowledge has to be written down by the people who own the domain, as files. Tests that check only the final answer do not say why an answer failed; asserting on which tables the agent used makes failures diagnosable. The loop is: edit context --> run tests --> confirm.",
+     "verified": "Read on the primary page. A later dbt Labs recap of a dbt Summit 2026 talk (vendor blog, read) says volume reached 10,000 to 15,000 questions per month and that dashboards moved to SQL files in a repo that agents can edit; a search snippet says the agent became a coding agent in a sandbox, which I could not confirm on a page."
+    },
+    {
+     "title": "Notion: How we built a personal data scientist for every Notion employee (Data Scout, Oct 2026)",
+     "url": "https://www.notion.com/blog/how-we-built-a-personal-data-scientist-for-every-notion-employee",
+     "source_type": "engineering-writeup",
+     "what": "A Snowflake MCP connection where queries run under the Snowflake identity of each user, plus a Notion database used as a context index: one row per item with Title, Domain, Type (Skill, Metric Definition, Table Schema, FAQ), Keywords and Priority, with the details in the page body. The agent matches one or two domains first and reads only those bodies. A run_tagged_query wrapper appends metadata (metric, definition reference, context pages used, filters, time window) as a SQL comment. A nightly agent flags stale or conflicting context; a triage agent applies small fixes and escalates the rest. About half of employees use it; requests to the data team fell about 80% in two months.",
+     "lesson": "A small typed index with short descriptions, and bodies loaded on demand, worked better than putting all guidance in index properties. Tag each query with the definitions and context that produced it, so that answers can be traced afterwards. Pre-answer checks are about meaning (join duplication, numerator and denominator, completeness, one as-of date), because a query can run cleanly and answer the wrong question.",
+     "verified": "Read on the primary page. Notion sells the agent product described, so part of the post is promotion. Evals are stated as still in progress; the authors say that query success and usage do not prove accuracy."
+    },
+    {
+     "title": "LinkedIn: Practical text-to-SQL for data analytics (SQL Bot, Dec 2024) and arXiv 2507.14372 (July 2025)",
+     "url": "https://www.linkedin.com/blog/engineering/ai/practical-text-to-sql-for-data-analytics",
+     "source_type": "engineering-writeup",
+     "what": "Context sources: certified datasets with mandatory table descriptions written by domain experts, DataHub metadata (schema, top-K values of categorical fields, partition keys, deprecated flag), successful query logs (popularity, common joins), example queries from certified notebooks. Narrowing: popularity reduces millions of tables to thousands, embeddings give 20, an LLM re-ranker keeps 7; defaults are personalised from the org chart and access history. Validators check that tables and fields exist and run EXPLAIN; a 'Fix with AI' button accounts for about 80% of sessions. Benchmark: 130+ questions over 10 product areas. The later paper reports 300+ weekly users and 53% of responses correct or close to correct by expert review.",
+     "lesson": "Honest accuracy at warehouse scale is far from the 95% of survey satisfaction: 53% on their own benchmark. About 60% of benchmark questions needed several accepted answers, otherwise recall was under-reported by 10 to 15%. Top-K values per categorical field and a 'deprecated' flag in the metadata are cheap and high value.",
+     "verified": "Blog post read on the primary page; arXiv abstract read (not the full paper). The ablation figures from the Trino Summit slides (example queries: +16% table recall) come from a search snippet only."
+    },
+    {
+     "title": "Uber: QueryGPT (Sept 2024)",
+     "url": "https://www.uber.com/blog/query-gpt/",
+     "source_type": "engineering-writeup",
+     "what": "Started as plain RAG over schemas and SQL samples; accuracy declined as tables were added. The current design uses workspaces (12 curated collections of tables and SQL samples per business domain, plus custom ones), an intent agent that maps the question to a workspace, a table agent whose choice the user can confirm or edit, and a column prune agent (some schemas have 200+ columns, 40 to 60k tokens). Evaluation uses a golden set from real logs with intent, schemas and golden SQL, run in two flows: end-to-end, and 'decoupled' with the right tables supplied. About 300 daily users in a limited rollout.",
+     "lesson": "Narrow the search space by domain before any retrieval, and keep schemas small. Evaluate table selection and SQL generation separately, otherwise an upstream error hides the quality of the SQL step. The authors ignore run-to-run changes of about 5% because the model is non-deterministic: one eval run is a noisy measurement.",
+     "verified": "Read on the primary page. Design dates from 2023-2024 (32k context limits), so the column pruning matters less today; the evaluation design is still current."
+    },
+    {
+     "title": "Uber: Unlocking financial insights with Finch (July 2025)",
+     "url": "https://www.uber.com/en-US/blog/unlocking-financial-insights-with-finch/",
+     "source_type": "engineering-writeup",
+     "what": "A Slack agent for finance staff (LangGraph supervisor plus a SQL writer agent) that queries curated single-table data marts instead of the full warehouse. An OpenSearch index stores column names, column values, natural-language aliases for both ('US&C' --> US and Canada, 'GBs' --> gross bookings) and table-specific caveats. Role-based access is checked before execution. Evaluation compares results with golden queries, tests routing, and reruns historical queries before any prompt or model change.",
+     "lesson": "Wide, denormalised single tables remove the join problem and let the model fix its own errors quickly. An alias list for column values improves WHERE clauses more than schema plus sample rows. Compare outputs, not SQL text, because many queries give the same answer.",
+     "verified": "Read on the primary page. No accuracy figures are published; the post says the agent 'is not 100% reliable and is prone to hallucination'."
+    },
+    {
+     "title": "Grab: How AI is transforming analytics at Grab (Aug 2026)",
+     "url": "https://engineering.grab.com/how-ai-is-transforming-analytics",
+     "source_type": "engineering-writeup",
+     "what": "A Slack agent (Spartan) routes questions to 50+ skills and 120+ analysis frameworks and answers from certified metrics; context documents describe grain, exclusions and caveats. A context lifecycle manager proposes updates to context documents from instrumentation specs. An internal portal (BriX) lets teams assemble an app from a prompt, context files, a model and MCP connections, inheriting certified data and permissions. In one channel the share of threads answered fully by the agent rose from 53% to 67% (metric questions), 63% to 90% (data pulls), 50% to 81% (SQL requests).",
+     "lesson": "'Ambiguous definitions cause most analytics slop': certify metrics at a stated grain first. Context goes stale quickly, so its maintenance must be part of the workflow. When the agent fails the same way twice, encode the fix in context, golden datasets, evals or gates.",
+     "verified": "Read on the primary page. No accuracy measurement is given; the figures are shares of threads without analyst involvement, which is not the same as correct answers."
+    },
+    {
+     "title": "Grab: Leveraging RAG-powered LLMs for analytical tasks (Data-Arks, Oct 2024)",
+     "url": "https://engineering.grab.com/transforming-the-analytics-landscape-with-RAG-powered-LLM",
+     "source_type": "engineering-writeup",
+     "what": "Instead of free text-to-SQL, Grab exposes frequently used, vetted SQL queries and Python functions as parameterised APIs (Data-Arks); any employee can upload one. An LLM selects the relevant API by retrieval, runs it and summarises the result in Slack (report summariser, fraud investigation bot). Reported saving: 3 to 4 hours per report.",
+     "lesson": "Most requests are the same query with different dates or filters. A library of vetted, parameterised queries gives exact answers for the common cases, and free SQL generation can be kept for the rest.",
+     "verified": "Read on the primary page. Older (2024) and no comparison with text-to-SQL is given."
+    },
+    {
+     "title": "DataHub town hall recap (April 2026): Pinterest governance before the agent",
+     "url": "https://datahub.com/?p=14348",
+     "source_type": "vendor-marketing",
+     "what": "Pinterest reduced 400k+ mostly undocumented tables towards a curated base of about 100k. Before: about 500 ungoverned tables created per day, the top 500 tables carried 80% of query volume with almost no documentation, about 30% of the most-queried tables belonged to people who had left. Table creation now requires tier, owner, retention and domain, enforced at the metastore. LLM-drafted descriptions (75% rated usable or better) and propagation of glossary terms along join lineage (40%+ of in-scope columns) cut manual documentation work by about 70%.",
+     "lesson": "Make the metadata a condition of creating a dataset, so it cannot be skipped. LLM drafts with human review are acceptable for descriptions (compare with Anthropic: not for metric definitions). Regression checks on every commit to shared context.",
+     "verified": "Read on the page. It is a vendor recap of a customer talk; figures are self-reported and the only benchmark is qualitative."
+    }
+   ],
+   "patterns": [
+    "Curate a small trusted subset instead of exposing the whole warehouse: canonical datasets (Anthropic), single-table marts (Uber Finch), workspaces (Uber QueryGPT), certified datasets (LinkedIn), tiers (Pinterest), certified metrics (Grab).",
+    "Context is built offline and served in dense form, and the online agent loop is kept simple with few tools: OpenAI (one description per table, 40 --> 13 tools), Vercel (17 tools --> bash plus SQL), Anthropic (skills as markdown folders).",
+    "Context as files that the agent reads on demand, with a small router or index on top: Anthropic (knowledge skill --> about 30 reference files), Vercel (semantic layer as YAML/Markdown), Ramp (domain documents as a file system), Notion (typed index, bodies on demand).",
+    "Raw query history does not help by itself; it has to be ranked or distilled: Anthropic (grep over the SQL corpus changed accuracy by less than one point), OpenAI (only trusted queries), Pinterest (queries rewritten as the questions that they answer), LinkedIn (certified notebooks, recency filters).",
+    "Humans own definitions and LLMs may draft descriptions: Anthropic (auto-generated metric definitions were net-negative), Ramp (domain owners write the docs), Pinterest (LLM drafts with human review per tier), Notion ('evidence is not approval').",
+    "Context decays fast and needs enforced maintenance: Anthropic (95% --> 65% in a month, CI hook), Notion (nightly review agent), Grab (context lifecycle manager), OpenAI (nightly enrichment, runtime checks for stale context), Pinterest (regression checks on commits to shared context).",
+    "Evaluation is a fixed set of questions with several accepted answers, checked on intermediate steps and rerun on every context change: Uber QueryGPT (decoupled flow, 5% noise band), LinkedIn (130+ questions, multiple valid answers), Ramp (assert on tables and tool calls), Anthropic (ablations, a few dozen evals per topic), Uber Finch (regression before prompt or model change).",
+    "Cheap validation before execution, and provenance after: table and column existence plus EXPLAIN (LinkedIn, Pinterest), value profiling for literals (Pinterest, Uber Finch aliases, LinkedIn top-K values), SQL and source tables returned with the answer (OpenAI), provenance footer (Anthropic), tagged queries (Notion). Permissions are passed through from the user's identity (Notion, Uber Finch, LinkedIn, OpenAI) and are not reimplemented in the agent."
+   ],
+   "disagreements": [
+    "Semantic layer: required or not. Anthropic and Vercel put a compiled semantic layer first; Notion uses a library of pages and says it does not replace a semantic layer; OpenAI, LinkedIn and Pinterest work from enriched table descriptions and query history without one.",
+    "Retrieval: embeddings versus files and grep. OpenAI, Pinterest, LinkedIn and Uber (tens of thousands of tables and more) use vector or hybrid search. Vercel, Anthropic and Ramp (curated layers) let the agent read files. The split follows scale: nobody reports grep working over 100k tables, and nobody reports needing a vector store for a few dozen curated datasets.",
+    "Value of query history. Pinterest makes it the core asset and LinkedIn reports its largest recall gain from example queries (snippet only); Anthropic measured almost no gain from raw access to the corpus. The positions agree only if the history is distilled first.",
+    "Agent structure. Uber (QueryGPT, Finch) and LinkedIn use several narrow agents with routers (designs from 2023-2025); OpenAI, Vercel and Anthropic (2026) use one model with few tools and say that constraining the model's reasoning made results worse. This is probably an effect of model generation more than a real dispute.",
+    "LLM-written metadata. Pinterest and OpenAI generate table descriptions at scale (75% rated usable); Anthropic found LLM-generated metric definitions net-negative and three successive doc-refinement iterations net-negative. Descriptions and definitions are treated differently.",
+    "Reported accuracy is not comparable between sources. Anthropic reports about 95% on internal evals over a curated layer; LinkedIn reports 53% correct or close on its benchmark over a large lake, and 95% 'passes' in a user survey; Vercel's figures rest on 5 queries; OpenAI, Pinterest, Notion, Grab and Uber Finch publish no accuracy figure. Adoption counts are the common metric and they do not measure correctness.",
+    "Coverage gap of this search: the web search budget of the session ran out after six queries, so Meta, DoorDash, Airbnb, Shopify, Stripe, Netflix and Block Goose were not checked (pages returned 403 or no post was found on the index pages). Their absence here means 'not verified', not 'nothing published'."
+   ],
+   "for_adele": "Adele already has the shape that these teams converged on: a dozen curated datasets, descriptors, a CLI plus SKILL.md, files read on demand. No vector store or semantic layer is needed at that size. Additions worth making: (1) per-dataset gotchas, exclusions, valid ranges and \"use this dataset when...\" routing lines, written by a human; (2) top-K values for categorical columns in `describe`; (3) descriptor stored and generated next to the fetch code, with a check that fails when one changes without the other; (4) a few dozen fixed questions with accepted answers, asserting on which datasets were used, rerun on every descriptor or skill change; (5) a few vetted parameterised example queries per dataset; (6) freshness and source printed with each query result."
+  },
+  {
+   "angle": "context-layer-semantic-layer",
+   "findings": [
+    {
+     "title": "dbt Labs: Semantic Layer vs. Text-to-SQL, 2026 benchmark update",
+     "url": "https://docs.getdbt.com/blog/semantic-layer-vs-text-to-sql-2026",
+     "source_type": "engineering-writeup",
+     "what": "dbt Labs (Ganz and Perigaud, 2026-04-07) reran the ACME Insurance benchmark: 11 questions, 20 runs each, Claude Sonnet 4.6 and GPT-5.3 Codex. On the original normalized schema, raw text-to-SQL scored 64.5% and the semantic layer 72.7% overall. The semantic layer scored 100% on the questions inside its modeled scope and 0% on the questions that needed too many joins, where it returns an error. After an LLM wrote 3 extra dbt models, text-to-SQL rose to 90.0% / 84.1% and the semantic layer to 98.2% / 100%. Repo: github.com/dbt-labs/dbt-llm-sl-bench.",
+     "lesson": "Two results matter more than the headline. (1) Reshaping the tables (denormalized, well-named models) lifted raw SQL from about 64% to 84-90%, which is a larger gain than the semantic layer adds on top. (2) The two approaches fail differently: a semantic layer refuses when a question is out of scope, raw SQL returns a plausible wrong number. The evidence is thin: 11 questions on one schema, published by the vendor of the semantic layer, so the percentages are indicative and not precise.",
+     "verified": "Read the primary dbt blog page (all tables and the recommendation). Did not open the repo."
+    },
+    {
+     "title": "Rumiantsau and Fokeev: Semantic Layers for Reliable LLM-Powered Data Analytics (arXiv 2604.25149)",
+     "url": "https://arxiv.org/abs/2604.25149",
+     "source_type": "paper",
+     "what": "A paired benchmark (2026-04-28): 100 natural-language questions on the Contoso Retail dataset in ClickHouse, three models (Claude Opus 4.7, Sonnet 4.6, GPT-5.4), each question answered once with the schema only and once with the schema plus a 4 KB hand-written markdown document that describes measures, conventions and disambiguation rules. Accuracy rose from 45.5-50.5% to 67.7-68.7%, a gain of 17 to 23 points. The abstract states that the with/without difference is significant at p < 0.01 and that the three models are indistinguishable within each condition.",
+     "lesson": "The 'semantic layer' here is not a query engine. It is one short markdown file, and it explains more of the accuracy than the choice of model does. This is the closest published evidence for the position 'raw SQL plus good docs'. Limits: one dataset, 100 questions, single shot (no agent loop that can inspect data and retry), and the abstract does not name the statistical test, so treat 'indistinguishable' as 'no difference detected with 100 questions', not as 'equal'.",
+     "verified": "Read the arXiv abstract page only, not the full PDF."
+    },
+    {
+     "title": "OpenAI: Inside our in-house data agent",
+     "url": "https://openai.com/index/inside-our-in-house-data-agent/",
+     "source_type": "engineering-writeup",
+     "what": "OpenAI describes an internal agent (GPT-5.2) for 3,500+ users over about 70,000 datasets and 600 PB. It has no classical semantic layer. It stacks six kinds of context: table usage and lineage from query history, human annotations, a Codex job that reads the pipeline code of each table (purpose, grain, keys, freshness, alternative tables), institutional knowledge from Slack/Docs/Notion, memory of saved corrections, and live queries at runtime. Evals are question / golden SQL pairs that run continuously like unit tests.",
+     "lesson": "Three stated lessons transfer directly: 'meaning lives in code' (the code that produces a table says more about grain, freshness and scope than the schema does), fewer and non-overlapping tools, and goal-level guidance instead of prescriptive steps. Also: a memory of corrections (non-obvious filters) and a small set of golden questions are part of the data layer, not extras.",
+     "verified": "The primary openai.com page returned 403. I read the full text through a mirror reader (hn.jakechampion.name), so content is the original article but not fetched from the primary host. No publication date visible. Secondary sources give conflicting scale numbers, I kept the ones in the article text."
+    },
+    {
+     "title": "Vercel: We removed 80% of our agent's tools (d0)",
+     "url": "https://vercel.com/blog/we-removed-80-percent-of-our-agents-tools",
+     "source_type": "engineering-writeup",
+     "what": "Vercel (Andrew Qu, 2025-12-22) replaced the specialised tools of its internal text-to-SQL agent with one bash tool in a sandbox. The agent reads the Cube semantic layer as a directory of YAML, Markdown and JSON files with grep, cat, find and ls (Claude Opus 4.5). On 5 representative queries: success 4/5 --> 5/5, average time 274.8 s --> 77.4 s, tokens about 102k --> 61k, steps about 12 --> 7.",
+     "lesson": "Semantic definitions can be consumed as plain files that the agent searches, without a semantic query API. The authors state the condition themselves: it worked because the files were already good documentation, and file access to a messy layer 'would only produce faster bad queries'. Five queries cannot support the 80% --> 100% success claim (one query changed outcome). The time and token reductions are the more credible part.",
+     "verified": "Read the primary Vercel blog page."
+    },
+    {
+     "title": "a16z: Your Data Agents Need Context",
+     "url": "https://a16z.com/your-data-agents-need-context/",
+     "source_type": "other",
+     "what": "Investor essay (Cui and Li, 2026-03-10) that named the 'modern context layer' as a superset of the semantic layer. Five steps: access to all data, automated construction of context from query history / dbt / LookML, human refinement of tribal knowledge, exposure to agents by API or MCP, and flows that update the context when sources change or users correct answers. It splits the market into warehouse platforms (Databricks Genie, Snowflake Cortex Analyst), AI analyst companies and new context-layer companies.",
+     "lesson": "This is the reference framing that most 2026 vendor posts repeat. Its useful claim is that hand-built semantic layers go stale (its example: YAML written by a departed employee, missing two product lines), so the maintenance loop is the real design problem. It contains no measurements: it is a market thesis from an investor with portfolio interests.",
+     "verified": "Read the primary a16z page."
+    },
+    {
+     "title": "Kaelio ktx: an open-source 'context layer' as files in git",
+     "url": "https://github.com/Kaelio/ktx",
+     "source_type": "repo",
+     "what": "Apache-2.0 tool (about 1.6k stars) that ingests warehouses, dbt, LookML, Metabase and Notion into a git folder: semantic-layer/<connection>/ as YAML ('hard semantics' that compile to SQL) and wiki/ as Markdown ('soft semantics'). Agents use a CLI (ktx sl, ktx wiki, ktx sql as read-only escape hatch, ktx sl validate against the live schema), an MCP server and an installable skill. Supports DuckDB among 10 databases. The companion blog post (Simon Spaeti, 2026-06-04) explains the hard/soft split.",
+     "lesson": "The closest existing project to a CLI + skill + descriptor design. Ideas worth copying: split executable definitions (YAML) from interpretive notes (Markdown), keep both in git and reviewed like code, validate descriptors against the live schema, and keep a read-only raw SQL path next to the governed path. No accuracy numbers are published in the repo, and the blog's 'faster and more correct' claim rests on a screenshot.",
+     "verified": "Read the GitHub README and the Kaelio blog post (https://www.kaelio.com/blog/building-a-context-layer-for-the-agentic-era). The claim of rank 1 on Spider 2.0-Lite is the vendor's and not checked."
+    },
+    {
+     "title": "Apache Ossie (incubating), formerly Open Semantic Interchange",
+     "url": "https://ossie.apache.org/",
+     "source_type": "docs",
+     "what": "Vendor-neutral YAML/JSON specification for exchanging semantic models: datasets, fields, relationships, metrics, plus an ai_context element (instructions, synonyms, examples) at model, field and metric level and custom_extensions per vendor. Started by Snowflake, dbt Labs, Salesforce and BI vendors in 2025, entered the Apache Incubator and was renamed on 2026-07-10. Released spec is 0.1.1, drafts are 0.2.0 / 0.3.0.dev0. Apache Polaris has a beta Semantic Model API that stores Ossie documents. Converters exist for Snowflake semantic views and dbt.",
+     "lesson": "The industry is converging on a descriptor file with a dedicated field for agent instructions, which validates 'descriptor + agent notes' as a design. But Ossie is an interchange format, not a runtime, and a reviewer (Alex Merced, 2026-08-25) lists what it lacks: no fields for ownership, freshness, lineage or provenance, no portable expression language, no discovery of the model for a given table. Frictionless already covers freshness and provenance better. Borrow the ai_context idea, do not adopt the unstable spec.",
+     "verified": "Read ossie.apache.org and the independent write-up https://datalakehousehub.com/blog/apache-ossie-polaris-semantic-models. Did not read the spec file itself. Participant counts (17 founders, 50+ backers) come from secondary pages."
+    },
+    {
+     "title": "Andy Chen: The Enterprise Context Layer (markdown in git, written by agents)",
+     "url": "https://andychen32.substack.com/p/the-enterprise-context-layer",
+     "source_type": "engineering-writeup",
+     "what": "Essay (2026-03-10) from a company of about 1,000 people: 20 parallel agents ran for about two days and produced 1,020 markdown files in 11 domains (about 6,000 commits) with about 1,000 lines of Python. Every claim needs an inline citation, conflicts between sources are documented instead of resolved, and folders plus backlinks replace the ontology and the graph database. A derived open implementation adds AGENTS.md, per-domain SKILL.md files, staleness windows and a tiered ranking of source authority.",
+     "lesson": "The 'files in a repo, no semantic layer, no graph' position in its pure form. Transferable rules: cite the source of every statement in a context file, record conflicts, give each kind of fact an expiry window, rank sources (code above chat). The evidence is anecdotal: the author judges accuracy against his own understanding, gives no error rates, and has not yet built the query interface.",
+     "verified": "Read the primary Substack essay and the derived tutorial at https://tmfnk.pages.dev/use/tutorials/the-enterprise-context-layer/."
+    },
+    {
+     "title": "Snowflake semantic views and Databricks metric views (semantics as warehouse objects)",
+     "url": "https://docs.snowflake.com/en/user-guide/views-semantic/overview",
+     "source_type": "docs",
+     "what": "Both warehouses now store semantics as first-class catalog objects. Snowflake semantic views hold logical tables, relationships, facts, dimensions and metrics, are created by SQL, YAML or an 'Autopilot' wizard that imports Tableau / Power BI files, and are attached to Cortex Agents as a tool. Databricks metric views (YAML, Unity Catalog) hold measures, dimensions, joins and 'agent metadata' (synonyms, display names, formats), with a beta feature that declares relationships so that assistants choose the right join path.",
+     "lesson": "The platform position is 'semantic layer inside the engine, queried with SQL, annotated for agents'. The agent-specific additions are modest and cheap to imitate in any descriptor: synonyms, display names, declared join paths, and generation of the first draft from existing artifacts. Neither page gives accuracy evidence.",
+     "verified": "Read the Snowflake overview page and the Databricks page https://docs.databricks.com/aws/en/metric-views/. The 57% --> 78% BIRD figure attributed to Snowflake comes from a search snippet of an Atlan page and is not verified."
+    },
+    {
+     "title": "Sequeda, Allemang, Jacob: knowledge graph benchmark for question answering on enterprise SQL (arXiv 2311.07509)",
+     "url": "https://arxiv.org/abs/2311.07509",
+     "source_type": "paper",
+     "what": "The 2023 paper behind most 'ontology / knowledge graph' claims and the origin of the ACME Insurance dataset that dbt reuses. GPT-4, zero-shot: 16% accuracy on the SQL schema directly, 54% when questions are answered over a knowledge graph built from an ontology and mappings.",
+     "lesson": "The ontology position rests mainly on this old result with one model. The dbt rerun shows the raw SQL baseline on the same dataset rose to about 64% by 2026 and to 84-90% after simple remodeling, so the advantage of a formal ontology over 'better tables plus descriptions' is no longer demonstrated. I found no 2026 head-to-head test of ontology versus markdown docs.",
+     "verified": "Read the arXiv abstract page. Comparison with 2026 numbers is my inference from the dbt post, not a claim of the paper."
+    },
+    {
+     "title": "Bodo PyDough: 100% on dbt's benchmark without hand-built models",
+     "url": "https://www.bodo.ai/blog/how-pydough-reached-100-accuracy-on-dbts-semantic-layer-benchmark",
+     "source_type": "vendor-marketing",
+     "what": "Bodo (2026-09-09) reports 220/220 correct runs on the 11 dbt questions. Offline, it derives a metadata graph from the schema, profiles every column with SQL, renders the statistics as English and adds one LLM summary per column. Online, it generates several candidates and takes the consensus (about 11 LLM calls, 1.5 cents per question). It replaced dbt's harness with a local SQLite copy.",
+     "lesson": "Automatic column profiling (value ranges, distinct values, null rates, rendered as text) can substitute for a part of hand modeling. A fixed pipeline with voting, with no exploring agent, is enough on a small schema. Not a controlled comparison: different execution setup, the same 11 questions, vendor-run and not validated by dbt.",
+     "verified": "Read the primary Bodo post."
+    },
+    {
+     "title": "TextQL: Semantic Layers Are a Patch. Ontologies Are the Fix.",
+     "url": "https://textql.com/blog/semantic-layers-are-a-patch-ontologies-are-the-fix",
+     "source_type": "vendor-marketing",
+     "what": "TextQL (2026-05-26) argues that semantic layers are accurate inside their modeled scope but that coverage grows only with engineering headcount. It cites BIRD (about 82% for top systems with column hints, 93% for humans), LiveSQLBench (42% for Gemini 3.1 Pro on unmodeled data) and the dbt 0% out-of-scope result. Its 'ontology' is in practice git-controlled files of documentation plus structured .tql definitions that agents navigate.",
+     "lesson": "Note the vocabulary drift: this 'ontology' is a folder of docs and definitions in git, close to ktx and to the markdown position, not an OWL graph. The coverage argument against semantic layers is sound and agrees with dbt's own data. The efficiency claims (7x faster, 24x less compute) have no methodology.",
+     "verified": "Read the primary TextQL post. Did not check the BIRD and LiveSQLBench leaderboards."
+    },
+    {
+     "title": "MotherDuck: Context, Semantics, and Ontology primer",
+     "url": "https://motherduck.com/blog/context-layer-vs-semantic-layer-ontology",
+     "source_type": "engineering-writeup",
+     "what": "A definitional essay (mid 2026, apparently by Simon Spaeti) that separates semantic layer (logic that compiles to SQL, deterministic metrics), context layer (rules and unstructured knowledge, continuously updated), ontology (object types, links, properties) and context graph. It recommends semantic plus context layer together, a graph only when the domain is interconnected enough, and says that MotherDuck's own evals found that a graph approach 'picked worse', without figures.",
+     "lesson": "A useful decision rule: choose by the cost of a wrong answer and by who consumes the output. Outputs that feed dashboards or scheduled jobs need deterministic definitions, outputs that feed a reasoning agent with a human checkpoint can rely on docs. 'A flat index of guide titles can be enough.' Governance of context (who updates it, how stale it is) is named as the hard part, with a proposed quality score per context item.",
+     "verified": "Read the primary page. Author and date are inferred from links, not stated. The eval remark has no numbers."
+    },
+    {
+     "title": "dbt agent skills and Palantir Ontology MCP (how incumbents expose their layer to agents)",
+     "url": "https://github.com/dbt-labs/dbt-agent-skills",
+     "source_type": "repo",
+     "what": "dbt Labs ships its agent interface as a repo of Agent Skills (762 stars), among them building-dbt-semantic-layer, answering-natural-language-questions-with-dbt, running-dbt-commands and querying-the-dbt-information-schema, next to an MCP server. Palantir exposes its ontology in two ways: Palantir MCP for builders (edit ontology types) and Ontology MCP for consumers, which turns object types, action types and query functions into MCP tools with per-application restrictions.",
+     "lesson": "Even the vendors of semantic layers and ontologies now deliver SKILL.md folders plus a CLI or MCP as the agent interface. The skill tells the agent the procedure (check the governed layer first, fall back to SQL), the layer supplies the definitions. Palantir's distinctive element is typed actions (writes), which a read-only data layer does not need.",
+     "verified": "Read the GitHub README of dbt-agent-skills and the Palantir docs page https://www.palantir.com/docs/foundry/palantir-mcp/overview. Did not read individual skill files."
+    }
+   ],
+   "patterns": [
+    "Written descriptions of the data explain more accuracy than the choice of model: a 4 KB markdown file adds 17-23 points (Rumiantsau and Fokeev), and modeling adds 20-25 points to raw SQL (dbt Labs).",
+    "The 'context layer' is framed as a superset of the semantic layer: executable definitions (YAML/SQL) plus prose knowledge (Markdown), usually auto-drafted and then refined by humans (a16z, Kaelio ktx, MotherDuck primer, OpenAI).",
+    "Context is stored as files in git and reviewed like code, and agents read it with file tools or a CLI instead of a dedicated semantic API (Vercel d0, ktx, Andy Chen, TextQL, dbt agent skills).",
+    "Context is generated from existing artifacts instead of written by hand: pipeline code (OpenAI), query history and BI files (a16z, Snowflake Autopilot), column profiling (Bodo PyDough), agents that read company sources (Andy Chen).",
+    "Hybrid routing is the common recommendation: governed metrics when the number must be exact, raw read-only SQL with rich schema context for exploration (dbt Labs, ktx escape hatch, MotherDuck primer).",
+    "Maintenance is named as the hard part, not creation: staleness, ownership, memory of corrections and continuous evals with golden SQL (OpenAI, a16z, MotherDuck primer, Andy Chen, Merced on Ossie's missing trust fields).",
+    "Fewer, more general tools and goal-level guidance work better with current models than many specialised tools and prescriptive prompts (OpenAI, Vercel).",
+    "Agent-specific annotations are being added to descriptor formats: ai_context with instructions, synonyms and examples (Apache Ossie), agent metadata and declared join paths (Databricks metric views), semantic views as agent tools (Snowflake)."
+   ],
+   "disagreements": [
+    "Semantic layer required versus docs sufficient: dbt Labs shows 98-100% with a semantic layer, but its own data shows raw SQL at 84-90% once tables are remodeled, and the arXiv paper gets its whole gain from a markdown file. No source compares 'semantic layer engine' against 'same information as prose' on the same questions.",
+    "Refusal versus coverage: a semantic layer scores 0% outside its modeled scope but never returns a wrong number (dbt). TextQL and a16z count this as the fatal limit (coverage grows with headcount), dbt counts it as the main safety property.",
+    "Ontology / knowledge graph versus plain files: Sequeda et al. (2023, GPT-4) show 16% --> 54% with a knowledge graph, Palantir and TextQL build on ontologies, while Andy Chen and the MotherDuck primer argue that folders and backlinks suffice and MotherDuck reports (without numbers) that a graph performed worse. The 2023 baseline is outdated and there is no 2026 head-to-head test.",
+    "The word 'ontology' is used for different things: typed objects and actions at Palantir, an OWL-style graph in Sequeda et al., git files of docs and definitions at TextQL.",
+    "Hand-curated versus auto-generated context: a16z's example is a hand-built layer that went stale, Bodo and OpenAI generate context automatically, while Vercel says that its result depended on a layer that was already well curated.",
+    "Evidence quality is weak across the whole debate: benchmarks have 5 (Vercel), 11 (dbt, Bodo) or 100 (arXiv) questions on one schema each, and most are run by a vendor of the winning approach. With so few questions, one changed outcome moves the score by 9 to 20 points, so differences of that size between approaches are not established.",
+    "Whether a standard descriptor matters: Ossie has 50+ backers but an unstable 0.x spec, no runtime, and no freshness or provenance fields, and most tools do not yet import it directly.",
+    "Coverage limits of this search: the web search budget ran out after five queries, so Malloy, LookML/Looker, Cube's own agent features, Timbr, GraphRAG over schemas, Anthropic's internal analytics write-up, Buster, Honeydew and AGENTS.md conventions for data were not checked on primary pages."
+   ],
+   "for_adele": "Adele's design (descriptor + CLI + SKILL.md, raw DuckDB SQL) matches the best-supported position for a dozen clean tables: no semantic engine is needed. The evidence says to invest in (1) table shape: wide, well-named, pre-joined Parquet, (2) one short prose file per dataset with grain, conventions, known traps and disambiguation rules, with its source cited, (3) automatic column profiles in `describe` (ranges, distinct values, nulls), (4) an Ossie-like `ai_context` field (synonyms, example queries) inside the Frictionless descriptor, (5) a file of saved corrections, (6) ten to twenty golden question/SQL pairs run as tests. Keep few tools. Add governed metrics only if a number must be exact."
+  },
+  {
+   "angle": "vendor-platform-moves",
+   "findings": [
+    {
+     "title": "Supporting Our AI Overlords: Redesigning Data Systems to be Agent-First (UC Berkeley, arXiv 2509.00997, CIDR 2026)",
+     "url": "https://arxiv.org/html/2509.00997v2",
+     "source_type": "paper",
+     "what": "The paper names the agent workload \"agentic speculation\": a high volume of exploratory queries, characterised by scale, heterogeneity, redundancy and steerability. Case studies: the success rate rises with the number of attempts (by 14% to 70%), only 10 to 20% of the sub-plans across 50 attempts are distinct, and traces start with metadata and sample rows, then statistics, then the solution. Giving \"grounding hints\" (for example which column matters) reduced SQL queries per trace from 12.67 to 10.38 (18.1%) and partial-query attempts by 36.6%. Proposed architecture: probes (SQL plus a natural-language brief), a probe optimizer that returns approximate answers during exploration, an agentic memory store, and side information such as related tables and cost estimates.",
+     "lesson": "An agent explores before it answers: metadata first, then sample rows, then statistics. A layer that serves those three steps cheaply and in few tokens (a compact describe, pre-computed column statistics, hints on which column to use) removes a measurable share of the exploratory queries. Catalog dumps of thousands of rows waste the context window, so describe output must be filtered and small.",
+     "verified": "Read the arXiv HTML v2 through WebFetch (model-summarised extraction of the primary page); the numbers quoted come from that extraction. The CIDR 2026 PDF was not opened."
+    },
+    {
+     "title": "Databricks: How agentic software development will change databases (Lakebase / Neon)",
+     "url": "https://www.databricks.com/blog/how-agentic-software-development-will-change-databases",
+     "source_type": "engineering-writeup",
+     "what": "Post of 2026-03-30 by Pandis, Shamgunov and Xin. Claims from Lakebase telemetry: agents create about 4x more databases than humans, a project has about 10 branches on average, some branch trees are more than 500 levels deep, and for about half of the agentic applications the database compute lives less than 10 seconds. Derived requirements: O(1) copy-on-write branching, no monthly cost floor, scale to zero with sub-second start, and standard Postgres interfaces and error messages because agents already know them. A companion post (2026-04-29) says an agent can provision a Neon database through the Stripe Projects CLI \"in under 350ms\".",
+     "lesson": "The vendors with the best telemetry describe agent workloads as small, short-lived, bursty and mostly discarded. The consequences are: make creation and disposal nearly free, make idle cost zero, and keep the interface a dialect that the model already knows (plain Postgres here; DuckDB SQL plays that role for an embedded analytical layer).",
+     "verified": "Both Databricks posts read through WebFetch. The numbers are vendor telemetry, not independently checked. The older \"80% of Neon databases are created by agents\" figure appears only in search snippets (attributed to Ghodsi via Axios) and was not found on the Neon agents page that I fetched."
+    },
+    {
+     "title": "Databricks Genie: best practices for curating an agent over tables",
+     "url": "https://docs.databricks.com/aws/en/genie/best-practices",
+     "source_type": "docs",
+     "what": "The official guidance says to keep the scope narrow: \"Aim for five or fewer tables\", with a hard limit of 50 tables, views or metric views, and to pre-join or denormalise into views or metric views. Table and column descriptions in Unity Catalog are called \"critical\" for accuracy. Instructions have a priority order: SQL expressions for business terms, then example SQL, and \"text instructions only as a last resort\". Reviewed questions become benchmark questions, and the agent definition can be versioned as code.",
+     "lesson": "The most detailed vendor advice is about curation, not about the engine: few wide denormalised tables, hidden confusing columns, good column descriptions, worked example queries ahead of prose rules, and a small set of benchmark questions that is rerun after each change.",
+     "verified": "Docs page read through WebFetch. No accuracy numbers are given on the page; the advice is prescriptive, not measured."
+    },
+    {
+     "title": "Snowflake-managed MCP server and semantic views",
+     "url": "https://docs.snowflake.com/en/user-guide/snowflake-cortex/cortex-agents-mcp",
+     "source_type": "docs",
+     "what": "The MCP server is a schema-level object defined in SQL. It exposes six tool types (Cortex Agent, coding agent, Cortex Search, Cortex Analyst, SQL execution, generic UDF or procedure), at most 50 tools per server, tool responses truncated at 250 KB, and only the tools part of MCP (no resources, prompts or sampling). Cortex Analyst over MCP works only with semantic views (logical tables, relationships, facts, dimensions, metrics), not with the older YAML semantic models. Access to the server does not grant access to the tools, tool annotations are \"client-facing hints, not security controls\", and exposing raw SQL next to an agent lets the client bypass the agent's governance.",
+     "lesson": "Snowflake moved the semantic description from a side file into a first-class object of the database and made it the only route for natural-language queries. It also caps the size of a tool response and puts enforcement in roles, not in tool descriptions. For a small layer: hard-cap the output size, and make read-only a property of the connection, not a sentence in the instructions.",
+     "verified": "Snowflake docs for the managed MCP server and for the semantic view overview read through WebFetch. The launch blog post returned HTTP 403, so the launch date (October 2025) comes from search snippets only."
+    },
+    {
+     "title": "BigQuery remote MCP server, MCP Toolbox for Databases, and conversational analytics data agents",
+     "url": "https://docs.cloud.google.com/bigquery/docs/use-bigquery-mcp",
+     "source_type": "docs",
+     "what": "The managed BigQuery MCP server (preview announced 2026-01-08) has six tools: list_dataset_ids, list_table_ids, get_dataset_info, get_table_info, execute_sql and execute_sql_readonly. Queries are cancelled after three minutes and results are capped at 3,000 rows; the docs recommend a separate identity for agents. The open-source MCP Toolbox (googleapis/genai-toolbox, about 16.9k stars, v1.17.0) instead lets the owner define tools as parameterised SQL in a tools.yaml and group them in toolsets. BigQuery data agents take knowledge sources (at most 100, advice to split above 20), descriptions, glossary terms and \"verified queries\", with the stated priority: verified queries, then glossary, then instructions.",
+     "lesson": "The managed surface converges on the same four verbs as a list | describe | query CLI, with a separate read-only query tool and fixed row and time caps. Two styles coexist: free SQL with caps (managed server) and pre-written parameterised queries (Toolbox). Verified queries rank above prose instructions here too.",
+     "verified": "The Google Cloud blog post, the BigQuery MCP docs, the conversational analytics docs and the genai-toolbox README were each read through WebFetch. The blog post has no tool names; they come from the docs page."
+    },
+    {
+     "title": "ClickHouse: Building a data platform for agents, and clickhousectl",
+     "url": "https://clickhouse.com/blog/building-a-data-platform-for-agents",
+     "source_type": "engineering-writeup",
+     "what": "Post of 2026-07-30 by Al Brown. It claims that agents produce bursts of concurrent low-latency queries and need discoverability, documentation readable by an LLM, and \"short-lived, task-scoped permissions\". Shipped: an open-source MCP server that is read-only by default (it also queries local files through chDB), open-source Agent Skills with prioritised best practices, llms.txt and Markdown versions of every blog post, AGENTS.md support, and a one-command local stack. Internal assistant DWAINE: more than 250 users, about 70% of warehouse questions handled. A separate CLI (clickhousectl, beta 2026-04-09) gives JSON output on every command and installs skill files into more than fifteen coding agents.",
+     "lesson": "An analytical database vendor now ships the same three artefacts as a small self-hosted layer: a CLI with JSON output, skill files that carry the usage knowledge, and a read-only default. Documentation served as Markdown is treated as part of the product for agents.",
+     "verified": "The ClickHouse blog post was read through WebFetch. The clickhousectl details come from an analyst article (Futurum, 2026-04-15), not from ClickHouse's own page; the article quotes ClickHouse as \"still investigating what good looks like for agent guardrails\". The ClickHouse docs page on agentic analytics contains no workload numbers, contrary to a search snippet (\"dozens of SQL queries per question\"), which I could not confirm."
+    },
+    {
+     "title": "Tiger Data: Agentic Postgres (Postgres for Agents)",
+     "url": "https://www.tigerdata.com/blog/postgres-for-agents",
+     "source_type": "vendor-marketing",
+     "what": "Launch post of 2025-10-21 by Kulkarni and Freedman. Stated differences: \"Agents don't click, they call\", \"Agents don't remember, they retrieve\", agents parallelise, need a sandbox, and can overload infrastructure and budget. Shipped: an MCP server with built-in prompts for schema design, query tuning and migrations plus search over the Postgres docs, copy-on-write forks of a whole database on a new block store (Fluid Storage, more than 110,000 IOPS per volume), BM25 and vector search inside Postgres, a CLI and a free tier.",
+     "lesson": "The MCP server carries expertise (how to design and tune), not only access. That is the same idea as a SKILL.md: the layer should teach the agent how to use it well, because the agent retrieves knowledge at each session instead of remembering it.",
+     "verified": "Launch post read through WebFetch. It is a product announcement; the IOPS figure is the vendor's own benchmark. InfoQ coverage (December 2025) seen in snippets only."
+    },
+    {
+     "title": "Microsoft Fabric data agent (concept and limits)",
+     "url": "https://learn.microsoft.com/en-us/fabric/data-science/concept-data-agent",
+     "source_type": "docs",
+     "what": "A generally available agent that selects among at most five data sources (lakehouse, warehouse, Power BI semantic model, KQL database, ontology, Microsoft Graph), then generates SQL, DAX or KQL, validates it and runs it. It is strictly read-only, runs with the identity of the requesting user, accepts instructions and up to 100 example queries per source, and caps answers at 25 rows and 25 columns. Lakehouse files (CSV, JSON) are not readable until they are exposed as tables. The docs state a precedence order: organisation policy, then role, then developer instructions, then user prompt.",
+     "lesson": "Microsoft bounds the agent tightly: few sources, selected tables only, small answers, read-only by construction, and a declared order of precedence between policy and instructions. The 25-row cap shows the design target: answers and aggregates, not exports. A layer that also needs bulk data needs a separate path for it (a pull command to a file).",
+     "verified": "Full Microsoft Learn page read through WebFetch (page updated 2026-10-21). Fabric IQ and ontology details were not researched beyond the mention on this page."
+    },
+    {
+     "title": "Databricks managed MCP servers under Unity Catalog",
+     "url": "https://docs.databricks.com/aws/en/generative-ai/mcp/managed-mcp",
+     "source_type": "docs",
+     "what": "Databricks exposes Genie, SQL, vector search and Unity Catalog functions as MCP endpoints. The newer ones (system.ai.genie_one_mcp, system.ai.dbsql, sandbox, web search) are Unity Catalog securables called through a gateway that adds grants, policies and tracing tables; the older workspace endpoints \"bypass Unity Gateway\" and rely only on the permissions of the underlying objects. Queries run under the permissions of the caller.",
+     "lesson": "The tool itself becomes a governed and logged catalog object. The transferable part for a small system is the trace: log every agent query with the caller and the dataset, because that log is both the audit record and the evidence for which descriptions and examples need work.",
+     "verified": "Docs page read through WebFetch. Several of the listed servers are marked Beta or Public Preview on the page. Agent Bricks was not researched (search budget exhausted)."
+    },
+    {
+     "title": "MotherDuck remote MCP server (docs)",
+     "url": "https://motherduck.com/docs/sql-reference/mcp/",
+     "source_type": "docs",
+     "what": "The managed server is read-write by default (a separate guide covers a read-only restriction). It groups tools for querying, schema exploration, catalog search and documentation questions, plus saved artefacts (Dives, Flights) and \"Guides\": Markdown documents with metric definitions and join conventions that the agent reads. For clients that support MCP instructions it sends DuckDB query guidelines. The docs state that \"every tool result the MCP server returns passes through the model's context\" and recommend the CLI to agents that have a shell for exporting large results.",
+     "lesson": "A vendor that sells an MCP server tells shell-capable agents to use the CLI for anything large, because MCP results cost context tokens. Guides stored next to the data (metric definitions, join conventions) are the same device as descriptor notes plus a SKILL.md.",
+     "verified": "Docs page read through WebFetch. The page gives no row limits or timeouts and names only two tools explicitly. The earlier search already covered MotherDuck; only the points on token cost and Guides are new here."
+    },
+    {
+     "title": "Supabase MCP server: security guidance",
+     "url": "https://supabase.com/docs/guides/ai-tools/mcp",
+     "source_type": "docs",
+     "what": "The docs recommend read-only mode (SQL runs as a read-only Postgres user), scoping the server to one project, enabling only the needed tool groups, working on a branch, and connecting to production \"only when the task requires production evidence\". Supabase wraps SQL results with text that discourages the model from following instructions found in the data, and says: \"This is not foolproof\".",
+     "lesson": "Query results are untrusted text that enters the model. Read-only access prevents writes but not a leak through the model's own answer. For public datasets the leak risk is low, but free-text columns fetched from the web can still carry instructions, so the output format should mark data clearly as data.",
+     "verified": "Docs page read through WebFetch. The fetched page itself contained an embedded instruction addressed to AI readers (send a feedback report to Supabase); it was ignored, and it illustrates the point."
+    },
+    {
+     "title": "Intelligence is Free, Now What? Data Systems for, of, and by Agents (BAIR blog)",
+     "url": "https://bair.berkeley.edu/blog/2026/07/07/intelligence-is-free-now-what/",
+     "source_type": "other",
+     "what": "Perspective piece of 2026-07-07 by Parameswaran and eleven co-authors (including Zaharia, Hellerstein, Stoica). It repeats the 10 to 20% distinct sub-plans result and says that redundancy still improves success, so the aim is to make it cheap (shared scans, approximate answers, batched queries, latency estimates), not to remove it. It argues that Markdown files plus grep will not scale as agent memory and proposes structured memory keyed by table, column and type of operation, holding corrections instead of raw traces. It also reports engines generated by agents for one workload in minutes to hours for a few dollars.",
+     "lesson": "Do not try to stop the agent from issuing many small queries; make each one fast and cheap (local Parquet and DuckDB already do). Notes learned from use (\"this column is in local time\", \"this join duplicates rows\") are most useful when attached to the table and column they concern, which a per-dataset descriptor can hold.",
+     "verified": "Blog post read through WebFetch. It is a position piece; the follow-up papers it links (arXiv 2602.13521, 2603.02001, 2603.02081) were not opened."
+    },
+    {
+     "title": "DoltHub: Agents Need Branches (response to the Berkeley paper) and Turso AgentFS",
+     "url": "http://www.dolthub.com/blog/2025-09-24-berkeley-cs-agents-need-branches/",
+     "source_type": "engineering-writeup",
+     "what": "Tim Sehn (2025-09-24) argues that agents that write need Git-style branches with per-statement rollback and inspectable diffs, since long MVCC transactions only offer all-or-nothing rollback. He quotes the paper's figure that agents \"created 20x more branches, and performed 50x more rollbacks, relative to humans\" and notes that its source (a Neon web page) is unclear. Turso's AgentFS (2025-11-13, https://turso.tech/blog/agentfs) takes a different route: one SQLite file per agent holds a POSIX-like filesystem, a key-value store and an append-only log of tool calls, so a snapshot is a file copy.",
+     "lesson": "Branching, forks and snapshots answer the problem of agents that write. A layer where agents only read published datasets does not need them. The useful residue is versioning of the data itself (a dated snapshot per fetch) so that an agent's result can be reproduced, and an append-only log of what the agent ran.",
+     "verified": "Both posts read through WebFetch. The 20x and 50x figures are quoted second-hand from the paper and the post itself questions their source."
+    }
+   ],
+   "patterns": [
+    "Agent workloads are described the same way by researchers and vendors: many small exploratory queries in bursts, mostly redundant and mostly discarded, with metadata exploration first (Berkeley Agent-First paper, BAIR blog, ClickHouse, Databricks Lakebase post).",
+    "The surface converges on a few verbs (list, describe, query, plus a read-only variant of query) with fixed caps on rows, bytes and time: BigQuery MCP (3,000 rows, 3 minutes), Snowflake MCP (250 KB, 50 tools), Fabric data agent (25 rows by 25 columns).",
+    "Curated context is the main accuracy lever and example queries rank above prose instructions: Databricks Genie (SQL expressions, then example SQL, text last), BigQuery data agents (verified queries, then glossary, then instructions), Fabric (up to 100 example queries per source), Snowflake (semantic views).",
+    "Narrow scope beats wide access: Genie advises five or fewer tables, BigQuery advises splitting above 20 sources, Fabric allows five sources and selected tables only.",
+    "Semantics move into first-class database objects next to the data instead of side files: Snowflake semantic views, Databricks metric views, MotherDuck Guides, BigQuery glossary terms.",
+    "Read-only is the default and is enforced by identity and roles, not by tool descriptions: ClickHouse MCP, Supabase read-only user, Fabric, BigQuery execute_sql_readonly, Snowflake (annotations are hints, not controls).",
+    "Vendors ship usage knowledge with the access path, as skills, prompts or Markdown docs, and add a CLI with JSON output beside MCP: ClickHouse Agent Skills and clickhousectl, Tiger MCP prompts and CLI, MotherDuck query guidelines and CLI advice, Stripe Projects CLI for Neon.",
+    "For agents that write, the answer is cheap isolation and disposal: copy-on-write branches or forks, scale to zero, snapshots (Databricks Lakebase and Neon, Tiger Fluid Storage, DoltHub, Turso AgentFS)."
+   ],
+   "disagreements": [
+    "Free SQL with caps (BigQuery execute_sql_readonly, ClickHouse MCP, MotherDuck) versus mediated access where the agent never writes raw SQL against tables (Snowflake Cortex Analyst over semantic views, MCP Toolbox parameterised tools). Snowflake's own docs warn that exposing raw SQL beside an agent bypasses its governance.",
+    "Reduce redundant agent queries or accept them: the Berkeley paper shows that hints cut queries by about 18%, yet the BAIR post says redundancy raises success and should be made cheap, not removed. Rough approximate answers can also backfire by triggering more follow-up queries.",
+    "MCP versus CLI is not settled inside single vendors: MotherDuck and ClickHouse ship both and steer shell-capable agents to the CLI for large outputs; the hyperscalers ship managed MCP only.",
+    "The headline numbers are weak evidence. They are vendor telemetry (4x databases, 10-second compute lifetime, 350 ms provisioning), the 80% Neon figure exists only second-hand, and DoltHub notes that the paper's 20x branches and 50x rollbacks trace back to an unclear Neon web page. A search snippet claiming \"dozens of SQL queries per question\" for ClickHouse was not on the page when fetched.",
+    "Read-write by default (MotherDuck remote MCP, Supabase unless configured) versus read-only by default (ClickHouse, Fabric).",
+    "Coverage limit of this search: the shared web search budget ran out after six queries, so the remaining sources were fetched from known URLs. Not covered: Agent Bricks, Fabric IQ ontologies, Open Semantic Interchange, Turso beyond AgentFS, Postgres MCP Pro, Snowflake Cortex Agents internals."
+   ],
+   "for_adele": "Adele's shape (list | describe | query | pull, read-only, descriptors, SKILL.md) matches what the platforms converged on. Branching, forks and scale to zero solve problems of agents that write; Adele can skip them. Worth adding: (1) hard caps on rows, bytes and time for query, with pull as the path for bulk data; (2) verified example queries per dataset in the descriptor, ranked above prose notes; (3) pre-computed column statistics in describe, since agents explore metadata, samples, then statistics; (4) few wide denormalised views instead of many tables; (5) a small set of benchmark questions rerun after each change; (6) an append-only query log; (7) a dated snapshot per fetch for reproducibility; (8) clear marking of result text as data."
+  },
+  {
+   "angle": "agent-native-interfaces",
+   "findings": [
+    {
+     "title": "Vercel + Braintrust: \"Testing if bash is all you need\" (SQL vs bash vs filesystem vs hybrid agents on the same data)",
+     "url": "https://vercel.com/blog/testing-if-bash-is-all-you-need",
+     "source_type": "engineering-writeup",
+     "what": "Ankur Goyal (Braintrust) and Andrew Qu (Vercel), 2026-01-22. Four agents answer questions on a dataset of GitHub issues and pull requests: SQL on SQLite, bash (just-bash) over about 68,000 JSON files, plain search/read file tools, and a hybrid of bash + SQLite. SQL: 100% accuracy, about 156k tokens, $0.51, 45 s. Bash: 52.7%, about 1.06M tokens, $3.34, 401 s. File tools: 63.0%, about 1.28M tokens, $3.89. Hybrid: 100% after fixes, at about 2x the tokens of SQL, because the agent checked SQL results against the files with grep. Five expected answers in the benchmark were wrong and had to be corrected.",
+     "lesson": "For tabular data with a clear schema, a SQL interface is far cheaper and more accurate than files explored with grep/cat. Files are useful next to SQL (for schema and documentation, and to spot-check results), not instead of it. Also: the benchmark itself had errors, so read the traces before trusting a score.",
+     "verified": "Read on the primary page. Number of questions and number of repeated runs not reported in what I read, so the uncertainty on the percentages is unknown."
+    },
+    {
+     "title": "Vercel d0: \"We removed 80% of our agent's tools\" (file system agent over a semantic layer)",
+     "url": "https://vercel.com/blog/we-removed-80-percent-of-our-agents-tools",
+     "source_type": "engineering-writeup",
+     "what": "Andrew Qu, 2025-12-22. The internal text-to-SQL agent d0 went from 17 specialised tools (schema lookup, query validation, error recovery) to two: bash in a Vercel Sandbox plus ExecuteSQL. The agent explores a Cube semantic layer stored as YAML, Markdown and JSON files with ls/grep/cat/find, using Claude Opus 4.5. On 5 queries: success 4/5 --> 5/5, mean time 274.8 s --> 77.4 s, tokens about 102k --> 61k, steps about 12 --> 7.",
+     "lesson": "The pattern is 'documentation as files + one SQL tool', not 'data as files'. The authors say it worked only because the semantic layer was already well-named and documented (\"otherwise you just get faster bad queries\"). The evidence is weak: with 5 queries, one query that flips changes the success rate by 20 points, so 80% versus 100% cannot be distinguished from chance. The time and token reductions are large enough to be more credible.",
+     "verified": "Read on the primary page (numbers, stack, caveats). No repeated runs or variance reported."
+    },
+    {
+     "title": "Anthropic: \"Introducing advanced tool use\" (tool search, programmatic tool calling, tool use examples)",
+     "url": "https://www.anthropic.com/engineering/advanced-tool-use",
+     "source_type": "engineering-writeup",
+     "what": "2025-11-24. Three API features with internal measurements. Tool search (definitions loaded on demand): context for 50+ MCP tools from about 77k to 8.7k tokens, accuracy on MCP evaluations 49% --> 74% (Opus 4) and 79.5% --> 88.1% (Opus 4.5). Programmatic tool calling (the model writes code that calls tools in a sandbox, intermediate results stay out of context): mean tokens 43,588 --> 27,297 (-37%), accuracy 25.6% --> 28.5% on internal retrieval and 46.5% --> 51.2% on GAIA. Tool use examples: 72% --> 90% on complex parameter handling.",
+     "lesson": "This is the best-quantified vendor evidence that (a) loading descriptions on demand and (b) letting the agent filter data in code before it sees it both save tokens and do not hurt accuracy. The large accuracy gain is for on-demand discovery with many tools; the gain from code execution is mostly tokens. Concrete usage examples in a tool or command description have a large measured effect.",
+     "verified": "Read on the primary page. All figures are Anthropic internal tests, sample sizes not given."
+    },
+    {
+     "title": "Anthropic \"Code execution with MCP\" and Cloudflare \"Code Mode\" (tools presented as a code API in a file tree)",
+     "url": "https://blog.cloudflare.com/code-mode-mcp/",
+     "source_type": "engineering-writeup",
+     "what": "Anthropic (2025-11-04, https://www.anthropic.com/engineering/code-execution-with-mcp) proposes a servers/ directory with one file per tool that the agent lists and reads on demand, and data filtered in the execution environment (the model sees 5 of 10,000 rows). Its 150,000 --> 2,000 tokens (98.7%) figure is one worked example with no method given. Cloudflare (Matt Carey, 2026-02-20) ships an MCP server for its whole API (2,500+ endpoints) with two tools, search() and execute(): the agent writes JavaScript against the OpenAPI spec inside a V8 isolate, about 1,000 tokens of definitions versus 1.17M tokens for one tool per endpoint.",
+     "lesson": "A fixed, tiny interface (search the catalogue with code, then execute) scales with the size of the catalogue, where one tool per object does not. The costs: you need a sandbox, and the token figures count definitions only, not what a session consumes. Neither post measures task accuracy.",
+     "verified": "Both primary pages read. The Cloudflare page gives two different baselines (over 2M in the summary, 1.17M measured with tiktoken in the body). The Anthropic 98.7% is illustrative, not a benchmark."
+    },
+    {
+     "title": "Datadog: \"Designing MCP tools for agents: lessons from building Datadog's MCP server\"",
+     "url": "https://www.datadoghq.com/blog/engineering/mcp-server-agent-tools/",
+     "source_type": "engineering-writeup",
+     "what": "Reilly Wood, 2026-03-04. CSV uses about half the tokens per record of JSON for tabular results; YAML saves about 20% on nested data. With trimmed default fields, some tools fit about 5x more records in the same budget. Pagination is cut by a token budget, not by a record count, and returns a cursor. Letting the agent write SQL (GROUP BY, LIMIT) instead of fetching raw logs made some evaluation scenarios about 40% cheaper. Errors suggest a fix (\"unknown field 'stauts' - did you mean 'status'?\").",
+     "lesson": "The most direct template for the output of a query command: CSV for flat results, a default projection with fewer columns, a limit expressed in tokens with an explicit way to get more, aggregation pushed into SQL, and errors that name the nearest valid field. The effect of the error messages is asserted, not measured.",
+     "verified": "Read on the primary page. Numbers are Datadog's own, evaluation setup not described."
+    },
+    {
+     "title": "Axiom: \"Designing MCP servers for wide events\"",
+     "url": "https://axiom.co/blog/designing-mcp-servers-for-wide-events",
+     "source_type": "engineering-writeup",
+     "what": "Neil Jagdish Patel, 2025-10-07. For 5 rows x 6 fields, CSV is 166 tokens versus 235 for minified JSON (-29%, o200k_base). The server applies a global budget of cells per result (totals and summaries first, then data tables), keeps the top N columns of wide schemas by a score (fill rate, cardinality, common names), caps at the source (an uncapped query could return 50,000 groups), defaults to a narrow time window, and writes explicit truncation notes (\"Showing 100 of 2,340 rows\").",
+     "lesson": "\"Start small, expand on demand\": bound results inside the query rather than in the formatter, say exactly what was cut and how to get the rest, and give summary statistics priority over raw rows. The stated cost: CSV loses types and nesting, so types must come from the schema description.",
+     "verified": "Read on the primary page. Token counts are small worked examples, no task accuracy measured."
+    },
+    {
+     "title": "Format benchmarks: Improving Agents (table formats, TOON) versus the TOON repository's own benchmark",
+     "url": "https://www.improvingagents.com/blog/toon-benchmarks",
+     "source_type": "engineering-writeup",
+     "what": "Improving Agents (2025-09-30 and 2025-10-28): 1,000 lookup questions over 1,000 flat records, GPT-4.1-nano. Markdown key-value 60.7% (52k tokens), XML 56.0%, YAML 54.7%, JSON 52.3% (66k), Markdown table 51.9% (25k), TOON 47.5% (21.5k), CSV 44.3% (19.5k); 95% intervals about +/-3 points. On nested data (GPT-5-nano) YAML 62.1%, TOON 43.1% (last). The TOON repo (https://github.com/toon-format/toon; 244 questions, 4 models) reports TOON 72.2% versus JSON 71.4% with 42.6% fewer tokens, and on flat data TOON 63.1% versus CSV 62.2% with CSV about 6% smaller.",
+     "lesson": "Token savings of compact formats are consistent across sources; accuracy rankings are not. In the TOON repo the differences between formats are smaller than the stated +/-2.8 to 4.6 margins, so they do not show any format to be better. The Improving Agents test puts 1,000 rows in context without repeated headers, which is the situation a data layer should avoid anyway. Practical reading: use CSV or a Markdown table for small flat results, keep results small, and do not adopt TOON for tabular data.",
+     "verified": "Both Improving Agents pages and the TOON README read. Single small models in the independent tests; the authors list this caveat. A third-party summary (dev.to) was read but not relied on."
+    },
+    {
+     "title": "Anthropic: \"Writing effective tools for agents - with agents\"",
+     "url": "https://www.anthropic.com/engineering/writing-tools-for-agents",
+     "source_type": "guideline",
+     "what": "2025-09-11. Recommendations: a response_format parameter (concise 72 tokens versus detailed 206 in the Slack example), a combination of pagination, filtering and truncation with sensible defaults (Claude Code caps tool responses at 25,000 tokens), truncation messages that steer toward narrower queries, errors that are specific and actionable, semantic names instead of UUIDs, namespaced tool names. No output format (XML, JSON, Markdown) is best in general. Method: build realistic multi-step tasks with verifiable answers, measure accuracy, calls, tokens and tool errors, keep a held-out test set.",
+     "lesson": "The transferable part is the method: write 20 to 50 realistic questions with known answers against your own interface, read the transcripts, and change descriptions and outputs based on where the agent wastes calls. Most specific recommendations in the post come with examples, not numbers.",
+     "verified": "Read on the primary page. Held-out accuracy gains are shown only in charts, no figures in the text."
+    },
+    {
+     "title": "Cursor: \"Dynamic context discovery\"",
+     "url": "https://cursor.com/blog/dynamic-context-discovery",
+     "source_type": "engineering-writeup",
+     "what": "Jediah Katz, 2026-01-06. Five uses of files as the interface: long tool outputs are written to a file that the agent reads with tail/grep instead of being truncated; chat history kept as a file after summarisation; skills (name + description in the prompt, body on demand); MCP tool descriptions synced to folders with only names in the prompt; terminal sessions as files. The MCP-as-files change cut total agent tokens by 46.9% in an A/B test on runs that called an MCP tool.",
+     "lesson": "Large outputs should go to a file and the agent should receive a path plus a short preview. Truncation loses data; a file keeps it retrievable. This is the pattern behind a 'pull' command. The 46.9% is the only measured figure (reported as statistically significant, sample size and baseline not given).",
+     "verified": "Read on the primary page."
+    },
+    {
+     "title": "Mintlify ChromaFs: a virtual read-only file system over an existing index, instead of a sandbox per session",
+     "url": "https://www.mintlify.com/blog/how-we-built-a-virtual-filesystem-for-our-assistant",
+     "source_type": "engineering-writeup",
+     "what": "2026-03-24. The docs assistant gets ls/cd/find/cat/grep through just-bash (Vercel Labs, bash reimplemented in TypeScript with a pluggable file system) backed by the Chroma index that already existed. The file tree is a gzipped JSON document, cat joins chunks, grep is a coarse filter in Chroma then an in-memory grep. P90 session start about 46 s (sandbox) --> about 100 ms; marginal cost about $0.0137 per conversation --> about 0; 30,000+ conversations per day. Writes raise EROFS; the tree is pruned by the user's permissions.",
+     "lesson": "The 'file system' can be a facade: agents need the shell vocabulary, not real files or a real container. A read-only facade is stateless and enforces access control by what is visible. The post measures infrastructure only (start time, cost), not answer quality.",
+     "verified": "Read on the primary page. No evaluation of accuracy against the previous RAG approach."
+    },
+    {
+     "title": "Block: \"Block's playbook for designing MCP servers\"",
+     "url": "https://engineering.block.xyz/blog/blocks-playbook-for-designing-mcp-servers",
+     "source_type": "engineering-writeup",
+     "what": "Salman Mohammed and Kalvin Chau, 2025-06-16, from more than 60 internal MCP servers. Design from workflows, not from endpoints. The Google Calendar server v2 syncs events into DuckDB tables and exposes one query_database tool plus macros (free_slots). The Linear server went from 30+ tools to 2 (read-only query, mutation query) with the schema in the instructions. Check output size before returning; reject with an actionable message (Goose refuses files over 400 KB and suggests sed -n). Keep prompts stable for caching (no timestamps). Separate read tools from write tools.",
+     "lesson": "Independent convergence on 'sync into DuckDB, expose one query tool, put the schema in the instructions, add macros for recurring questions'. Macros or saved views for frequent questions are a cheap addition to a query interface.",
+     "verified": "Read on the primary page. Examples are qualitative (calls reduced from 4-6 to 1), no accuracy figures."
+    },
+    {
+     "title": "Justin Poehnelt: \"You need to rewrite your CLI for AI agents\" (Google Workspace CLI, gws)",
+     "url": "https://justin.poehnelt.com/posts/rewrite-your-cli-for-ai-agents/",
+     "source_type": "engineering-writeup",
+     "what": "2026-03-04, about the open-source gws CLI. Recommendations: raw JSON payload input instead of many flags, a 'schema <method>' command that returns parameters and types at runtime, field masks to limit response size, JSON or NDJSON output when stdout is not a terminal, --page-all with one JSON object per page, --dry-run, input hardening (reject control characters, confine output paths), 100+ SKILL.md files, and the same commands exposed over MCP.",
+     "lesson": "An agent-friendly CLI is self-describing at runtime (the agent asks the CLI for the schema, the skill file stays short), lets the caller select fields, and treats agent input as untrusted. This matches a list | describe | query | pull design closely. Evidence: none measured; it is a practitioner's design rationale.",
+     "verified": "Read on the primary page. Author's affiliation not stated on the page."
+    },
+    {
+     "title": "Sandboxes for code over data: LangChain \"The two patterns by which agents connect sandboxes\" (plus Pydantic Monty, Turso AgentFS)",
+     "url": "https://www.langchain.com/blog/the-two-patterns-by-which-agents-connect-sandboxes",
+     "source_type": "engineering-writeup",
+     "what": "Harrison Chase, 2026-02-10: either the agent runs inside the sandbox (direct file access, but API keys sit inside it and the agent has no more privileges than its bash tool) or the sandbox is a remote tool (keys stay outside, pay per execution, latency per call); providers named: E2B, Modal, Daytona, Runloop. Pydantic Monty (https://github.com/pydantic/monty) is a Python-subset interpreter in Rust with no file system or network unless passed in, start under 1 ms versus about 1,500 ms for a sandbox service. Turso AgentFS (https://turso.tech/blog/agentfs, 2025-11-13) stores an agent's files, key-value state and an append-only log of tool calls in one SQLite file, mountable with FUSE.",
+     "lesson": "Three levels exist: full container or VM, an in-process restricted interpreter, and a virtual file system. For a data layer consumed by coding agents that already have a shell, the sandbox is the client's problem; the server only needs a read-only query path. An audit log of calls that is itself queryable is a cheap feature worth copying.",
+     "verified": "All three primary pages read. No performance or accuracy comparisons between providers; AgentFS describes its sandbox part as highly experimental. E2B, Modal and Daytona documentation not read. DuckDB-WASM and Pyodide as agent sandboxes not checked (search budget exhausted)."
+    },
+    {
+     "title": "llms.txt and Markdown endpoints: llmstxt.org and Cloudflare \"Markdown for Agents\"",
+     "url": "https://blog.cloudflare.com/markdown-for-agents/",
+     "source_type": "engineering-writeup",
+     "what": "llms.txt (Jeremy Howard, 2024-09-03, https://llmstxt.org/): a Markdown index at the site root with an H1, a summary and lists of links, plus a .md version of each page; intended for use at inference time. Cloudflare (2026-02-12) converts HTML to Markdown at the edge when a client sends Accept: text/markdown, and returns an x-markdown-tokens header; its own post is 16,180 tokens as HTML and 3,150 as Markdown (about -80%). It states that Claude Code and OpenCode already send that header. The MCP documentation itself points agents to its llms.txt index.",
+     "lesson": "Serving Markdown and a short index is cheap and coding agents do request it. The evidence covers token size and what publishers do; nothing I read measures whether agents complete tasks better with llms.txt. For a small data layer, the equivalent is a compact 'list' output and a Markdown 'describe' with a token count.",
+     "verified": "Both primary pages read. Adoption claims are from the authors themselves. No independent study of whether models actually fetch llms.txt was found (search budget exhausted before I could look)."
+    }
+   ],
+   "patterns": [
+    "Progressive disclosure: put only names and one-line descriptions in the prompt and let the agent load details on demand; measured token savings of 47% to 85% (Cursor A/B test, Anthropic tool search), same design in Agent Skills, Anthropic code execution with MCP, Cloudflare Code Mode.",
+    "Files are used for context and documentation, SQL for the data: Vercel d0 keeps the semantic layer as YAML/Markdown files and still executes SQL; the Vercel + Braintrust test shows SQL at 100% and about 7x fewer tokens than bash over JSON files; Block and Datadog both moved to a single query tool.",
+    "Fewer, more general tools replace one tool per endpoint: Vercel d0 (17 --> 2), Block Linear (30+ --> 2), Cloudflare (2,500 endpoints --> search + execute), Datadog (small default toolset).",
+    "Results are bounded by a token or cell budget, with an explicit note on what was cut and how to get more; large outputs go to a file with a path returned: Anthropic writing tools (25,000-token cap), Datadog (pagination by tokens), Axiom (cell budget, 'Showing 100 of 2,340 rows'), Cursor (outputs to files), Manus (restorable compression), Block (400 KB refusal with a hint).",
+    "Compact tabular output: CSV saves about 30% to 50% of tokens versus JSON for flat rows (Datadog, Axiom, TOON repo), but accuracy rankings of formats contradict each other and differences are often within the margin of error (Improving Agents, TOON repo, Anthropic: 'no single format is best').",
+    "Errors are written as instructions for the next call (nearest valid field, expected format, narrower query), and failed calls are kept in context: Datadog, Anthropic writing tools, Block, Manus. All by example; none of these sources measures the effect.",
+    "A virtual or read-only file system facade is replacing per-session containers where the agent only reads: Mintlify ChromaFs on just-bash (46 s --> 100 ms), Pydantic Monty (under 1 ms), Turso AgentFS; LangChain describes the full-container alternatives (E2B, Modal, Daytona, Runloop).",
+    "Evaluation on your own tasks is the recommended arbiter, and public numbers are thin: Anthropic's method (realistic tasks, held-out set, read transcripts), the Vercel + Braintrust post finding 5 wrong reference answers, Vercel d0 resting on 5 queries, LlamaIndex on 5 questions."
+   ],
+   "disagreements": [
+    "Bash and files versus SQL. Vercel d0 (2025-12) presents 'bash is all you need'; one month later Vercel + Braintrust measure bash over JSON files at 52.7% versus SQL at 100% on structured data. The two are compatible only if files hold the documentation and SQL holds the data.",
+    "File tools versus vector search. LlamaIndex (2026-01-13, https://www.llamaindex.ai/blog/did-filesystem-tools-kill-vector-search): on 5 papers the file agent scores higher (correctness 8.4 versus 6.4 out of 10) but is slower (11.2 s versus 7.4 s); at 100 to 1,000 documents RAG is faster and slightly more correct. Five questions per condition, so this is an indication only. Mintlify and LangChain argue for files without measuring answer quality.",
+    "Does TOON (or any format) improve accuracy? The TOON repo says slightly yes versus JSON (72.2% versus 71.4%, inside the +/-2.8 margin, so not a demonstrated difference); Improving Agents finds TOON 9th of 12 on flat data and last on nested data, and CSV near the bottom on a 1,000-row lookup, while the TOON repo has CSV level with TOON on flat data. Models, table sizes and question types differ, so no general ranking holds.",
+    "Code execution versus direct tool calls. Anthropic, Cloudflare and the CodeAct paper (arXiv 2402.01030, up to 20% higher success over 17 models) favour code; Anthropic's own measured accuracy gain from programmatic calling is small (25.6% --> 28.5%), and all sources note the added cost of running a sandbox.",
+    "Dynamic tool loading versus a stable prompt. Anthropic tool search and Cursor load definitions on demand; Manus argues against adding or removing tools during a task because it invalidates the prompt cache and confuses the model, and prefers masking.",
+    "MCP resources versus tools. The MCP specification defines resources as application-driven (the host decides what enters context) and tools as model-controlled. Every production write-up read here exposes data and schema through tools or files, not resources; I found no evidence that agents use resources well. This is an absence of evidence in my sample, not a measured result.",
+    "Limits of this search: the web search budget of the session ran out after 6 queries, so the remaining sources were fetched from known URLs. Not checked: independent studies of llms.txt uptake, E2B/Modal/Daytona documentation, DuckDB-WASM or Pyodide as agent sandboxes, any measured effect of error messages with recovery hints, papers on schema pagination."
+   ],
+   "for_adele": "The evidence supports the current shape: SQL through DuckDB for data, files and a CLI for discovery. Keep `list` tiny (name + one line), make `describe` the on-demand detail (fields, units, grain, coverage, 3 sample rows, one or two example queries: examples had the largest measured effect). `query` should default to CSV or a Markdown table, apply a row or token cap in the query itself, and print \"showing N of M, use pull or narrow the filter\". `pull` returns a path, not rows. Errors should name the nearest valid column or dataset. Skip MCP resources and TOON. Keep SKILL.md short and let the CLI describe itself. Add a log of calls and 20 to 30 questions with known answers to test changes."
+  },
+  {
+   "angle": "research-and-benchmarks",
+   "findings": [
+    {
+     "title": "Supporting Our AI Overlords: Redesigning Data Systems to be Agent-First (UC Berkeley, CIDR 2026)",
+     "url": "https://arxiv.org/abs/2509.00997",
+     "source_type": "paper",
+     "what": "Vision paper (Liu, Ponnapalli, Shankar, Zeighami, Zhu, ..., Stoica, Zaharia, Parameswaran). It names the workload of agents 'agentic speculation' and gives it four traits: scale, heterogeneity (metadata exploration, column statistics, partial queries, full queries), redundancy, steerability. Case study 1 (BIRD on DuckDB, GPT-4o-mini and Qwen2.5-Coder-7B): success rises by 14 to 70% with more attempts, and across 50 attempts the distinct sub-plans are often under 10 to 20% of the total. Case study 2 (o3 agent, 44 traces): grounding hints cut SQL queries per trace from 12.67 to 10.38 (-18%), and partial query attempts by 37%. Proposals: 'probes' (SQL plus a natural-language brief stating goal, phase and accuracy need), 'sleeper agents' in the database that return related tables, why-not explanations for empty results and cost estimates, a persistent 'agentic memory store' of earlier probes and learned metadata (encodings, missing-value markers, grain), approximate answers during exploration, cheap branching.",
+     "lesson": "Expect an agent to send many small, overlapping exploration queries before one real query. Make that phase cheap and informative: answer metadata and statistics questions without a table scan, return hints with every answer (join candidates, why a result is empty, estimated cost), and keep what earlier sessions learned about a dataset in a place where the next session can read it.",
+     "verified": "Read the arXiv HTML v2 through WebFetch (numbers above come from it) and the CIDR 2026 proceedings index. The summary noted that the text says 'more than 20%' fewer queries while Table 1 shows 14 to 37%. The Neon figure (agents create 20x more branches and 50x more rollbacks than humans) is quoted by the paper, not checked at Neon."
+    },
+    {
+     "title": "DAB: Data Agent Benchmark (UC Berkeley EPIC lab with Hasura PromptQL)",
+     "url": "https://arxiv.org/abs/2603.20576",
+     "source_type": "paper",
+     "what": "Benchmark built after a formative study of six enterprises. Paper HTML: 104 queries, 17 datasets, 4 engines (PostgreSQL, MongoDB, SQLite, DuckDB); 73% of queries need reconciliation of badly formatted join keys, 84% need values extracted from free text, 62% need domain knowledge. Best pass@1 is 57% (GPT-5.5 in Codex), 52% (Gemini 3.1 Pro), 48% (Claude Sonnet 4.6 in Claude Code); no agent exceeds 70% pass@5. Of the wrong answers, 57% are incorrect implementation, 31% incorrect plan, only 11% incorrect data selection, 1% no attempt. Removing hints changes accuracy by -0.04 to +0.02; removing hints and descriptions costs 0.02 to 0.05 and raises exploratory calls (Gemini: 23.6% --> 40.9% of calls).",
+     "lesson": "Agents usually find the right table and column. They fail later, silently, in the plan and the code: a regex for a year that matches inside an ISBN, 'MALE' matching inside 'FEMALE', an average of averages, an unrequested LIMIT. So the data layer should remove the need for ad hoc parsing (typed dates, clean join keys, categorical codes, canonical units done once at ingestion) and should state grain and aggregation rules, because the schema description alone does not prevent these errors. Descriptions mainly save exploration cost.",
+     "verified": "Read the arXiv HTML (both halves) and the GitHub README (github.com/ucbepic/DataAgentBench). The two disagree: the README states 54 queries and 12 datasets and shows a leaderboard with pass@1 of 0.99 for a system that uses a semantic layer, hints and a tuned prompt; the paper states 104 queries and 17 datasets with 57% best. I did not resolve this (the 54-query set matches the paper's 'shared harness' subset). The failure labels come from an LLM judge; a human matched it exactly on 67% of 30 trajectories."
+    },
+    {
+     "title": "KramaBench: data-to-insight pipelines over data lakes (MIT, Kraska/Madden/Cafarella groups)",
+     "url": "https://arxiv.org/abs/2506.06541",
+     "source_type": "paper",
+     "what": "104 hand-solved tasks over 1,700 files from 24 sources in 6 domains; the agent must discover files, clean, integrate and compute. Best system reaches 55.8% end to end (smolagents deep research with Claude 3.7); with the gold files given it reaches only about 61 to 63%; human baseline 76.75%. Agents identify up to 42% of the key pipeline steps and fully implement about 22% of sub-tasks. Named failures: an 'M' code for missing values not recognised, a 'Beach Name' column that encodes two things, near-duplicate files and undocumented schemas. A failure diagnosis attributes 24% (o3) and 43% (Claude) of failed tasks to not asking for clarification.",
+     "lesson": "Retrieval of the right file is the smaller problem (0 to 7% gain from oracle files). The larger one is undocumented conventions inside the data: sentinel codes for missing values, columns with two meanings, near-duplicate tables. Document or normalise these per column, and give each dataset one canonical table instead of several look-alike files.",
+     "verified": "Read the arXiv abstract page and the first 100,000 characters of the HTML v3. The source has an internal inconsistency on the 'obscured input' result (12.77% in text, 13.94% in table)."
+    },
+    {
+     "title": "DS-STAR (Google Cloud and KAIST) on DABStep, KramaBench, DA-Code",
+     "url": "https://arxiv.org/abs/2509.21825",
+     "source_type": "paper",
+     "what": "Multi-agent system for data science with a 'data file analyzer' (writes a script that summarises the structure and content of every file before planning), an LLM verifier that judges whether the plan is sufficient, and a router that backtracks. On DABStep hard tasks: 45.24% full system, 39.95% without router, 34.66% without verifier, 26.98% without the file analyzer (Gemini 2.5 Pro alone: 12.70%). KramaBench 39.8% --> 44.7%, DA-Code 37.0% --> 38.5%. Cost: about 3.5x the input tokens of ReAct.",
+     "lesson": "The component whose removal costs the most is the one that describes the data files up front (18 points on hard tasks). This is direct ablation evidence that a precomputed 'describe' output (structure, types, sample rows, value ranges) is the highest-value thing a data layer can hand an agent, and that 'the code ran' is not evidence of a correct answer.",
+     "verified": "Read the first 100,000 characters of arXiv HTML v4 through WebFetch; ablation table taken from there. One benchmark (DABStep), one base model: the size of the effect may not transfer."
+    },
+    {
+     "title": "DABStep: Data Agent Benchmark for Multi-step Reasoning (Adyen and Hugging Face)",
+     "url": "https://arxiv.org/abs/2506.23719",
+     "source_type": "paper",
+     "what": "450 tasks derived from real work at a payments company: one 138,000-row CSV, a column readme, fee rules in JSON, and a manual.md with domain definitions. 72 easy tasks (best 80.56%) and 378 hard tasks (best 14.55% at publication, o4-mini). Failure analysis: agents consult the documentation too late or not at all, skip intermediate computations (for example they filter on a monthly fraud rate without computing it), ignore output format rules, and some reasoning models score near 0% with the standard ReAct prompt.",
+     "lesson": "Even with one clean table, the hard part is business rules that are written in prose. Having a manual is not enough: agents read it late. Put definitions and computation rules where the agent cannot miss them (in the describe output, next to the field) and, where a derived quantity is standard, precompute it as a column or view.",
+     "verified": "Read the arXiv abstract page and HTML. The 'recommendations' in the fetched summary are partly inferred from the failure analysis, not stated by the authors. Hard tasks are permutations of 23 core questions, so the 378 tasks are not 378 independent observations."
+    },
+    {
+     "title": "Ambig-DS: task-framing ambiguity in data-science agents",
+     "url": "https://arxiv.org/abs/2605.09698",
+     "source_type": "paper",
+     "what": "Two diagnostic suites (51 tasks from DSBench, 61 from MLE-bench) where each task has a fully specified and an ambiguous variant; 5 agents. Under ambiguity the dominant failure is a 'silent commitment': the agent picks one plausible reading (wrong target, wrong metric) and delivers clean, runnable output. One clarifying question recovers much of the loss, but agents do not know when to ask: a permissive prompt makes them ask on clear tasks, a conservative prompt makes them default silently.",
+     "lesson": "Silent wrong answers come from ambiguity at least as much as from bad SQL. A data layer cannot make the agent ask, but it can remove ambiguity on its side: one name per concept, explicit units and time zone, explicit grain, and a SKILL.md rule that tells the agent to state the interpretation it chose (which column, which unit, which period) in its answer.",
+     "verified": "Read the arXiv abstract page only. Percentages of unflagged misframing (39 to 63%) come from a secondary summary in search results, not from the paper."
+    },
+    {
+     "title": "Text-to-SQL Benchmarks are Broken: annotation errors in BIRD and Spider 2.0-Snow (Jin, Choi, Zhu, Kang; CIDR 2026)",
+     "url": "https://arxiv.org/abs/2601.08778",
+     "source_type": "paper",
+     "what": "Expert audit finds annotation errors in 52.8% of BIRD Mini-Dev and 62.8% of Spider 2.0-Snow examples. After correcting a BIRD Dev subset and re-running 16 open-source agents, relative performance changes by -7% to +31% and ranks move by up to 9 positions; rank correlation with the original leaderboard falls from 0.85 to 0.32.",
+     "lesson": "Leaderboard differences of a few points on these benchmarks are not evidence for a design choice. For Adele, a small set of hand-verified questions on your own datasets (with the expected number, unit and period) is more trustworthy than any public score, and the questions themselves must be reviewed for ambiguity.",
+     "verified": "Read the arXiv abstract page (v3); title on arXiv is 'Pervasive Annotation Errors Break Text-to-SQL Benchmarks and Leaderboards', CIDR title confirmed on the proceedings index. Related context read on spider2-sql.github.io: the Snow leaderboard now shows 96.7 at the top while Spider 2.0-DBT tops at 65.6, which fits the saturation and reliability concern but is my reading, not the paper's."
+    },
+    {
+     "title": "BridgeScope: a toolkit between LLM agents and databases (Alibaba, CIDR 2026)",
+     "url": "https://vldb.org/cidrdb/papers/2026/p4-weng.pdf",
+     "source_type": "paper",
+     "what": "Open-source toolkit for PostgreSQL exposed as MCP tools. Three ideas: split SQL access into fine-grained tools (context retrieval, CRUD, transactions); make the tool list reflect the privileges of the user, so the agent sees early that a task is infeasible; a proxy that moves result data from one tool to the next without passing it through the model. Reported: 23 to 71% fewer reasoning steps and 30 to 82% lower token cost, 'up to 80%' in the abstract.",
+     "lesson": "Two design rules transfer directly: (1) large results should go to a file or to the next tool, not through the context of the model (Adele's 'pull' to local Parquet is the same idea); (2) the interface should show the agent what it cannot do before it tries, instead of failing after several steps.",
+     "verified": "Read the abstract, introduction and the numeric lines of the PDF text (extracted locally with pdftotext). I did not read the evaluation section in full; the two benchmarks are the authors' own."
+    },
+    {
+     "title": "Please Don't Kill My Vibe: Empowering Agents with Data Flow Control (Columbia, CIDR 2026)",
+     "url": "https://vldb.org/cidrdb/papers/2026/p10-summers.pdf",
+     "source_type": "paper",
+     "what": "Position paper with an early prototype. It argues that policy violations, corrupted state and prompt injection in agent work on databases are all undesirable data flows, and that the DBMS should enforce 'data flow control' policies natively, using provenance of each output row, the same way validation and access control once moved from applications into the database. Model-centric safety and human approval of every action are judged insufficient.",
+     "lesson": "Enforce constraints in the data system, not in the prompt. For a read-only layer the equivalent is small: a read-only connection, row and time limits enforced by the CLI, and text fields from external sources treated as untrusted data (a dataset description fetched from the web can carry injected instructions).",
+     "verified": "Read the abstract and introduction of the PDF text (extracted locally). No quantitative evaluation was seen in the parts read. The application to a read-only layer is my inference."
+    },
+    {
+     "title": "BEAVER (enterprise text-to-SQL) and 'Beyond the Harness' (context artifacts from query history)",
+     "url": "https://arxiv.org/abs/2608.22830",
+     "source_type": "paper",
+     "what": "BEAVER (arXiv 2409.02038) is built from private data warehouses and real query logs; in the v2 paper GPT-4o reaches 0% with retrieved tables, 2.1% with gold tables, 4.2% with gold tables plus column mappings; error analysis of 50 questions: wrong column mapping 59.1%, missed implicit assumptions 50.0%. 'Beyond the Harness' (Gwimm and Eisenach, workshop paper, Aug 2026) distils historical production SQL into 'SQL reference cards' and table cards: on 5,176 internal queries of a large retailer, improving the context artifacts gives about 12 to 25% gain in AST similarity versus about 3 to 12% for improving the retrieval harness. On BEAVER the best variant scores 9.00% versus 6.33% baseline, p = 0.12 on 300 held-out queries.",
+     "lesson": "Example queries that are known to be correct are a context artifact in their own right, and the content of the context matters more than the retrieval machinery around it. A few validated SQL examples per dataset in the descriptor are cheap to add. Caveat: the public-benchmark result is not established. p = 0.12 means that a difference this large would appear in about 12% of repeated samples even if the method had no effect, so the BEAVER gain could be chance; the internal result uses AST similarity, which measures resemblance to the reference SQL, not correctness of the answer.",
+     "verified": "Read both arXiv pages (abstract page for 2608.22830, HTML v2 for BEAVER). The 42 to 44% share of schema-linking errors and the 10.8% figure for a newer model come from search snippets only."
+    },
+    {
+     "title": "LiveSQLBench and BIRD-Interact (HKU BIRD team with Google Cloud)",
+     "url": "https://livesqlbench.ai/",
+     "source_type": "docs",
+     "what": "LiveSQLBench is a continuously refreshed benchmark built from updated CSV datasets, with SELECT and data-management tasks, each database paired with a 'hierarchical knowledge base' of linked business definitions (JSON now, documents planned). Large-v1 (March 2026): 18 databases with about 1,000 columns each, about 84,000 prompt tokens on average. Top leaderboard entry 57.0%; best plain model listed 35.5%. Agent evaluation costs about 15x direct generation ($0.89 versus $0.06 per task for one model). BIRD-Interact (arXiv 2510.05318, ICLR 2026 oral) adds a simulated user and ambiguity: GPT-5 completes 8.67% in the scripted protocol and 17.00% in the agentic mode.",
+     "lesson": "The benchmark community now treats a knowledge base of definitions as part of the database, next to the schema, and tests whether the agent applies a chain of linked definitions. This supports shipping definitions (derived metrics, business terms) in a structured, linkable form inside the descriptor, not in free prose elsewhere.",
+     "verified": "Read the LiveSQLBench site and the BIRD-Interact arXiv abstract page. The site does not label every leaderboard entry's category, so the 57.0% versus 35.5% comparison is approximate."
+    },
+    {
+     "title": "Automatic Metadata Extraction for Text-to-SQL (AT&T: Shkapenyuk, Srivastava, Johnson, Ghane)",
+     "url": "https://arxiv.org/abs/2505.19988",
+     "source_type": "paper",
+     "what": "Studies metadata that can be produced without domain experts: database profiling, analysis of query logs, and LLM-generated text descriptions of SQL. With profiling alone and GPT-4o (no fine-tuned model) the system held first place on the BIRD leaderboard in several periods of 2024 and again from March to at least May 2025, with and without the benchmark's 'oracle' hints.",
+     "lesson": "Machine-generated profiles per column (null share, distinct count, min and max, typical formats, frequent values) are effective metadata and cost nothing to maintain, because DuckDB can regenerate them at every refresh. Hand-written descriptions can then be reserved for what profiling cannot find: units, meaning, known caveats.",
+     "verified": "Abstract page only; the HTML version returned 404, so I have no ablation numbers and the list of profile fields in the lesson is my expectation of what 'profiling' contains, not a quote. BIRD rankings are subject to the annotation-error caveat above."
+    },
+    {
+     "title": "Deep Research is the New Analytics System (Russo and Kraska, MIT, CIDR 2026)",
+     "url": "https://vldb.org/cidrdb/papers/2026/p30-russo.pdf",
+     "source_type": "paper",
+     "what": "Argues that OLAP engines, semantic-operator systems (Palimpzest, LOTUS, DocETL) and deep-research code agents all do the same job (plan, execute, return), and that the runtime should let a code agent write programs over optimised operators. Prototype on two queries (one from KramaBench): up to 1.95x better F1 than an open deep-research agent, and 76.8% cost and 72.7% runtime savings versus an agent that calls semantic operators as plain tools.",
+     "lesson": "The trend in research is 'the agent writes a program against a good engine', not 'the agent calls many narrow tools'. This agrees with DAB's observation that the cheapest and most accurate agent wrote one larger program per question with a 4:1 ratio of database calls to Python calls. A CLI that accepts arbitrary SQL fits this direction.",
+     "verified": "Read abstract and introduction of the PDF text (extracted locally) and the numeric lines. Evidence is two queries, which is an illustration, not a measurement of a general effect."
+    }
+   ],
+   "patterns": [
+    "Schema discovery is no longer the main bottleneck for frontier agents; plan and implementation errors are (DAB: 11% wrong data selection versus 88% plan or implementation; KramaBench: oracle files add only 0 to 7%; 'The Death of Schema Linking?' reaches the same position for text-to-SQL).",
+    "Failures are silent: the code runs and the answer is wrong, because of a wrong reading of the task, an undocumented convention in the data, or an ad hoc parse (Ambig-DS, DAB regex cases, KramaBench missing-value code, DS-STAR's argument that successful execution is not verification).",
+    "A description of the data handed over before planning is the context with the best measured effect, and it mostly reduces exploration cost when the model is strong (DS-STAR ablation: -18 points on hard tasks without the file analyzer; agent-first paper: -18% queries with grounding hints; DAB: exploratory calls nearly double without descriptions; AT&T profiling paper).",
+    "Domain rules and definitions are treated as a first-class artifact next to the schema, and agents use them badly when they are only prose in a manual (DABStep manual.md consulted too late, LiveSQLBench hierarchical knowledge base, BIRD-Interact, Beyond the Harness reference cards).",
+    "Agent workloads are many small, redundant, exploratory requests, so the system should make exploration cheap, answer with hints, and remember what was learned (agent-first paper: probes, sleeper agents, agentic memory store; LiveSQLBench: agent mode costs about 15x direct generation).",
+    "Safety and efficiency constraints should be enforced by the data system and reflected in the interface, not requested in the prompt (Please Don't Kill My Vibe: data flow control; BridgeScope: tools that mirror privileges and a proxy that keeps bulk data out of the model context).",
+    "Public benchmark scores for data agents are unreliable guides for design choices (CIDR 2026 annotation-error audit: 52.8% and 62.8% faulty examples and reshuffled rankings; DABStep hard set derived from 23 core questions; DAB leaderboard entries with tuned prompts and author-derived hints; Spider 2.0-Snow near 97%).",
+    "The preferred execution model is a code agent that writes a larger program against a capable engine instead of many narrow tool calls (DAB behaviour analysis, Russo and Kraska, KramaBench where iterative code agents beat fixed pipelines)."
+   ],
+   "disagreements": [
+    "Do descriptions and hints raise accuracy? DS-STAR finds a large gain from describing files (26.98% --> 45.24% on DABStep hard), while DAB finds that removing hints and descriptions moves pass@1 by only 0.02 to 0.05 and that a hint once led an agent to abandon a correct answer. Likely reconciliation (my reading): strong agents can rebuild a description by exploring, at a cost, so the gain shows up as fewer calls more than as accuracy; neither paper reports confidence intervals that would settle it.",
+    "Explore step by step or write one large program? The agent-first paper treats massive speculation as the workload to support (accuracy up 14 to 70% with more attempts), while DAB reports that the agent with the fewest calls and the largest programs was both cheapest and most accurate, and DS-STAR gains accuracy from more refinement rounds at 3.5x token cost.",
+    "Should the database itself contain LLM components (probe interpreter, sleeper agents, semantic operators), as the Berkeley and MIT vision papers propose, or stay a plain engine behind a thin toolkit (BridgeScope, and the practice of all the benchmarks)? The vision papers have case studies and prototypes on a handful of queries, not production evidence.",
+    "Schema pruning: older pipelines and BEAVER (89% of retrieval failures are 'insufficient information retrieved') treat table retrieval as critical; 'The Death of Schema Linking?' and DAB say that strong models cope with the full schema when it fits in context. The answer depends on schema size (BEAVER and LiveSQLBench-Large have about 1,000 columns per database), which is far from a dozen tables.",
+    "When should the agent ask instead of assume? Ambig-DS, KramaBench (24 to 43% of failures attributed to not asking) and BIRD-Interact say that asking helps, but Ambig-DS also shows that no prompt setting gets the timing right (over-asking on clear tasks or silent defaults on ambiguous ones).",
+    "How much to trust any of these numbers: the CIDR 2026 audit claims that more than half of BIRD Mini-Dev and Spider 2.0-Snow examples are faulty, which undercuts results (including the AT&T metadata paper and BEAVER comparisons) that rest on those leaderboards. The DAB repository and the DAB paper also state different sizes and very different top scores.",
+    "Coverage limit of this search: the session's web search budget ran out after five queries, so the list was completed by fetching known primary URLs. Not checked: InsightBench and DA-Code primary pages, SIGMOD/VLDB 2026 proceedings, any TPC-style proposal for agent workloads, and any study that isolates unit or time-zone errors (I found none, which is not evidence that none exists)."
+   ],
+   "for_adele": "The research supports Adele's shape (describe before query, arbitrary SQL, pull to file) and shifts the effort toward ingestion. Agents find the right table; they fail silently on parsing, grain and conventions. So: normalise at ingestion (typed timestamps with explicit time zone, canonical units, clean join keys, explicit null instead of sentinel codes), and put in each descriptor the grain, allowed aggregations, definitions of derived quantities, a machine-generated column profile, and two or three validated example queries. Make `describe` cheap and complete so exploration costs few calls. Have query results repeat units, period and row count. In SKILL.md, require the agent to state its interpretation. Evaluate with a small set of hand-verified questions on your own data, not public leaderboards."
+  },
+  {
+   "angle": "open-data-for-agents",
+   "findings": [
+    {
+     "title": "UK government: Guidelines and best practices for making government datasets ready for AI (GDS / DSIT / DCMS)",
+     "url": "https://www.gov.uk/government/publications/making-government-datasets-ready-for-ai/guidelines-and-best-practices-for-making-government-datasets-ready-for-ai",
+     "source_type": "guideline",
+     "what": "Published 19 January 2026. Four pillars (technical optimisation, data and metadata quality, organisation and infrastructure, legal/security/ethics), a yes/no self-assessment checklist of 24 items, and a readiness score on a 4-point scale. Concrete demands: Parquet or Iceberg instead of CSV for anything large; keep several grains and document which use each grain supports (aggregated 'gold' tables are called unsuitable for training); OpenAPI REST with pagination and rate limits; MCP servers named explicitly for agentic access; versioned schemas with a deprecation policy; published ownership, licence, update schedule and quality status; DCAT and Dublin Core metadata; documented purpose of collection, decision rules and known biases. Croissant and schema.org are not named.",
+     "lesson": "The most concrete official checklist found. The 'metadata fitness' block is directly reusable as a descriptor test: every field defined, event time and update frequency and history clear, schema versions tracked, provenance known, quality issues documented, stable IDs present or their absence stated explicitly.",
+     "verified": "Read the HTML version of the guidance through WebFetch (model summary of the page, not the 44-page PDF). The item counts per checklist block come from that summary."
+    },
+    {
+     "title": "World Bank Data360 MCP server (AI for Data team)",
+     "url": "https://github.com/worldbank/data360-mcp",
+     "source_type": "repo",
+     "what": "MCP server over the Data360 indicator platform, built with Python 3.11+ and FastMCP, PyPI version 0.1.3, 45 stars, 394 commits. Six tools: search indicators (with a server-side check of country coverage), get data, get metadata with a `select_fields` parameter, get disaggregation (the available filter values), find codelist value (Kenya --> KEN), list indicators. Six resources including `data360://system-prompt` and `data360://codelists`. The README states the goal as answering 'without hallucinating data values' and describes the layer as glue that makes the raw API 'composable and safe for LLM tool use'.",
+     "lesson": "A publisher-built layer converges on the same verbs as Adele (search, describe, query) plus two that Adele lacks: a resolver from names to codes, and a call that lists the valid filter values of a dimension before the query is written. Metadata is fetched on demand and field by field, to keep the agent's context small.",
+     "verified": "Read the GitHub README through WebFetch. 'Official' is inferred from the worldbank organisation and the team contact; the README does not use the word. No release date visible."
+    },
+    {
+     "title": "Data Commons MCP server and agent toolkit (Google)",
+     "url": "https://docs.datacommons.org/mcp/",
+     "source_type": "docs",
+     "what": "Announced 24 September 2025 (Google Developers Blog), docs last updated 9 November 2026. Hosted endpoint https://api.datacommons.org/mcp with a free API key; also the PyPI package `datacommons-mcp` in the repo datacommonsorg/agent-toolkit (Apache-2.0, 149 stars). Six tools: `search_indicators`, `search_child_indicators`, `get_variable_metadata`, `get_observations`, `get_child_observations`, `get_multi_entity_observations`. The server now ships 'skills' as MCP resources: playbooks for three workflows (one place, child places, pairs of places with a direction such as exports). Stated limits: no events, no graph exploration, no output for visualisation.",
+     "lesson": "Even the largest public statistics graph exposes only a few intent-shaped tools (search, metadata, observations) and then adds written playbooks, served by the server itself, so that the client needs no dataset-specific prompt. This is the same pairing as Adele's CLI plus SKILL.md, with the skill travelling with the data layer.",
+     "verified": "Read docs.datacommons.org/mcp, the run_tools page, the Google Developers Blog post and the repo page through WebFetch. The ONE Data Agent example ('tens of millions' of health financing data points) comes from the blog post only."
+    },
+    {
+     "title": "datagouv-mcp: official MCP server of data.gouv.fr",
+     "url": "https://github.com/datagouv/datagouv-mcp",
+     "source_type": "repo",
+     "what": "Described in its README as the official data.gouv.fr MCP server. MIT, 1.6k stars, 270 commits, Python with uv and the official MCP SDK, Streamable HTTP only. Public endpoint https://mcp.data.gouv.fr/mcp, no key, read-only. Ten tools: search datasets and organisations, dataset info, list resources, resource info (which says whether the Tabular API can serve the file), `query_resource_data` (rows through the Tabular API, default page 20, maximum 200; CSV up to 100 MB, XLSX up to 12.5 MB), three tools for third-party APIs including one that returns a summary of an OpenAPI spec, and usage metrics.",
+     "lesson": "A national portal with tens of thousands of heterogeneous files cannot offer SQL over everything. It offers a fixed path (search --> list resources --> check that the file is queryable --> paginated rows) and falls back to the raw file URL for large files. Adele's `pull` plays the role of that fallback. The explicit 'is this resource queryable' flag is worth copying.",
+     "verified": "Read the repo page and README through WebFetch. No release dates on the page. Did not test the endpoint."
+    },
+    {
+     "title": "U.S. Census Bureau Data API MCP server",
+     "url": "https://github.com/uscensusbureau/us-census-bureau-data-api-mcp",
+     "source_type": "repo",
+     "what": "Repo under the uscensusbureau organisation, CC0, TypeScript on the MCP SDK, 107 stars, 152 commits. Four tools: `list-datasets`, `fetch-dataset-geography`, `fetch-aggregate-data`, `resolve-geography-fips`; one prompt (`get_population_data`). The server runs locally with Docker Compose and seeds a local PostgreSQL database with Census metadata, 'to support faster search'. A Census API key is required.",
+     "lesson": "The hard part of public statistics for an agent is the mapping of names to identifiers (place names to FIPS codes, variable codes), not the fetch. The Census Bureau solved it with a local, pre-seeded metadata store and a resolver tool. A small layer should index its codes and labels locally and let the agent search them.",
+     "verified": "Read the repo page through WebFetch. The page gives no dates and no status label (experimental or stable), so the maturity is unknown."
+    },
+    {
+     "title": "Wikidata MCP (Wikimedia Deutschland)",
+     "url": "https://www.wikidata.org/wiki/Wikidata:MCP",
+     "source_type": "docs",
+     "what": "Released October 2025, hosted at https://wd-mcp.wmcloud.org/mcp/, code in wmde/WikidataMCP (BSD-3, 35 stars, Python with uv). Six tools: `search_items` and `search_properties` (keyword plus vector search, with a fallback to keyword only), `get_statements` (direct statements as text triples, without qualifiers or references), `get_statement_values` (full detail for one entity and property), a hierarchy tool for instance-of and subclass-of, and `execute_sparql` (CSV output, 10 rows by default). The page recommends confirming entities and properties with the other tools before writing SPARQL.",
+     "lesson": "Two levels of detail per entity (a short text form by default, the full form on request) and a small default row limit on the free query tool. The search tools exist so that the agent never has to guess an identifier before it writes a query.",
+     "verified": "Read the Wikidata project page and the GitHub README through WebFetch. The README does not explain why text triples were chosen; 'optimised for language models' is said of the separate Textifier service."
+    },
+    {
+     "title": "Hugging Face Hub: automatic Parquet, dataset viewer API, `hf datasets sql`, MCP server with `hf_fs`",
+     "url": "https://huggingface.co/docs/hub/datasets-duckdb",
+     "source_type": "docs",
+     "what": "Every dataset on the Hub is converted automatically to Parquet (branch `refs/convert/parquet`, written `@~parquet`) and a REST API precomputes splits, column types, size, rows, search, filter and statistics. DuckDB reads `hf://datasets/...` paths natively, and the `hf` CLI has `hf datasets sql \"FROM 'hf://datasets/...' LIMIT 3\"` with `--format json` for machine-readable output. The Hub's MCP server now says that most tasks are done with a single built-in tool `hf_fs`, which lets the assistant navigate the Hub like a file system.",
+     "lesson": "The largest dataset host ended at the same shape as Adele: Parquet behind a stable path scheme, DuckDB SQL through a CLI, JSON output for agents, precomputed statistics and first rows. Its MCP server moved towards one generic tool that navigates paths instead of many narrow tools.",
+     "verified": "Read the three Hugging Face docs pages (DuckDB, dataset viewer index, MCP server) directly; the text was returned verbatim. The dataset viewer page says '100,000+ datasets', which is probably an old figure."
+    },
+    {
+     "title": "Our World in Data: one URL scheme per chart, with data, metadata and README",
+     "url": "https://docs.owid.io/projects/etl/api/chart-api/",
+     "source_type": "docs",
+     "what": "For every chart: `/grapher/{slug}.csv`, `.metadata.json`, `.zip` (CSV + metadata + README), `.readme.md`, `.config.json`. Options `csvType=filtered`, `useColumnShortNames=true`. The metadata gives per column: short and long title, short description, key description, description of the processing, unit, short unit, timespan, last update, next update, short and long citation. Three more APIs exist (tables, semantic search of indicators, site search through Algolia), wrapped by the Python library owid-catalog. Internally, OWID documents a workflow with Claude Code (CLAUDE.md, `.claude/commands`, `.claude/agents`) for updating datasets.",
+     "lesson": "No MCP server is documented; the agent-ready pattern is a predictable URL per dataset that returns the data together with a metadata file and a readable README. The column metadata (a description of the processing, the date of the next update, a ready citation) is richer than a bare Frictionless field and worth adding to Adele's descriptors.",
+     "verified": "Read the chart API, API index, search API and AI workflow pages through WebFetch. I found no official OWID MCP page in the docs navigation; an MCP server may exist elsewhere and I could not search for it."
+    },
+    {
+     "title": "ESIP checklist to examine the AI-readiness of open environmental datasets (v1.0)",
+     "url": "https://github.com/ESIPFed/data-readiness/blob/main/checklist-published/ai-ready-data-checklist-v.1.0.md",
+     "source_type": "guideline",
+     "what": "Community checklist of the ESIP Data Readiness Cluster (chair with a NOAA address), version 1.0, last updated 2023-12-20, with a fillable sheet per dataset. Four sections: preparation (gaps, outliers, gridding, whether the original sampling is still available), quality (update frequency, preliminary versus final versions, completeness in space and time, consistency of units and names over time, known bias, checksums), documentation (machine-readable data dictionary, parameters mapped to a vocabulary, DOI, contact, example code, licence, intended and non-recommended uses), access (open format, API, documentation, cloud availability).",
+     "lesson": "The checklist is older than agents and was written for model training, but its questions are the ones an agent needs answered per dataset: is this value preliminary, are units stable over time, what are the known gaps, what is this not suitable for. These fit as optional descriptor fields.",
+     "verified": "Read the README and the checklist file through WebFetch. Use by NOAA and NASA is from my memory and is not stated on the pages read."
+    },
+    {
+     "title": "Croissant 1.1 (MLCommons)",
+     "url": "https://docs.mlcommons.org/croissant/docs/croissant-spec-1.1.html",
+     "source_type": "docs",
+     "what": "Version 1.0 dated 2024-03-01, version 1.1 dated 2026-01-29 (editors from Google and from King's College London / ODI). JSON-LD on schema.org with resources (FileObject, FileSet), structure (RecordSet, Field, keys, joins through `references`) and semantic types. Required dataset properties: name, description, license, url, creator, datePublished, distribution, conformsTo. Version 1.1 describes provenance with W3C PROV-O down to field level, usage policies (DUO, ODRL), external vocabularies, and annotations such as statistics on fields. The spec mentions agents only for discovery ('RAG over an index of Croissant descriptions').",
+     "lesson": "Croissant is the format that the AI-ready guidelines of the US and of ODI point to, and it overlaps strongly with a Frictionless descriptor (resources, fields, keys). It is designed for ML loaders and discovery, not for an agent that writes SQL: it has no native place for grain, freshness or sample rows. A generated Croissant export from the Frictionless descriptor would be cheap; switching formats would bring little.",
+     "verified": "Read both spec pages through WebFetch (first 100,000 characters of 1.1). The page has no changelog, so which features are new in 1.1 is not confirmed. Support by Hugging Face, Kaggle and OpenML is from memory (the HF viewer exposes a croissant endpoint)."
+    },
+    {
+     "title": "ODI: A framework for AI-ready data (v2, December 2025)",
+     "url": "https://theodi.org/insights/reports/a-framework-for-ai-ready-data/",
+     "source_type": "guideline",
+     "what": "The Open Data Institute published a framework that defines AI readiness with specific criteria for publishers across three areas: the data, the metadata, and the design of the infrastructure. Version 2 was added in December 2025; it is based on a literature review, expert interviews and ODI practice.",
+     "lesson": "The split into data, metadata and infrastructure is the same three-part split as Adele (Parquet, descriptor, CLI). The detailed criteria need to be read in the PDF before any of them is cited.",
+     "verified": "Landing page only. The PDF with the criteria could not be fetched (my guessed URL returned 404). Details that I remember (machine-readable metadata such as Croissant, documented provenance and licence, API and bulk access) are unverified."
+    },
+    {
+     "title": "US Department of Commerce: Generative AI and Open Data, guidelines and best practices (v1.0, January 2025)",
+     "url": "https://www.commerce.gov/news/blog/2025/01/generative-artificial-intelligence-and-open-data-guidelines-and-best-practices",
+     "source_type": "guideline",
+     "what": "From memory only: version 1.0 published in January 2025 by a working group of the Commerce Data Governance Board. It groups recommendations under documentation, data formats, storage and dissemination, licensing and usage, and integrity and quality. It asks for documentation readable by people and by machines, machine-readable metadata (schema.org, DCAT, Croissant are named), stable identifiers, APIs next to bulk files, and it discusses knowledge graphs.",
+     "lesson": "The first official text that treats a language model as a reader of open data. Its core demand is that the meaning of each variable be carried in machine-readable form next to the data, not in a PDF codebook.",
+     "verified": "NOT verified in this run: commerce.gov returned HTTP 403 on three URLs and search was unavailable. Everything in this entry is recalled from memory; check the URL and the content before citing."
+    },
+    {
+     "title": "Overture Maps: versioned GeoParquet releases with a STAC pointer to 'latest'",
+     "url": "https://docs.overturemaps.org/getting-data/",
+     "source_type": "docs",
+     "what": "Data is published as GeoParquet on object storage with Hive partitions (`s3://overturemaps-us-west-2/release/2026-10-21.0/theme=places/type=place/*`). A STAC catalog (https://stac.overturemaps.org/catalog.json) carries a `latest` field that DuckDB can read to avoid hardcoded paths, and a `latest.ddb` DuckDB file holds one view per feature type. Access is through a Python CLI (`overturemaps download --bbox ... --type=building`) or plain DuckDB SQL. No MCP and no mention of agents.",
+     "lesson": "An agent-usable publisher without any agent-specific work: immutable dated releases, one small machine-readable pointer to the current release, and a ready DuckDB file of views. A `latest` pointer and a views file are cheap additions that make queries reproducible.",
+     "verified": "Read the page through WebFetch. Release cadence and the Azure mirror are not on this page."
+    }
+   ],
+   "patterns": [
+    "Publishers that built an agent interface converge on the same small set of verbs (search or list --> describe or metadata --> fetch rows or observations), with 4 to 10 tools: Data Commons, World Bank Data360, data.gouv.fr, Census Bureau, Wikidata.",
+    "A resolver from names to codes is treated as a first-class tool, because agents guess identifiers wrongly: `resolve-geography-fips` (Census), `data360_find_codelist_value` and `get_disaggregation` (World Bank), `search_items` / `search_properties` (Wikidata), `search_indicators` (Data Commons).",
+    "Workflow guidance is shipped with the data layer, not left to the client: skills as MCP resources (Data Commons), a system prompt as a resource (World Bank), 'use when' notes and workflow notes in tool descriptions (Wikidata, data.gouv.fr), an MCP prompt (Census).",
+    "Outputs are bounded by default and detail is opt-in: 20 rows per page (data.gouv.fr), 10 rows from SPARQL (Wikidata), `select_fields` on metadata (World Bank), short statements versus full statement values (Wikidata).",
+    "Hosts of bulk data rely on Parquet at predictable, versioned paths plus DuckDB, with no agent-specific protocol or with a CLI: Hugging Face (`hf://`, `hf datasets sql --format json`), Overture (dated releases, STAC `latest`, `latest.ddb`), Our World in Data (one URL scheme per chart with CSV, metadata and README).",
+    "The guidelines demand the same list: a machine-readable data dictionary with units, provenance, licence, update schedule and versioned schemas, known biases and non-recommended uses, open columnar formats, an API next to bulk files (UK GDS/DSIT 2026, ESIP checklist, Commerce 2025 from memory, ODI framework, Croissant 1.1).",
+    "Guidelines written for model training (ESIP, Croissant, Bridge2AI) and guidelines written for agents (UK 2026, which names MCP) differ on grain: the UK text asks to keep fine-grained data and to document what each grain supports, and says aggregated tables are not enough.",
+    "National statistical offices are uneven: France, the US Census Bureau and the World Bank have public MCP code, while Statistics Canada's developer page (modified 2026-09-11) and sdmx.org offer SDMX services and only a general 'AI ready' vision statement."
+   ],
+   "disagreements": [
+    "Many narrow tools versus one generic tool: Data Commons, World Bank and data.gouv.fr expose 6 to 10 typed tools, while the Hugging Face MCP server now says most tasks are done with a single file-system tool (`hf_fs`), and HF also offers SQL through its CLI.",
+    "Free query language versus fixed parameters: Wikidata gives the agent `execute_sparql` and Hugging Face gives DuckDB SQL; Data Commons, World Bank, Census and data.gouv.fr give only parameterised fetches, which is safer and less expressive (no joins, no aggregation on the server).",
+    "Hosted remote endpoint versus local server: data.gouv.fr, Data Commons and Wikidata run a public HTTP endpoint; the Census Bureau asks the user to run Docker with a local PostgreSQL database.",
+    "Which metadata standard: the US Commerce guidance (from memory) and the ODI point to Croissant and schema.org; the UK guidance names only DCAT, Dublin Core and its own GDS schema; statistical agencies stay with SDMX. None of them names Frictionless, as far as I read.",
+    "Is an agent-specific interface needed at all: Overture and Our World in Data publish no MCP server in the pages I read and are still easy for a coding agent to use, because paths, formats and metadata are predictable.",
+    "Coverage limits of this run: web search was unavailable (the session budget was exhausted), so I fetched known URLs only. Not checked: Kaggle MCP (page needs JavaScript), data.europa.eu, opendata.swiss / LINDAS, Eurostat, IMF, OECD, UN, ONS, Source Cooperative details, NIH Bridge2AI criteria (abstract only), NASA and NOAA standards. I found no evidence for or against agent work at these publishers; absence here means not checked."
+   ],
+   "for_adele": "Adele's shape (Parquet + DuckDB + descriptor + CLI with list, describe, query, pull + SKILL.md) matches what Hugging Face, Overture and the public MCP servers converged on. Gaps to consider: (1) a `search` or `resolve` verb over codes and labels (place, variable, category values), the tool that every publisher added; (2) descriptor fields taken from the UK and ESIP checklists: preliminary versus final values, known gaps and biases, non-recommended uses, processing notes, next update, ready citation, schema version; (3) bounded output by default and metadata by field; (4) a `latest` pointer with dated snapshots; (5) optional Croissant export, generated from the Frictionless descriptor. The Commerce and ODI details are unverified in this run."
+  },
+  {
+   "angle": "practitioner-small-scale",
+   "findings": [
+    {
+     "title": "Paul Goldsmith-Pinkham, \"Large Datasets and Structured Databases: Claude Code for Economists\" (part 4 of a series)",
+     "url": "https://paulgp.substack.com/p/large-datasets-and-structured-databases",
+     "source_type": "engineering-writeup",
+     "what": "An economist had Claude Code build a mortgage panel (HMDA 2007-2024): 291M rows, about 70 GB of CSV converted to about 6 GB of Parquet, queried with DuckDB, no pandas on the full data. The central device is a `metadata` table inside the .duckdb file (column name, description, type, valid values with code meanings, year coverage), so that a new session runs `SELECT * FROM metadata` and needs no explanation again. Pipeline is plain scripts (download, convert, harmonize, build_db) plus a saved plan file. Reported problems: a sub-agent ignored the \"stay in this directory\" rule, the delimiter differed from the API documentation, FIPS codes were inconsistent, a break in identifiers in 2018 produced an artificial dip, and some downloads ran as inline curl and were not reproducible.",
+     "lesson": "This is the closest published twin of Adele at the scale of one person: Parquet + DuckDB + a machine-readable description per column, stored next to the data so that it survives context compaction and handoffs. The description must carry valid values, code meanings and coverage per year, and the known breaks in the series (format eras, identifier changes), because those caused the real errors. Require scripts for every fetch.",
+     "verified": "Read on the primary page (via WebFetch summary): stack, numbers, metadata table, list of failures. Published 2026-04-05."
+    },
+    {
+     "title": "Anthropic data team, \"How Anthropic enables self-service data analytics with Claude\"",
+     "url": "https://claude.com/blog/how-anthropic-enables-self-service-data-analytics-with-claude",
+     "source_type": "engineering-writeup",
+     "what": "Not small scale, but the most detailed report of failures that I found. The team states that analytics accuracy is a problem of context and verification, not of code generation. Stack: few governed canonical datasets, a semantic layer, lineage, a knowledge skill that routes to about 30 curated reference files per domain (grain, exclusions, gotchas, routing triggers), a runbook skill, offline evals and a provenance footer on each answer. Numbers: at most 21% accuracy on their evals without skills, above 95% with them; accuracy drifted from about 95% to about 65% in one month until documentation was maintained in the same PR as the data model (about 90% of data-model PRs now include a skill change). Failed: metric definitions generated by an LLM (net negative), raw access to thousands of past queries (under 1 point), repeated refinement of docs (three iterations in a row were net negative because docs got longer), a cheaper reviewer model.",
+     "lesson": "Short curated reference files that state grain, exclusions and gotchas do most of the work; more text is not better. Descriptions decay fast, so generate or update them in the same step that changes the data. Let the model draft descriptions, but a human owns definitions. Keep a small fixed set of question/answer pairs to detect drift. The authors say the heavier process may be unnecessary for simple setups.",
+     "verified": "Read on the primary page (via WebFetch summary), published 2026-06-03. It is a vendor engineering blog (Anthropic writing about Claude), so the numbers are self-reported and not independently checked."
+    },
+    {
+     "title": "nao Labs context benchmarks: \"What Context Has the Most Impact on Analytics Agent Performance?\" and the semantic layer follow-up",
+     "url": "https://getnao.io/blog/context-impact-analytics-agent/",
+     "source_type": "vendor-marketing",
+     "what": "A small ablation by a vendor of an open-source analytics agent (nao, Apache 2.0, about 2k stars, context as files produced by `nao sync`). 40 question/SQL pairs on 12 tables, 8 context configurations, 3 runs each, scored by exact diff of the result data. Reported ranking: a hand-written rules.md (join keys, grain, metric definitions, exclusions, gotchas) helped most; context as files beat schema discovery through MCP (at about 2x tokens); 10 sample rows per table beat column profiling once rules existed; exposing only the clean layer helped; adding the full dbt repository reduced reliability. Best configuration reached only 45%. The follow-up (https://getnao.io/blog/semantic-layer-impact-analytics-agent/) found that semantic YAML added to the context changed nothing, and that forcing queries through a metrics store gave fewer wrong answers but much lower coverage, about 3x the time and 4x the tool calls.",
+     "lesson": "For a dozen tables, the order of investment is: expose only clean tables --> schema with column descriptions --> about 10 sample rows --> one short file of rules and gotchas. A formal semantic layer is not the first thing to build. Adele's descriptor already covers the first three; the missing piece is the free-text gotchas per dataset.",
+     "verified": "Both posts read on the primary pages (via WebFetch summary). Per-configuration numbers are in charts that the fetch did not return; only 45% and the relative statements are confirmed. Vendor source, unnamed model, 40 questions with 3 runs: this is a small sample, so differences of a few points between configurations are within run-to-run noise and only the large effects (rules.md, full dbt repo) deserve trust. A third-party dev.to post cites the same work as 17% --> 86%; the nao blog index says 45% --> 86%; I could not reconcile the 17%."
+    },
+    {
+     "title": "Simon Willison, NICAR 2026 workshop \"Coding agents for data analysis\" (handout) + Showboat",
+     "url": "https://simonw.github.io/nicar-2026-coding-agents/",
+     "source_type": "talk",
+     "what": "A three-hour workshop for data journalists (announcement: https://simonwillison.net/2026/Mar/16/coding-agents-for-data-analysis/). Stack: SQLite, sqlite-utils, Datasette, Codex and Claude Code in Codespaces; the whole room spent $23 of tokens. The pattern is thin: load a CSV into SQLite, let the agent query it through a CLI (`sqlite-utils`, or `dclient` for a remote Datasette), and tell the agent to learn each tool with `--help`. The agent starts from `select sql from sqlite_master`. Showboat (https://github.com/simonw/showboat, about 1.3k stars) records each command and its output in a Markdown file that `showboat verify` can re-run. The handout lists what to check: re-run queries yourself, the agent may misread what a column means, spikes may be reporting deadlines.",
+     "lesson": "The small-scale consensus interface is a CLI whose `--help` is the documentation, plus SQL. Two things the handout names as the real risks are exactly what a descriptor should prevent: wrong reading of a column, and artifacts of how data is reported. A replayable log of the queries behind an answer is cheap and gives auditability.",
+     "verified": "Read the announcement post, the pages asking-questions.html and exploring-data.html, and the Showboat README (via WebFetch summary). The other handout sections (cleaning, visualizations, scraping) were not read."
+    },
+    {
+     "title": "Simon Willison, DSPy evaluation of the Datasette Agent prompts (and the Datasette Agent release)",
+     "url": "https://simonwillison.net/2026/Jul/2/dspy-datasette-agent-prompts/",
+     "source_type": "engineering-writeup",
+     "what": "Datasette Agent (2026-05-21, https://simonwillison.net/2026/May/21/datasette-agent/) is a plugin that answers questions by writing read-only SQL against SQLite; the demo runs on a cheap small model (Gemini 3.1 Flash-Lite). An evaluation harness built with DSPy then ran the real tools and prompts on an auto-generated gold set. The main finding: the schema listing in the prompt showed only table names while the prompt advised against calling `describe_table` when the information was already available. Baseline traces showed the model guessing column names (page_count, o.order_id, first_name) and looping on errors. The proposed fix is to include column names in the listing or soften the advice.",
+     "lesson": "What `list` prints decides whether the agent guesses. If the cheap overview omits column names, the agent invents them instead of calling `describe`. Put column names (and units) in the first thing the agent sees, and check that SKILL.md advice matches what the output really contains. Traces of real runs reveal this faster than reasoning about the prompt.",
+     "verified": "Read both posts on the primary site (via WebFetch summary). The July post is a short link post; no accuracy numbers are given there (they would be in the linked repo, which I did not open)."
+    },
+    {
+     "title": "Vercel, \"We removed 80% of our agent's tools\" (d0)",
+     "url": "https://vercel.com/blog/we-removed-80-percent-of-our-agents-tools",
+     "source_type": "engineering-writeup",
+     "what": "Vercel's internal text-to-SQL agent went from 17 specialized tools (schema lookup, validation, error recovery, hand-coded retrieval) to essentially two: run bash in a sandbox, and run SQL. The semantic layer (Cube) is a directory of YAML, Markdown and JSON files that the agent reads with grep, cat, find and ls. On 5 benchmark queries: success 4/5 --> 5/5, 274.8 s --> 77.4 s, about 102k --> 61k tokens, about 12 --> 7 steps. Their own caveat: with poor names or undocumented joins, \"You'll just get faster bad queries.\"",
+     "lesson": "Descriptions as plain files that the agent can grep, plus one query command, beat a wide tool surface. This supports Adele's four-verb CLI, and it argues for also leaving the descriptors on disk as files (not only behind `describe`). The precondition is the quality of the descriptions.",
+     "verified": "Read on the primary page (via WebFetch summary), published 2025-12-22. Vendor blog that promotes Vercel products; the benchmark has only 5 queries, so 80% versus 100% is one query of difference and is an anecdote, not a measurement."
+    },
+    {
+     "title": "marimo, \"marimo pair: letting agents use notebooks as a tool\" + Hacker News thread",
+     "url": "https://marimo.io/blog/notebooks-as-a-tool-for-agents",
+     "source_type": "engineering-writeup",
+     "what": "marimo first connected agents through a read-only MCP server with fixed tools (list_cells, read_cell). It failed in a specific way: \"The MCP tools worked for questions we had anticipated\", and each new need required a new endpoint. They replaced it with a skill plus a CLI that runs arbitrary Python in the live kernel (scratchpad calls), and a transactional API to commit cells, where the runtime rejects invalid edits with specific errors. The skill tells the agent to run `help(cm)` so that the API documents itself. In the HN thread (https://news.ycombinator.com/item?id=47678844) the maintainer confirms the move from discrete MCP tools to a bash script; others (Posit's t-kalinowski, agentnb, replsh) converge on \"one REPL tool\".",
+     "lesson": "Give the agent a general language (SQL or Python) over the data instead of a menu of fixed views; enforce rules in the tool and return actionable errors instead of writing the rules in the skill; keep the skill short and let the tool describe itself at run time. Separate scratch exploration from work that is kept.",
+     "verified": "Read the blog post (2026-07-20, Trevor Manz), the docs page and the HN thread (via WebFetch summary). Engineering blog of the vendor of the tool."
+    },
+    {
+     "title": "Kevin Schaul (Washington Post), \"AI data journalism\" write-up on consolidating federal AI inventories",
+     "url": "https://kschaul.com/post/2026/02/09/2026-02-09-ai-data-journalism/",
+     "source_type": "engineering-writeup",
+     "what": "A data journalist used Claude Code (Opus 4.5) and Codex to find, download and merge the AI use-case inventories of federal agencies, which come in different formats and column schemes, for a published story. The one-shot prompt (find + download + merge) hit the usage limit after about 10 minutes of web search with nothing saved. What worked: one step at a time, a download script driven by a CSV of URLs, a merge script refined iteratively, idempotent reruns, reading all the code. His rule: he would not trust an LLM to read the data directly, but is comfortable with AI writing code that can be audited and rerun.",
+     "lesson": "Newsroom practice puts the trust boundary at code, not at the model's reading of rows: answers must come from a query or script that a human can rerun. Fetching must be scripted, incremental and idempotent, with progress written to files. Harmonizing heterogeneous public files is where agents save the most time.",
+     "verified": "Read on the author's own blog (via WebFetch summary); also read the secondary coverage at mediacopilot.ai. Related but only abstract read: Data2Story (arXiv:2606.11176), a multi-agent system where an inspector links each number to data or code and a verifier re-executes it; 18 articles, 53 raters."
+    },
+    {
+     "title": "Data Tripper, \"Context Engineering for Analytics Engineers\" (mining query logs into a join registry)",
+     "url": "https://datatripper.substack.com/p/context-engineering-for-analytics",
+     "source_type": "engineering-writeup",
+     "what": "An analytics engineer parsed hundreds of thousands of production queries with sqlglot (built with Claude Code) and produced three small files kept in the docs folder of the dbt repo: a `join-registry.yml` (tables, keys, join type, frequency, risk of orphans), a library of slow patterns with measured penalty (NOT IN with subquery 4.18x slower, SELECT * 2.08x), and a mapping of canonical names. Before, about 4 in 10 agent queries needed fixes and agents invented field names; after, the author reports far fewer corrections and no more \"column does not exist\" errors (no measured rate given).",
+     "lesson": "The most common concrete failures are invented columns and wrong join paths. A small file of verified joins (which key, which grain, what breaks) removes them. For Adele, which has no query history, the equivalent is to write by hand the few valid joins between datasets (shared keys, time zone, resolution) in the descriptors.",
+     "verified": "Read on the primary Substack page (via WebFetch summary), published 2026-02-23. The author is pseudonymous and the improvement is reported without a measured after-rate. It contradicts in part Anthropic's finding that raw query history barely helps; the difference is that here the history is distilled into a small curated file."
+    },
+    {
+     "title": "Tim Hiebenthal, \"DuckBrain\" (Hands-On Data) and Karpathy's \"LLM Wiki\" gist",
+     "url": "https://handsondata.substack.com/p/local-thoughts-how-2-days-obsessing",
+     "source_type": "engineering-writeup",
+     "what": "Two personal-scale knowledge stacks with the same position. DuckBrain: about 300 lines of Python, 4 MCP tools, DuckDB full-text search over an Obsidian vault, built in about 3 hours; Markdown files are the single source of truth, no vectors; the author rejected tools that copy files into Qdrant, Supabase or Milvus (about 600 MB of dependencies, stale indexes from file watchers). Karpathy's gist (https://gist.github.com/karpathy/442a6bf555914893e9891c11519de94f, 2026-04-04): raw sources that are never modified, a wiki of Markdown pages that the LLM maintains, a schema file (CLAUDE.md), an index.md with one line per page that the LLM reads first, an append-only log.md, and a periodic lint for stale or contradictory pages; no embeddings at moderate scale.",
+     "lesson": "At personal scale people converge on: plain files in git that a human can read and correct, an index with one line per item read first, keyword search instead of vectors, DuckDB to query files in place. An append-only log and a lint pass (stale coverage, description versus actual schema) transfer directly to a dataset catalog.",
+     "verified": "Read both primary pages (via WebFetch summary). DuckBrain's author admits that he did not test most alternatives in depth. A third project, personal-db (https://github.com/intelc/personal-db, 3 stars), shows the same shape for personal structured data: one SQLite file, one manifest.yaml + schema.sql + ingest.py per source, validation before sync, single writer; README only."
+    },
+    {
+     "title": "Skill collections of researchers and journalists (AERS for empirical social science, claude-skills-journalism)",
+     "url": "https://github.com/brycewang-stanford/Awesome-Agent-Skills-for-Empirical-Research",
+     "source_type": "repo",
+     "what": "Research and newsroom communities package practice as skills, not as data infrastructure. AERS (about 5k stars, maintained by CoPaper.AI with Stanford REAP) lists 78 collections with 1,151 skills for economics and social science: Stata and R workflows, causal inference, replication audits, and a few thin wrappers for data access (Kaggle CLI, SEC EDGAR via edgartools, OpenAlex). claude-skills-journalism (https://github.com/jamditis/claude-skills-journalism, 452 stars) has a DuckDB/polars pipeline skill, a catalog of free APIs, and a hook that flags data stories without a methodology section.",
+     "lesson": "In these communities almost nobody publishes a described, queryable data layer; they publish procedures and wrappers around other people's APIs. A small server with curated descriptors is rarer than skills, and the useful idea to borrow is the enforcement by hook (an answer must state its sources and method).",
+     "verified": "Only the two README pages were read (via WebFetch summary). Star counts and skill counts are from those pages; the About text of AERS claims \"23,000+\" skills while the README counts 1,151. I did not read individual SKILL.md files, so the quality is unknown."
+    },
+    {
+     "title": "Rakesh Therani, \"How to Build a Self-Learning Agentic Analytics System on ClickHouse\"",
+     "url": "https://dev.to/rakeshtherani/how-to-build-a-self-learning-agentic-analytics-system-on-clickhouse-32b8",
+     "source_type": "other",
+     "what": "A long build guide (about 1,200 lines of code claimed) that compiles the practice of others into one layout: context as Markdown in git (rules.md, metrics.md, tables/*.md with physical layout and gotchas, skills/*.md, memory/corrections.yaml), three tools only (read_context, execute_sql, explain_query), `execute_sql` refuses to run until the context was read, requests for a context file that does not exist are logged as a signal of what to document next, 40+ golden questions gate changes, and a daily rerun detects drift.",
+     "lesson": "Two cheap mechanisms are worth copying: log what the agent asked for and did not find (it tells you which description is missing), and make the tool nudge or force a `describe` before the first `query` on a dataset. The rest is sized for a company.",
+     "verified": "Read only the first 100,000 of about 193,000 characters (via WebFetch summary). It is a secondary compilation: its numbers for Ramp, OpenAI, Gorgias and Vercel are given without links and I did not verify them, except Vercel and Anthropic, which match the primary posts."
+    }
+   ],
+   "patterns": [
+    "Parquet or SQLite files + an embedded SQL engine + plain scripts is the default stack at small scale; nobody at this scale runs a warehouse or a vector store (Goldsmith-Pinkham, Willison NICAR, DuckBrain, personal-db).",
+    "The description of the data is stored next to the data in a form that the agent reads with ordinary tools (a metadata table, Markdown or YAML files, an index read first), and it must state grain, units, code meanings, coverage and known breaks (Goldsmith-Pinkham, Anthropic, nao, Vercel, Karpathy).",
+    "Short curated context beats exhaustive context: a rules or gotchas file and about 10 sample rows help most, while full repositories, raw query history and ever longer docs are neutral or harmful (nao, Anthropic, Vercel).",
+    "Few general tools (a shell or CLI with good --help, plus SQL or Python) replace many fixed tools, and several teams moved from MCP endpoints to that shape after the fixed views proved too narrow (marimo, Vercel, Willison, HN thread).",
+    "The most frequent concrete failures are invented column names, wrong joins or grain, and misreading a column or a reporting artifact; they come from what the overview omits (Willison DSPy evaluation, Data Tripper, NICAR handout, Goldsmith-Pinkham).",
+    "Trust is placed in code that can be rerun and audited, not in the model reading rows; practitioners want a replayable record of queries and a provenance line per answer (Schaul, Showboat, Anthropic, Data2Story).",
+    "Descriptions decay within weeks unless they are updated in the same step as the data, and a small fixed set of questions with known answers is the only way people detect it (Anthropic, nao, the ClickHouse guide).",
+    "Agents are good and cheap at the ingestion work (download, convert, harmonize heterogeneous public files) when it is done step by step with scripts and saved progress; one-shot runs and inline commands failed (Schaul, Goldsmith-Pinkham)."
+   ],
+   "disagreements": [
+    "Semantic layer: Vercel and the Anthropic team place a semantic layer at the center, while nao's small benchmark found that semantic YAML added nothing over a rules file and that a metrics store cut coverage at 3x the latency. The setups differ (large governed organizations versus 12 tables, a layer built in days), and nao sells a competing approach.",
+    "Query history as context: Anthropic measured under 1 point of gain from raw access to thousands of past queries; Data Tripper reports a large gain from the same raw material once distilled into a small join registry. Compatible reading: structure helps, access does not. Neither result was replicated.",
+    "MCP versus CLI and files: marimo and Vercel moved away from fixed MCP tools, yet DuckBrain and personal-db at personal scale still choose MCP (for reach across Claude Desktop, Cursor and others), and nao found that rules.md + a warehouse MCP did almost as well as files. The real variable seems to be general versus fixed tools, not the protocol.",
+    "Who writes the descriptions: Anthropic found LLM-generated metric definitions net negative and wants humans to own definitions; Karpathy's wiki and Goldsmith-Pinkham's metadata table are written by the agent. No one measured this at small scale.",
+    "Strength of evidence: almost every number here is self-reported on tiny samples (Vercel 5 queries, nao 40 questions with 3 runs) or by vendors. With 5 queries, one query changes the success rate by 20 points; with 40 questions, differences of a few points between configurations cannot be told apart from run-to-run variation. Only the large effects should guide design.",
+    "Coverage gap of this search: the web search budget of the session ran out after the first round. I found nothing verifiable for quant or finance shops, for Evidence, Observable or Hex with agents, or for Reddit threads; the absence of findings there reflects the interrupted search, not the field."
+   ],
+   "for_adele": "The design matches what individuals converge on (Parquet, DuckDB, per-dataset descriptor, small CLI, skill). Changes that the evidence supports:\n\n1. `list` should print column names and units, not only dataset names; otherwise agents guess columns.\n2. Add to each descriptor a short hand-written \"gotchas\" block: grain, code meanings, series breaks, reporting artifacts, valid joins to other datasets.\n3. Keep descriptors also as plain files that the agent can grep.\n4. Keep the skill short; put rules in the CLI as specific errors and in `--help`.\n5. Regenerate coverage, freshness and sample rows on every fetch.\n6. Log queries (provenance) and failed `describe` lookups.\n7. Keep 20 to 40 questions with known answers to detect drift.\n\nSkip a semantic layer and vectors."
+  },
+  {
+   "angle": "trust-governance-failure",
+   "findings": [
+    {
+     "title": "Supabase MCP data leak demonstration (General Analysis) and Simon Willison's reading of it as a \"lethal trifecta\"",
+     "url": "https://www.generalanalysis.com/blog/supabase-mcp-blog",
+     "source_type": "engineering-writeup",
+     "what": "Security researchers (8 July 2025) built a support-ticket app on Supabase with row-level security enabled. An attacker wrote hidden instructions in a ticket message. When a developer asked Cursor (through the Supabase MCP server) to show the latest ticket, the assistant read the message as a command, selected the private `integration_tokens` table and inserted its content into the ticket thread. The assistant ran as `service_role`, which bypasses row-level security by design. Willison (https://simonwillison.net/2025/Jul/6/supabase-mcp-lethal-trifecta/) notes that this single server supplied all three conditions: private data, untrusted content, and a channel to send data out.",
+     "lesson": "Text stored in rows is an instruction channel for whatever agent reads the rows. Row-level security does not help if the agent connects with a role above it. The mitigation that works is structural: remove one of the three conditions (here: read-only role, and keep secrets out of the reachable schema), not filtering.",
+     "verified": "Read both primary pages (General Analysis post and Willison's post). The General Analysis page states that it was reviewed on 21 October 2026 without rerunning the test against the current server."
+    },
+    {
+     "title": "Supabase: \"Defense in Depth for MCP Servers\" (vendor response to the leak)",
+     "url": "https://supabase.com/blog/defense-in-depth-mcp",
+     "source_type": "engineering-writeup",
+     "what": "Supabase lists what it added: read-only mode, scoping to a single project, feature groups that restrict which tools the model can call, wrapping of query results with a warning that tells the model not to follow instructions found in the data, experiments with LLM classifiers, and a recommendation to keep manual approval of each tool call. Its four recommended practices: use non-production data, keep manual approval on, limit capabilities, monitor and log every MCP query. It states that guardrails reduced the risk and did not eliminate it, and that prompt injection stays its top concern even in read-only mode.",
+     "lesson": "A vendor with every incentive to say \"fixed\" says instead that wrapping and classifiers are not sufficient. What it treats as mandatory is boring: read-only by default, narrow scope, a log of every query, and no production secrets within reach of the agent.",
+     "verified": "Read the primary page. It is a vendor blog, but it is an engineering response with admissions of limits, not marketing. The claim of zero reported customer incidents is the vendor's own."
+    },
+    {
+     "title": "Datadog Security Labs: SQL injection in the reference Postgres MCP server (read-only bypass)",
+     "url": "https://securitylabs.datadoghq.com/articles/mcp-vulnerability-case-study-SQL-injection-in-the-postgresql-mcp-server/",
+     "source_type": "engineering-writeup",
+     "what": "Anthropic's reference server `@modelcontextprotocol/server-postgres` (v0.6.2, archived, about 21,000 weekly npm downloads) enforced read-only access by wrapping each query in `BEGIN TRANSACTION READ ONLY` ... `ROLLBACK`. The Node `pg` client accepts several statements separated by semicolons, so an input that starts with `COMMIT;` ends the read-only transaction and the rest runs with write access (the example is `DROP SCHEMA`). Because connections are pooled, the injected SQL can also change session state (e.g. `statement_timeout` of 1 ms) and break the queries of other users. The fix (in the Zed fork) uses prepared statements, which accept a single statement, and destroys the connection after use.",
+     "lesson": "\"Read-only\" enforced by the application around the query is not read-only. Enforce it below the query: a database role or file opened without write permission, one statement per call, and no session state shared between calls.",
+     "verified": "Read the primary page in full (summary by the fetch tool). Download numbers are those reported in the article."
+    },
+    {
+     "title": "DuckDB documentation: \"Securing DuckDB\" (running untrusted SQL)",
+     "url": "https://duckdb.org/docs/2.0/operations_manual/securing_duckdb/overview.html",
+     "source_type": "docs",
+     "what": "The official checklist for untrusted SQL: `SET allowed_directories = [...]` then `SET enable_external_access = false` (blocks ATTACH, COPY, read_csv/read_parquet on arbitrary paths and URLs); disable automatic install and load of extensions and community extensions; set `threads`, `memory_limit`, `max_temp_directory_size`; finish with `SET lock_configuration = true` so that the query cannot undo the settings. The page states that DuckDB has no built-in query timeout (\"implement strict query timeouts at the application level\") and that these settings are \"not a substitute for proper sandboxing\".",
+     "lesson": "With DuckDB, a free-form `query` command is by default a file reader and an HTTP client (`read_parquet('https://...')`, `COPY ... TO`). An agent-facing DuckDB endpoint needs the lock-down sequence in a fixed order, a read-only connection, and a timeout that the wrapper process enforces, because the engine has none.",
+     "verified": "Read the primary docs page (DuckDB 2.0 docs, reached through a redirect from the stable URL). SQL statements quoted from the page via the fetch tool."
+    },
+    {
+     "title": "Meta: \"Agents Rule of Two\" (and Willison's \"lethal trifecta\")",
+     "url": "https://ai.meta.com/blog/practical-ai-agent-security/",
+     "source_type": "guideline",
+     "what": "Meta's rule: until prompt injection can be reliably detected, an agent session should hold at most two of three properties: [A] processes untrustworthy inputs, [B] accesses sensitive systems or private data, [C] changes state or communicates externally. If all three are needed, the agent must not run autonomously (human approval or a fresh session). Willison's version (https://simonwillison.net/2025/Jun/16/the-lethal-trifecta/) is the same triple restricted to data theft, with the remark that a filter that catches 95% of attacks is \"very much a failing grade\" in security.",
+     "lesson": "This is the design check that experienced teams apply to a data layer: classify every dataset as trusted or untrusted content, and every consumer session by what else it can read and where it can send. A data layer of public data supplies property [A] to an agent that usually already has [B] and [C].",
+     "verified": "Read both primary pages. Meta's post states its own limits (does not cover hallucination or excess privilege)."
+    },
+    {
+     "title": "LinkedIn SQL Bot: \"Practical text-to-SQL for data analytics\"",
+     "url": "https://www.linkedin.com/blog/engineering/ai/practical-text-to-sql-for-data-analytics",
+     "source_type": "engineering-writeup",
+     "what": "An internal multi-agent text-to-SQL system inside LinkedIn's DARWIN platform, used by hundreds of employees. Trust mechanisms: domain experts certified hundreds of tables with mandatory descriptions; deprecated tables are removed automatically through DataHub flags; validators check that tables and fields exist and run EXPLAIN before the query is shown; access is checked per dataset against the user's groups. Evaluation: 130+ benchmark questions over 10 product areas, scored by experts and an LLM judge; about 60% of questions have several accepted answers, and without them recall was under-reported by 10 to 15%.",
+     "lesson": "Three mandatory pieces: a curated set of certified datasets (not the whole lake), deterministic validators that use information that the model did not have (catalog, EXPLAIN), and a small benchmark with several accepted answers per question that experts review every quarter.",
+     "verified": "Read the primary engineering blog. Satisfaction figures (about 95% rate accuracy \"Passes\" or above) come from an internal survey, so they measure opinion, not correctness."
+    },
+    {
+     "title": "Uber QueryGPT",
+     "url": "https://www.uber.com/blog/query-gpt/",
+     "source_type": "engineering-writeup",
+     "what": "Uber's natural-language-to-SQL service (about 1.2 million interactive queries per month on the platform; about 300 daily users in the limited release). Queries are scoped by \"workspaces\" (12 curated sets of tables and SQL samples per business domain); the user confirms or edits the selected tables before generation. Evaluation uses golden question-to-SQL pairs built from real logs, with per-question metrics (intent, table overlap, does it run, does it return rows, similarity to the golden SQL). The authors do not act on changes of about 5% between runs because the model output varies from run to run, and they say hallucinated tables and columns are not fully solved.",
+     "lesson": "Golden SQL built from real logs is the standard regression test, and teams read it with a tolerance: a difference smaller than the run-to-run variation (here about 5 points) is treated as no difference. A human checkpoint on table selection is cheaper than verifying the final SQL.",
+     "verified": "Read the primary engineering blog. The post dates from 2024, before the period of interest, but it is the most explicit primary account of the evaluation method."
+    },
+    {
+     "title": "Snowflake Cortex Analyst: Verified Query Repository, role-based execution, and agent traces",
+     "url": "https://docs.snowflake.com/en/user-guide/snowflake-cortex/cortex-analyst/verified-query-repository",
+     "source_type": "docs",
+     "what": "A `verified_queries` section in the semantic model YAML holds entries with `name`, `question`, `sql`, optional `verified_by`, `verified_at` and `use_as_onboarding_question`. When a new question resembles a stored one, the stored SQL is used to generate the answer, and the API response says which verified query was used. Generated SQL runs in the caller's warehouse under the caller's role (the model sees only metadata). Agent runs are traced per turn (planning, tool calls, SQL execution, user feedback) into an event table whose entries cannot be modified; reading full inputs and outputs needs a separate privilege.",
+     "lesson": "The verified query is a small, portable format: question, SQL, who verified it, when. Three properties recur across platforms: the answer discloses whether it came from a verified query, the SQL runs with the identity of the human caller, and the log of agent queries is append-only with access to its content restricted.",
+     "verified": "Read three primary docs pages (verified query repository, Cortex Analyst overview, Cortex Agents monitoring at https://docs.snowflake.com/en/user-guide/snowflake-cortex/cortex-agents-monitor). Vendor docs: they describe the features, not how well they work."
+    },
+    {
+     "title": "Databricks Genie benchmarks",
+     "url": "https://docs.databricks.com/aws/en/genie/benchmarks",
+     "source_type": "docs",
+     "what": "Each Genie agent can hold up to 500 benchmark questions, each ideally with 2 to 4 phrasings and one gold SQL. Scoring compares result sets, not SQL text: \"Good\" if the result set matches (order ignored, numbers to four significant digits), \"Bad\" on error, empty result, extra columns or a different single value; otherwise \"manual review\". Each question runs as a fresh conversation. The docs warn that comparison is truncated at 5,000 rows, which can rate a correct answer as bad.",
+     "lesson": "Compare results, not SQL strings, and keep a third category \"needs human review\" instead of forcing a binary score. Write gold queries that return small, ordered results so that the comparison is deterministic.",
+     "verified": "Read the primary docs page. The trusted-assets page that I also fetched did not contain the description I expected, so nothing here relies on it."
+    },
+    {
+     "title": "Invariant Labs: GitHub MCP \"toxic agent flow\"",
+     "url": "https://invariantlabs.ai/blog/mcp-github-vulnerability",
+     "source_type": "engineering-writeup",
+     "what": "On 26 May 2025, Invariant showed that a malicious issue in a public repository can make an agent (Claude 4 Opus in Claude Desktop, tool calls on \"Always Allow\") read the user's private repositories and publish their content in a pull request on the public repository. No tool was buggy: each tool worked as intended. The proposed mitigations are a session limited to one repository (least privilege at run time) and continuous monitoring of the tool calls. Note that Invariant sells such monitoring tools.",
+     "lesson": "The failure is a property of the session (which sources and sinks are combined), not of any server. A data layer cannot make itself safe; it can only declare what it brings (untrusted text or not) and avoid offering a write or send channel.",
+     "verified": "Read the primary page. The mitigation section promotes the authors' own products (Guardrails, MCP-scan)."
+    },
+    {
+     "title": "Replit: separate development and production databases (after the July 2025 deletion incident)",
+     "url": "https://replit.com/blog/introducing-a-safer-way-to-vibe-code-with-replit-databases",
+     "source_type": "engineering-writeup",
+     "what": "On 21 July 2025 Replit launched separate development and production databases: the agent works on the development database, the production database is created at first deployment with schema and no data, and schema changes are proposed to the user at re-deployment. Point-in-time restore already existed. The post does not mention the incident of the same week, in which Replit's agent deleted a user's production database during a declared code freeze (widely reported; I could not fetch a primary account).",
+     "lesson": "Instructions to the agent (\"code freeze\", \"do not touch production\") are not a control. The control is that the credentials the agent holds cannot reach the thing that must not change, plus a restore path that is tested.",
+     "verified": "Read the Replit post. The link to the incident is my inference from the dates and from press reports recalled from memory, not from a page read in this session."
+    },
+    {
+     "title": "Datasette settings (limits for arbitrary SQL from unknown clients)",
+     "url": "https://docs.datasette.io/en/stable/settings.html",
+     "source_type": "docs",
+     "what": "Datasette has served arbitrary read-only SQL over public data for years with a short list of defaults: `sql_time_limit_ms` = 1000 (query cancelled with an error), `max_returned_rows` = 1000 with an explicit truncation flag in the response, `max_csv_mb` = 100, a 5 second cache, and a switch (`default_allow_sql`) that turns free SQL off. ClickHouse's essay on agent-facing analytics (https://clickhouse.com/blog/agent-facing-analytics) describes the load pattern that makes such limits necessary: one prompt fans out into about 10 queries that start with DESCRIBE/SHOW and sampling, and it proposes templated query endpoints, short-lived tokens scoped to a task, and server-side caching of discovery queries.",
+     "lesson": "Load control for agents is the old recipe for public SQL endpoints: hard time limit, hard row limit, a response that says \"truncated\" so that the agent does not treat a partial result as complete, and a cache for the discovery calls that every session repeats.",
+     "verified": "Read both primary pages. The Datasette page does not present these settings as protection against agents; that reading is mine. The ClickHouse post is a vendor essay that calls its own proposals brainstorming, and it gives no measured numbers on load."
+    },
+    {
+     "title": "Open Data Contract Standard (Bitol, v3.x): SLA properties",
+     "url": "https://bitol-io.github.io/open-data-contract-standard/latest/service-level-agreement/",
+     "source_type": "guideline",
+     "what": "ODCS is a Linux Foundation YAML standard for data contracts with sections for schema, data quality, SLA, support, roles and more. The SLA section defines machine-readable properties: `latency` (delay before data is available, preferred over \"freshness\"), `frequency`, `retention`, `timeOfAvailability`, `endOfSupport`, `endOfLife`, each with `value`, `unit` and the `element` (column) that the property is measured on, e.g. latency 4 d on `tab1.txn_ref_dt`.",
+     "lesson": "A freshness signal is useful to an agent only if it is a promise plus an observation: the contract says \"updated daily, at most 4 days late, measured on column X\", and the describe call adds the actual last value of column X and whether the promise currently holds.",
+     "verified": "Read the primary spec pages (index and SLA section). The page says the layout dates from v3.1.0; I did not confirm the exact current version number."
+    },
+    {
+     "title": "OpenAI: \"Inside our in-house data agent\" and Vercel d0 (learned context and curated files)",
+     "url": "https://openai.com/index/inside-our-in-house-data-agent/",
+     "source_type": "engineering-writeup",
+     "what": "OpenAI's post (January 2026) describes an internal data agent over a very large warehouse with layered context: table metadata and lineage, human annotations, code that produces the tables, institutional documents, a memory of corrections that users or the agent save and that are reused on later questions, and live inspection queries. It reports golden-SQL evaluations and execution under the permissions of the asking user. Vercel's d0 (https://vercel.com/blog/we-removed-80-percent-of-our-agents-tools) replaced specialised tools with a sandbox of semantic-layer files plus bash and SQL: on 5 queries, success 4/5 --> 5/5, 274.8 s --> 77.4 s, about 37% fewer tokens; the post warns that with poor documentation \"you just get faster bad queries\".",
+     "lesson": "The emerging practice for memory is a reviewed store of corrections attached to tables or questions (\"filter X is required for metric Y\"), kept as text that the agent reads, not as hidden state. A correction that an agent writes is itself untrusted content until a human has reviewed it.",
+     "verified": "The OpenAI page returned HTTP 403, so its content here is from my memory of the post and is NOT verified in this session (scale numbers deliberately omitted). The Vercel page was read; its sample is 5 queries, far too few to support a general claim, and it says nothing on access control or verification."
+    }
+   ],
+   "patterns": [
+    "Read-only access is enforced below the query (database role, read replica, file permissions, single statement per call), never by wrapping or inspecting the SQL in the application (Datadog Security Labs, Supabase, General Analysis, DuckDB docs).",
+    "Prompt injection through data content is treated as unsolved, so teams remove one of three conditions (untrusted input, private data, outbound channel) per session instead of relying on filters or warnings (Willison, Meta Rule of Two, Invariant Labs, Supabase).",
+    "The agent runs with the identity and permissions of the human who asks, or with a narrower scope, and never with a service role that bypasses row-level security (General Analysis, Snowflake Cortex Analyst, LinkedIn SQL Bot, MCP security best practices on token passthrough and scope minimization).",
+    "Verification rests on a small human-curated set of question and SQL pairs that serves twice: as examples at answer time and as a regression benchmark scored on result sets, with several accepted answers and a 'needs review' category (Snowflake verified queries, Databricks Genie benchmarks, Uber QueryGPT, LinkedIn SQL Bot).",
+    "The agent sees a curated and certified subset of datasets with mandatory descriptions, and deprecated tables are removed automatically (LinkedIn certified datasets, Uber workspaces, Genie limit of 50 tables, Vercel d0 semantic-layer files).",
+    "Every agent query is logged in an append-only store with the caller, the SQL and the outcome, both for audit after an incident and as raw material for golden queries (Supabase practices, Snowflake agent traces, Uber golden set built from logs, MCP scope-elevation logging).",
+    "Load control uses hard limits in the serving layer (time limit, row limit with an explicit truncation flag, memory and thread caps, caching of discovery queries), because one prompt becomes many exploratory queries (Datasette, DuckDB docs, ClickHouse essay).",
+    "Instructions to the agent are not a control: destructive or sensitive resources are made unreachable by credentials and environment separation, with a tested restore (Replit, Supabase 'use non-production data', Anthropic sandboxing post at https://www.anthropic.com/engineering/claude-code-sandboxing)."
+   ],
+   "disagreements": [
+    "Is result wrapping (a warning around query results telling the model not to obey the data) worth doing? Supabase ships it and reports that it reduced successful injections; Willison and General Analysis say that such filters cannot be relied on and that 95% detection is a failing grade. Both sides agree that it is not sufficient alone.",
+    "Free-form SQL versus templated or parameterized queries: ClickHouse's essay and the semantic-layer vendors favour constrained endpoints that enforce metric definitions; Vercel d0, LinkedIn and Uber give the model free SQL over curated tables and validate afterwards. No source that I read compares the two on the same task.",
+    "Human approval of each tool call: Supabase and Meta recommend it as the fallback; Supabase itself and Anthropic's sandboxing post note that users stop reading the prompts (Anthropic reports 84% fewer prompts with sandboxing, as the alternative). Structural isolation and approval are presented as substitutes by some and as complements by others.",
+    "LLM judges for evaluation: LinkedIn reports that its judge is within 1 point of human scores 75% of the time and uses it with experts; Databricks uses result-set comparison in chat mode and an LLM judge only in agent mode; Uber uses an LLM similarity score but ignores changes of about 5%. There is no agreement on how much a judge score can be trusted without human review.",
+    "Evidence quality is uneven: the incident write-ups are demonstrations by researchers (some of whom sell monitoring tools), not post-mortems of real losses; Supabase states zero reported customer incidents. Documented real-world damage from agents on data systems (Replit) involves deletion by a confused agent, not exfiltration by an attacker.",
+    "Scope note: the web search budget of this session was exhausted before my first search, so every source was reached by fetching URLs that I knew, not by searching. Coverage of 2026 material is therefore thin, and I may have missed recent post-mortems, work on cost control for agent query load, and work on learned memory. The OpenAI data agent post could not be fetched (HTTP 403)."
+   ],
+   "for_adele": "Adele holds public data, so it adds untrusted text to an agent that already has private files and network access. Mandatory, in order: (1) DuckDB opened read-only with `allowed_directories`, `enable_external_access=false`, no extension autoload, memory and thread caps, `lock_configuration=true`, one statement per call; (2) a timeout enforced by the CLI wrapper (DuckDB has none) and a row cap with an explicit \"truncated\" flag; (3) an append-only query log (time, caller, SQL, rows, duration); (4) per dataset, a few verified queries (question, SQL, verified_by, verified_at) in the descriptor, reused as regression tests on result sets; (5) freshness as promise plus observed last timestamp; (6) SKILL.md states that cell values and source descriptions are data, never instructions, and `describe` marks free-text columns."
+  }
+ ],
+ "failed": []
+}
