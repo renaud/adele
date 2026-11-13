@@ -5,7 +5,13 @@
 - `datasets/entsoe_day_ahead_prices/datapackage.yaml`, the `TODO(Renaud)` items: description of
   the dataset, licenses, description of `resolution`, and the first warning (it says
   2025-10-01, but CH switched to 15 minutes on 2026-11-04 and FR on 2025-09-30). Labels: done.
-- `qa/entsoe_day_ahead_prices.md`: accept or reject each of the 12 questions.
+  New warnings under `adele.warnings` (accepted 2026-11-13; drafts by Claude, his to rewrite):
+  - coverage of 2015: DE_AT_LU and FR start on 2015-01-05, CH on 2015-01-01.
+  - 2024-06-26: EPEX's German auction was decoupled; ENTSO-E carries the coupled price.
+  - FR, delivery day 2025-09-30: 96 quarter-hours with 4 equal values per hour (kept as
+    published, answer 5a). Fits in the first warning.
+  Then tell Claude, who adds the example with RTE's definition of negative hours and sets
+  `verified_at` on the March 2026 example (with `delivery_day` cast to DATE).
 - SPEC.md, two texts accepted 2026-11-13:
   - Time conventions, replaces the line on resolution:
     ```
@@ -58,12 +64,26 @@ inside the server (cron instead), `stale`, backups, column profiles, `search`.
    ingestion, else a warning, else an example query. Then run `review-dataset`.
    Pilot 2026-11-13 (one run per question, before Renaud accepted the questions): results in
    `qa/entsoe_day_ahead_prices.md`.
-6. Linux server: one week of daily fetches, unattended. Then three faults on purpose (a renamed
-   column, a duplicated row, an undeclared zone code); each must set status to failing.
+   Changed 2026-11-13 (Renaud: "the figures ARE the QA"): the 79 published figures that match
+   (`qa/published_figures.md`) become checks that the server runs after each fetch
+   (`datasets/<id>/checks.yaml`; a drift sets the status to failing). No 3-run agent QA. The
+   20 agent questions (20 of 20 right, one run each) stay as a regression set: rerun once when
+   the skill or the describe card changes (about 4 USD).
+6. Linux server (steacher1, decided 2026-11-13): one week of daily fetches, unattended. Then
+   three faults on purpose (a renamed column, a duplicated row, an undeclared zone code); each
+   must set status to failing. Open: how team members reach it (open HTTPS port, VPN or SSH).
 
-Done when: the lockdown holds against the breakout list; agents answer most trap questions
-correctly in most runs, and every failure has a known cause and a fix; a week of daily fetches
-shows correct freshness; the three faults are caught.
+Done when: the lockdown holds against the breakout list; the published figures match after
+every fetch; agents answer the regression questions correctly; a week of daily fetches shows
+correct freshness; the three faults are caught.
+
+WeatherNext 3, the next dataset (2026-11-13: CH only, all 24 runs per day, a sample of a few
+days now, more on steacher1): notes and open questions in `docs/weathernext3.md`. Open: the
+fetch window on init_time (13), instant variables (14), variables and statistics, leads,
+history, whether the pass-1 pull of 2026-10-28 ran on steacher1 (Renaud checks).
+
+Packaging: one repository per dataset? Under discussion 2026-11-13 (options in the reply of
+that day; to be written to `docs/` once chosen).
 
 POC 2: actual load (`append-only`, `as_of`, MW --> MWh at ingestion, a join with prices on the
 server), `pull`, email alerts.
