@@ -1,0 +1,17 @@
+# Copy to adele-server.toml (gitignored: it holds the API keys). Paths are relative to this file.
+datasets_dir = "../datasets"
+data_dir = "../data_nosync"          # D7. On the Linux server: a backed-up folder (SPEC.md, Backups)
+log_dir = "../data_nosync/logs"      # queries.jsonl (one line per query), alerts.log
+env_file = "../.env"                 # source credentials (ENTSO_TOKEN); read by fetch commands only
+fetch_timeout_s = 1800                # per call of fetch(); a hung source sets status failing
+admin_email = "admin@example.org"    # POC: status changes go to alerts.log, no email yet
+
+[query]
+max_rows = 100
+timeout_s = 30
+memory_limit = "2GB"
+threads = 4
+
+[keys]
+# team member = API key (generate with: python -c "import secrets; print(secrets.token_urlsafe(24))")
+renaud = "change-me"

@@ -1,0 +1,15 @@
+[project]
+name = "adele"
+version = "0.1.0"
+description = "Client of adele, the agentic data layer: library and CLI (list, describe, query)"
+readme = "README.md"
+requires-python = ">=3.11"
+# D1: duckdb only. Not needed yet: it comes with `pull` (POC 2). D2: argparse + urllib.
+dependencies = []
+
+[project.scripts]
+adele = "adele.cli:main"
+
+[build-system]
+requires = ["uv_build>=0.9,<0.10"]
+build-backend = "uv_build"

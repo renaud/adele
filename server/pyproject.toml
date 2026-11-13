@@ -1,0 +1,32 @@
+[project]
+name = "adele-server"
+version = "0.1.0"
+description = "Server of adele, the agentic data layer: fetch, check, store and serve datasets"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "duckdb>=2.0",
+    "entsoe-py>=0.6",
+    "fastapi>=0.115",
+    "frictionless>=5.18",
+    "pandas>=2.2",
+    "pytz",
+    "pyyaml>=6",
+    "uvicorn>=0.30",
+]
+
+[project.scripts]
+adele-server = "adele_server.cli:main"
+
+[dependency-groups]
+dev = ["adele", "pytest>=8"]
+
+[tool.uv.sources]
+adele = { path = "../client", editable = true }
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[build-system]
+requires = ["uv_build>=0.9,<0.10"]
+build-backend = "uv_build"
