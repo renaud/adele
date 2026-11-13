@@ -1,0 +1,58 @@
+# Definitions (titles, descriptions, warnings, licenses) are written by Renaud
+# (skills/add-dataset). TODO(Renaud) marks the ones that are missing; the agent does not fill
+# them. Structure, defaults to confirm and measured traps: docs/weathernext3.md.
+name: weathernext3
+title: WeatherNext 3 forecasts of solar radiation, Switzerland (draft title, TODO(Renaud))
+# TODO(Renaud): description of the dataset
+# TODO(Renaud): licenses. Google's terms: values for times 1 h ago or more are CC BY 4.0; newer
+# values (every forecast of the future) fall under experimental terms, with required notices.
+resources:
+  - name: solar_radiation
+    schema:
+      primaryKey: [init_time, delivery_start, lat, lon]
+      fields:
+        - name: init_time
+          type: datetime
+          # TODO(Renaud): description. Fact: start of the forecast run, UTC. The run was readable
+          # about 7 h later (one observation); there is one run per hour.
+        - name: delivery_start
+          type: datetime
+          # TODO(Renaud): description. Fact: start of the forecast hour, UTC (valid time - 1 h).
+        - name: lead_h
+          type: integer
+          unit: h
+          # TODO(Renaud): description. Fact: hours from init_time to the END of the forecast hour
+          # (the source's lead time): lead_h = 1 for [init_time, init_time + 1 h). 1..48 here.
+        - name: lat
+          type: number
+          unit: degree_north
+          # TODO(Renaud): description. Fact: centre of a 0.1 deg grid cell.
+        - name: lon
+          type: number
+          unit: degree_east
+        - name: ssrd_mean
+          type: number
+          unit: W/m2
+          # TODO(Renaud): description. Fact: mean of the 64 members of surface solar radiation
+          # downwards, as the mean power over the forecast hour (source: J/m2 per hour / 3600).
+        - name: ssrd_p10
+          type: number
+          unit: W/m2
+          # Fact: 10th percentile across the 64 members, per cell and hour.
+        - name: ssrd_p50
+          type: number
+          unit: W/m2
+        - name: ssrd_p90
+          type: number
+          unit: W/m2
+adele:
+  window: init_time  # the fetch window, the [start, end) filter and the month partitions use it
+  resolution:
+    - {from: 2026-01-01, value: PT1H}
+  refresh:
+    every: PT1H
+    lookback: PT12H  # runs appear ~7 h after init; a run older than 10 h without its marker fails
+    horizon: PT1H
+  revisions: overwrite
+  # TODO(Renaud): warnings (in-sample Jan-Jun 2026, p10 is not a member's trajectory, night
+  # values are not 0, a cell is not a station; docs/weathernext3.md, Traps)
