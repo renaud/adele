@@ -1,15 +1,18 @@
-"""The catalog: one folder per dataset in `datasets/`, with `datapackage.yaml` and `fetch.py`.
+"""The catalog: one folder per dataset in `datasets/`, with `datapackage.yaml` and `fetch.py`,
+and optionally `checks.yaml` (published figures that the data must reproduce).
 
 The server loads and validates every descriptor at startup and refuses to start on an error
 (SPEC.md, Catalog). Table names are `<dataset>.<table>` (D8).
 """
 from __future__ import annotations
 
+import ast
 import copy
 import datetime as dt
 import importlib.util
 import re
-from dataclasses import dataclass
+import tomllib
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Callable
 
@@ -83,11 +86,18 @@ class Dataset:
     tables: dict[str, Table]
     refresh: Refresh
     revisions: str
-    fetch: Callable[..., Any]
+    fetch: Callable[..., Any] | None  # None when fetch.py declares its own dependencies (run by uv)
+    checks: list[dict] = field(default_factory=list)  # from checks.yaml
+    script_metadata: dict | None = None  # PEP 723 block of fetch.py: run with `uv run --script`
 
     @property
     def adele(self) -> dict:
         return self.descriptor.get("adele", {})
+
+    @property
+    def window(self) -> str:
+        """The time column of the fetch window, of the [start, end) filter and of the month partitions."""
+        return self.adele.get("window", DELIVERY_FIELD)
 
     @property
     def title(self) -> str:
@@ -185,18 +195,76 @@ def load_dataset(folder: Path) -> Dataset:
         errors.append(f"adele.revisions must be one of {sorted(REVISION_POLICIES)} (append-only: POC 2), got {revisions!r}")
     errors += _adele_errors(adele)
 
-    fetch = None
+    window = adele.get("window", DELIVERY_FIELD)
+    for t in tables.values():
+        wf = next((f for f in t.fields if f.get("name") == window), None)
+        if wf is None or wf.get("type") != "datetime" or window not in t.primary_key:
+            errors.append(f"{t.name}: adele.window {window!r} must be a datetime field in the primaryKey")
+
+    fetch, meta = None, None
     fetch_path = folder / "fetch.py"
     if not fetch_path.exists():
         errors.append("missing fetch.py")
     else:
         try:
-            fetch = _load_fetch(ds_id, fetch_path)
+            meta = script_metadata(fetch_path)
+            if meta is None:
+                fetch = _load_fetch(ds_id, fetch_path)
+            else:  # its dependencies are not installed in the server: check it without importing it
+                _check_fetch_source(fetch_path)
         except Exception as e:  # noqa: BLE001 - any import error makes the dataset invalid
             errors.append(f"fetch.py: {type(e).__name__}: {e}")
+    checks, check_errors = load_checks(folder / "checks.yaml")
+    errors += check_errors
     if errors:
         raise CatalogError("; ".join(errors))
-    return Dataset(ds_id, folder, descriptor, tables, refresh, revisions, fetch)
+    return Dataset(ds_id, folder, descriptor, tables, refresh, revisions, fetch, checks, meta)
+
+
+CHECK_KEYS = ("name", "question", "sql", "expected", "tolerance", "source")
+
+
+def load_checks(path: Path) -> tuple[list[dict], list[str]]:
+    """checks.yaml: published figures that the data must reproduce, run after each fetch.
+
+    Each entry: name, question, sql (one row, one number), expected, tolerance, source.
+    """
+    if not path.exists():
+        return [], []
+    try:
+        doc = yaml.safe_load(path.read_text())
+    except yaml.YAMLError as e:
+        return [], [f"checks.yaml: {e}"]
+    if not isinstance(doc, dict) or not isinstance(doc.get("checks"), list):
+        return [], ["checks.yaml must be a mapping with a list `checks`"]
+    errors, names = [], set()
+    for i, c in enumerate(doc["checks"]):
+        where = f"checks.yaml, entry {i + 1}"
+        if not isinstance(c, dict):
+            errors.append(f"{where}: not a mapping")
+            continue
+        where = f"checks.yaml, {c.get('name') or f'entry {i + 1}'}"
+        missing = [k for k in CHECK_KEYS if c.get(k) is None or c.get(k) == ""]
+        if missing:
+            errors.append(f"{where}: missing {missing}")
+            continue
+        if not isinstance(c["name"], str) or not NAME_RE.match(c["name"]):
+            errors.append(f"{where}: name must match {NAME_RE.pattern}")
+        elif c["name"] in names:
+            errors.append(f"{where}: two checks are named {c['name']!r}")
+        names.add(c["name"])
+        for k in ("question", "sql", "source"):
+            if not isinstance(c[k], str):
+                errors.append(f"{where}: {k} must be text")
+        for k in ("expected", "tolerance"):
+            if isinstance(c[k], bool) or not isinstance(c[k], (int, float)):
+                errors.append(f"{where}: {k} must be a number, got {c[k]!r}")
+        if isinstance(c["tolerance"], (int, float)) and not isinstance(c["tolerance"], bool) and c["tolerance"] < 0:
+            errors.append(f"{where}: tolerance must be >= 0")
+        extra = set(c) - set(CHECK_KEYS)
+        if extra:
+            errors.append(f"{where}: unknown keys {sorted(extra)}")
+    return (doc["checks"] if not errors else []), errors
 
 
 def _frictionless_errors(descriptor: dict) -> list[str]:
@@ -273,6 +341,29 @@ def _adele_errors(adele: dict) -> list[str]:
         if not isinstance(ex, dict) or not ex.get("question") or not ex.get("sql"):
             errors.append(f"adele.examples[{i}] needs question and sql")
     return errors
+
+
+_PEP723_RE = re.compile(r"(?m)^# /// script[ \t]*\n((?:^#(?:| .*)\n)+?)^# ///[ \t]*$")
+
+
+def script_metadata(path: Path) -> dict | None:
+    """The inline script metadata of fetch.py (PEP 723), or None if it has none."""
+    m = _PEP723_RE.search(path.read_text())
+    if not m:
+        return None
+    toml = "".join(line[2:] if line.startswith("# ") else line[1:] for line in m.group(1).splitlines(keepends=True))
+    meta = tomllib.loads(toml)
+    deps = meta.get("dependencies", [])
+    if not isinstance(deps, list) or not all(isinstance(d, str) for d in deps):
+        raise CatalogError("the script block's dependencies must be a list of strings")
+    return meta
+
+
+def _check_fetch_source(path: Path) -> None:
+    tree = ast.parse(path.read_text(), filename=str(path))
+    fn = next((n for n in tree.body if isinstance(n, ast.FunctionDef) and n.name == "fetch"), None)
+    if fn is None or len(fn.args.args) < 2:
+        raise CatalogError("fetch.py must define fetch(start, end)")
 
 
 def _load_fetch(ds_id: str, path: Path) -> Callable:

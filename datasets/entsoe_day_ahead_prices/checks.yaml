@@ -1,0 +1,936 @@
+# Published figures that this dataset must reproduce (TODOs.md, V0; Renaud 2026-11-13: "the
+# figures ARE the QA"). The server runs every query after each fetch; a result outside the
+# tolerance sets the status to failing. The describe card shows one line about them, not the list.
+#
+# Collected 2026-11-13 (qa/published_figures.md). Figures that differ from adele for a known
+# reason are left out and explained there (2015 coverage from 2015-01-05, DE 2018 and DE 2025
+# negative hours, CH 2016 std, FR 2015 mean).
+#
+# Tolerance: 0.015 for figures published to the cent (the published value is rounded, and one
+# cent of disagreement is allowed), 0.05 for CRE's figure rounded to 0.1, 0.5 for hour counts.
+# Germany is DE_AT_LU until 2018-09-30 and DE_LU from 2018-10-01. Years are local (CET/CEST).
+checks:
+  - name: de_2016_negative_hours
+    question: "Hours with a negative day-ahead price, Germany (DE_AT_LU, then DE_LU from 2018-10-01), 2016 (local year)"
+    sql: |
+      SELECT coalesce(sum(epoch(resolution)) FILTER (WHERE price < 0), 0) / 3600
+      FROM entsoe_day_ahead_prices.prices
+      WHERE bidding_zone IN ('DE_AT_LU', 'DE_LU')
+        AND delivery_start >= TIMESTAMPTZ '2016-01-01 00:00:00+01'
+        AND delivery_start <  TIMESTAMPTZ '2017-01-01 00:00:00+01'
+    expected: 97
+    tolerance: 0.5
+    source: "ElCom, Analyse der negativen Preise 2015-2020 (Jan 2021), Tabelle 1, p.33, https://www.elcom.admin.ch/dam/en/sd-web/QuXm2cRVxBau/analysedernegativenpreisefuerdieschweizfrankreichunddeutschlandzwischen2015und2020.pdf"
+  - name: de_2017_negative_hours
+    question: "Hours with a negative day-ahead price, Germany (DE_AT_LU, then DE_LU from 2018-10-01), 2017 (local year)"
+    sql: |
+      SELECT coalesce(sum(epoch(resolution)) FILTER (WHERE price < 0), 0) / 3600
+      FROM entsoe_day_ahead_prices.prices
+      WHERE bidding_zone IN ('DE_AT_LU', 'DE_LU')
+        AND delivery_start >= TIMESTAMPTZ '2017-01-01 00:00:00+01'
+        AND delivery_start <  TIMESTAMPTZ '2018-01-01 00:00:00+01'
+    expected: 146
+    tolerance: 0.5
+    source: "ElCom, Analyse der negativen Preise 2015-2020 (Jan 2021), Tabelle 1, p.33, https://www.elcom.admin.ch/dam/en/sd-web/QuXm2cRVxBau/analysedernegativenpreisefuerdieschweizfrankreichunddeutschlandzwischen2015und2020.pdf"
+  - name: de_2019_negative_hours
+    question: "Hours with a negative day-ahead price, Germany (DE_AT_LU, then DE_LU from 2018-10-01), 2019 (local year)"
+    sql: |
+      SELECT coalesce(sum(epoch(resolution)) FILTER (WHERE price < 0), 0) / 3600
+      FROM entsoe_day_ahead_prices.prices
+      WHERE bidding_zone IN ('DE_AT_LU', 'DE_LU')
+        AND delivery_start >= TIMESTAMPTZ '2019-01-01 00:00:00+01'
+        AND delivery_start <  TIMESTAMPTZ '2020-01-01 00:00:00+01'
+    expected: 211
+    tolerance: 0.5
+    source: "ElCom, Analyse der negativen Preise 2015-2020 (Jan 2021), Tabelle 1, p.33, https://www.elcom.admin.ch/dam/en/sd-web/QuXm2cRVxBau/analysedernegativenpreisefuerdieschweizfrankreichunddeutschlandzwischen2015und2020.pdf"
+  - name: de_2020_negative_hours
+    question: "Hours with a negative day-ahead price, Germany (DE_AT_LU, then DE_LU from 2018-10-01), 2020 (local year)"
+    sql: |
+      SELECT coalesce(sum(epoch(resolution)) FILTER (WHERE price < 0), 0) / 3600
+      FROM entsoe_day_ahead_prices.prices
+      WHERE bidding_zone IN ('DE_AT_LU', 'DE_LU')
+        AND delivery_start >= TIMESTAMPTZ '2020-01-01 00:00:00+01'
+        AND delivery_start <  TIMESTAMPTZ '2021-01-01 00:00:00+01'
+    expected: 298
+    tolerance: 0.5
+    source: "ElCom, Analyse der negativen Preise 2015-2020 (Jan 2021), Tabelle 1, p.33, https://www.elcom.admin.ch/dam/en/sd-web/QuXm2cRVxBau/analysedernegativenpreisefuerdieschweizfrankreichunddeutschlandzwischen2015und2020.pdf"
+  - name: de_2021_negative_hours
+    question: "Hours with a negative day-ahead price, Germany (DE_AT_LU, then DE_LU from 2018-10-01), 2021 (local year)"
+    sql: |
+      SELECT coalesce(sum(epoch(resolution)) FILTER (WHERE price < 0), 0) / 3600
+      FROM entsoe_day_ahead_prices.prices
+      WHERE bidding_zone IN ('DE_AT_LU', 'DE_LU')
+        AND delivery_start >= TIMESTAMPTZ '2021-01-01 00:00:00+01'
+        AND delivery_start <  TIMESTAMPTZ '2022-01-01 00:00:00+01'
+    expected: 139
+    tolerance: 0.5
+    source: "SMARD (Bundesnetzagentur), \"The electricity market in 2021\", table, https://www.smard.de/page/en/topic-article/5892/206870"
+  - name: de_2022_negative_hours
+    question: "Hours with a negative day-ahead price, Germany (DE_AT_LU, then DE_LU from 2018-10-01), 2022 (local year)"
+    sql: |
+      SELECT coalesce(sum(epoch(resolution)) FILTER (WHERE price < 0), 0) / 3600
+      FROM entsoe_day_ahead_prices.prices
+      WHERE bidding_zone IN ('DE_AT_LU', 'DE_LU')
+        AND delivery_start >= TIMESTAMPTZ '2022-01-01 00:00:00+01'
+        AND delivery_start <  TIMESTAMPTZ '2023-01-01 00:00:00+01'
+    expected: 69
+    tolerance: 0.5
+    source: "SMARD (Bundesnetzagentur), \"The electricity market in 2023\", table, https://www.smard.de/page/en/topic-article/5892/211754/the-electricity-market-in-2023"
+  - name: de_2023_negative_hours
+    question: "Hours with a negative day-ahead price, Germany (DE_AT_LU, then DE_LU from 2018-10-01), 2023 (local year)"
+    sql: |
+      SELECT coalesce(sum(epoch(resolution)) FILTER (WHERE price < 0), 0) / 3600
+      FROM entsoe_day_ahead_prices.prices
+      WHERE bidding_zone IN ('DE_AT_LU', 'DE_LU')
+        AND delivery_start >= TIMESTAMPTZ '2023-01-01 00:00:00+01'
+        AND delivery_start <  TIMESTAMPTZ '2024-01-01 00:00:00+01'
+    expected: 301
+    tolerance: 0.5
+    source: "SMARD (Bundesnetzagentur), \"The electricity market in 2023\", table, https://www.smard.de/page/en/topic-article/5892/211754/the-electricity-market-in-2023"
+  - name: de_2024_negative_hours
+    question: "Hours with a negative day-ahead price, Germany (DE_AT_LU, then DE_LU from 2018-10-01), 2024 (local year)"
+    sql: |
+      SELECT coalesce(sum(epoch(resolution)) FILTER (WHERE price < 0), 0) / 3600
+      FROM entsoe_day_ahead_prices.prices
+      WHERE bidding_zone IN ('DE_AT_LU', 'DE_LU')
+        AND delivery_start >= TIMESTAMPTZ '2024-01-01 00:00:00+01'
+        AND delivery_start <  TIMESTAMPTZ '2025-01-01 00:00:00+01'
+    expected: 457
+    tolerance: 0.5
+    source: "SMARD (Bundesnetzagentur), \"Evaluation of last year\" (2 Jan 2025), https://smard.de/page/en/topic-article/5892/215704"
+  - name: de_2015_min
+    question: "Lowest day-ahead price, Germany (DE_AT_LU, then DE_LU from 2018-10-01), 2015 (local year), EUR/MWh"
+    sql: |
+      SELECT min(price)
+      FROM entsoe_day_ahead_prices.prices
+      WHERE bidding_zone IN ('DE_AT_LU', 'DE_LU')
+        AND delivery_start >= TIMESTAMPTZ '2015-01-01 00:00:00+01'
+        AND delivery_start <  TIMESTAMPTZ '2016-01-01 00:00:00+01'
+    expected: -79.94
+    tolerance: 0.015
+    source: "ElCom, Analyse der negativen Preise 2015-2020 (Jan 2021), Tabelle 1, p.33, https://www.elcom.admin.ch/dam/en/sd-web/QuXm2cRVxBau/analysedernegativenpreisefuerdieschweizfrankreichunddeutschlandzwischen2015und2020.pdf"
+  - name: de_2016_min
+    question: "Lowest day-ahead price, Germany (DE_AT_LU, then DE_LU from 2018-10-01), 2016 (local year), EUR/MWh"
+    sql: |
+      SELECT min(price)
+      FROM entsoe_day_ahead_prices.prices
+      WHERE bidding_zone IN ('DE_AT_LU', 'DE_LU')
+        AND delivery_start >= TIMESTAMPTZ '2016-01-01 00:00:00+01'
+        AND delivery_start <  TIMESTAMPTZ '2017-01-01 00:00:00+01'
+    expected: -130.09
+    tolerance: 0.015
+    source: "ElCom, Analyse der negativen Preise 2015-2020 (Jan 2021), Tabelle 1, p.33, https://www.elcom.admin.ch/dam/en/sd-web/QuXm2cRVxBau/analysedernegativenpreisefuerdieschweizfrankreichunddeutschlandzwischen2015und2020.pdf"
+  - name: de_2017_min
+    question: "Lowest day-ahead price, Germany (DE_AT_LU, then DE_LU from 2018-10-01), 2017 (local year), EUR/MWh"
+    sql: |
+      SELECT min(price)
+      FROM entsoe_day_ahead_prices.prices
+      WHERE bidding_zone IN ('DE_AT_LU', 'DE_LU')
+        AND delivery_start >= TIMESTAMPTZ '2017-01-01 00:00:00+01'
+        AND delivery_start <  TIMESTAMPTZ '2018-01-01 00:00:00+01'
+    expected: -83.06
+    tolerance: 0.015
+    source: "ElCom, Analyse der negativen Preise 2015-2020 (Jan 2021), Tabelle 1, p.33, https://www.elcom.admin.ch/dam/en/sd-web/QuXm2cRVxBau/analysedernegativenpreisefuerdieschweizfrankreichunddeutschlandzwischen2015und2020.pdf"
+  - name: de_2018_min
+    question: "Lowest day-ahead price, Germany (DE_AT_LU, then DE_LU from 2018-10-01), 2018 (local year), EUR/MWh"
+    sql: |
+      SELECT min(price)
+      FROM entsoe_day_ahead_prices.prices
+      WHERE bidding_zone IN ('DE_AT_LU', 'DE_LU')
+        AND delivery_start >= TIMESTAMPTZ '2018-01-01 00:00:00+01'
+        AND delivery_start <  TIMESTAMPTZ '2019-01-01 00:00:00+01'
+    expected: -76.01
+    tolerance: 0.015
+    source: "ElCom, Analyse der negativen Preise 2015-2020 (Jan 2021), Tabelle 1, p.33, https://www.elcom.admin.ch/dam/en/sd-web/QuXm2cRVxBau/analysedernegativenpreisefuerdieschweizfrankreichunddeutschlandzwischen2015und2020.pdf"
+  - name: de_2019_min
+    question: "Lowest day-ahead price, Germany (DE_AT_LU, then DE_LU from 2018-10-01), 2019 (local year), EUR/MWh"
+    sql: |
+      SELECT min(price)
+      FROM entsoe_day_ahead_prices.prices
+      WHERE bidding_zone IN ('DE_AT_LU', 'DE_LU')
+        AND delivery_start >= TIMESTAMPTZ '2019-01-01 00:00:00+01'
+        AND delivery_start <  TIMESTAMPTZ '2020-01-01 00:00:00+01'
+    expected: -90.01
+    tolerance: 0.015
+    source: "ElCom, Analyse der negativen Preise 2015-2020 (Jan 2021), Tabelle 1, p.33, https://www.elcom.admin.ch/dam/en/sd-web/QuXm2cRVxBau/analysedernegativenpreisefuerdieschweizfrankreichunddeutschlandzwischen2015und2020.pdf"
+  - name: de_2020_min
+    question: "Lowest day-ahead price, Germany (DE_AT_LU, then DE_LU from 2018-10-01), 2020 (local year), EUR/MWh"
+    sql: |
+      SELECT min(price)
+      FROM entsoe_day_ahead_prices.prices
+      WHERE bidding_zone IN ('DE_AT_LU', 'DE_LU')
+        AND delivery_start >= TIMESTAMPTZ '2020-01-01 00:00:00+01'
+        AND delivery_start <  TIMESTAMPTZ '2021-01-01 00:00:00+01'
+    expected: -83.94
+    tolerance: 0.015
+    source: "ElCom, Analyse der negativen Preise 2015-2020 (Jan 2021), Tabelle 1, p.33, https://www.elcom.admin.ch/dam/en/sd-web/QuXm2cRVxBau/analysedernegativenpreisefuerdieschweizfrankreichunddeutschlandzwischen2015und2020.pdf"
+  - name: de_2021_min
+    question: "Lowest day-ahead price, Germany (DE_AT_LU, then DE_LU from 2018-10-01), 2021 (local year), EUR/MWh"
+    sql: |
+      SELECT min(price)
+      FROM entsoe_day_ahead_prices.prices
+      WHERE bidding_zone IN ('DE_AT_LU', 'DE_LU')
+        AND delivery_start >= TIMESTAMPTZ '2021-01-01 00:00:00+01'
+        AND delivery_start <  TIMESTAMPTZ '2022-01-01 00:00:00+01'
+    expected: -69.0
+    tolerance: 0.015
+    source: "SMARD (Bundesnetzagentur), \"The electricity market in 2021\", table, https://www.smard.de/page/en/topic-article/5892/206870"
+  - name: de_2022_min
+    question: "Lowest day-ahead price, Germany (DE_AT_LU, then DE_LU from 2018-10-01), 2022 (local year), EUR/MWh"
+    sql: |
+      SELECT min(price)
+      FROM entsoe_day_ahead_prices.prices
+      WHERE bidding_zone IN ('DE_AT_LU', 'DE_LU')
+        AND delivery_start >= TIMESTAMPTZ '2022-01-01 00:00:00+01'
+        AND delivery_start <  TIMESTAMPTZ '2023-01-01 00:00:00+01'
+    expected: -19.04
+    tolerance: 0.015
+    source: "SMARD (Bundesnetzagentur), \"The electricity market in 2023\", table, https://www.smard.de/page/en/topic-article/5892/211754/the-electricity-market-in-2023"
+  - name: de_2023_min
+    question: "Lowest day-ahead price, Germany (DE_AT_LU, then DE_LU from 2018-10-01), 2023 (local year), EUR/MWh"
+    sql: |
+      SELECT min(price)
+      FROM entsoe_day_ahead_prices.prices
+      WHERE bidding_zone IN ('DE_AT_LU', 'DE_LU')
+        AND delivery_start >= TIMESTAMPTZ '2023-01-01 00:00:00+01'
+        AND delivery_start <  TIMESTAMPTZ '2024-01-01 00:00:00+01'
+    expected: -500.0
+    tolerance: 0.015
+    source: "SMARD (Bundesnetzagentur), \"The electricity market in 2023\", table, https://www.smard.de/page/en/topic-article/5892/211754/the-electricity-market-in-2023"
+  - name: de_2024_min
+    question: "Lowest day-ahead price, Germany (DE_AT_LU, then DE_LU from 2018-10-01), 2024 (local year), EUR/MWh"
+    sql: |
+      SELECT min(price)
+      FROM entsoe_day_ahead_prices.prices
+      WHERE bidding_zone IN ('DE_AT_LU', 'DE_LU')
+        AND delivery_start >= TIMESTAMPTZ '2024-01-01 00:00:00+01'
+        AND delivery_start <  TIMESTAMPTZ '2025-01-01 00:00:00+01'
+    expected: -135.45
+    tolerance: 0.015
+    source: "SMARD (Bundesnetzagentur), \"Evaluation of last year\" (2 Jan 2025), https://smard.de/page/en/topic-article/5892/215704"
+  - name: de_2025_min
+    question: "Lowest day-ahead price, Germany (DE_AT_LU, then DE_LU from 2018-10-01), 2025 (local year), EUR/MWh"
+    sql: |
+      SELECT min(price)
+      FROM entsoe_day_ahead_prices.prices
+      WHERE bidding_zone IN ('DE_AT_LU', 'DE_LU')
+        AND delivery_start >= TIMESTAMPTZ '2025-01-01 00:00:00+01'
+        AND delivery_start <  TIMESTAMPTZ '2026-01-01 00:00:00+01'
+    expected: -250.32
+    tolerance: 0.015
+    source: "SMARD (Bundesnetzagentur), \"The electricity market in 2025\" (5 Jan 2026), https://www.smard.de/page/en/topic-article/5892/219038/record-high-for-solar-generation-in-each-quarter"
+  - name: de_2020_max
+    question: "Highest day-ahead price, Germany (DE_AT_LU, then DE_LU from 2018-10-01), 2020 (local year), EUR/MWh"
+    sql: |
+      SELECT max(price)
+      FROM entsoe_day_ahead_prices.prices
+      WHERE bidding_zone IN ('DE_AT_LU', 'DE_LU')
+        AND delivery_start >= TIMESTAMPTZ '2020-01-01 00:00:00+01'
+        AND delivery_start <  TIMESTAMPTZ '2021-01-01 00:00:00+01'
+    expected: 200.04
+    tolerance: 0.015
+    source: "SMARD (Bundesnetzagentur), \"The electricity market in 2021\", table, https://www.smard.de/page/en/topic-article/5892/206870"
+  - name: de_2021_max
+    question: "Highest day-ahead price, Germany (DE_AT_LU, then DE_LU from 2018-10-01), 2021 (local year), EUR/MWh"
+    sql: |
+      SELECT max(price)
+      FROM entsoe_day_ahead_prices.prices
+      WHERE bidding_zone IN ('DE_AT_LU', 'DE_LU')
+        AND delivery_start >= TIMESTAMPTZ '2021-01-01 00:00:00+01'
+        AND delivery_start <  TIMESTAMPTZ '2022-01-01 00:00:00+01'
+    expected: 620.0
+    tolerance: 0.015
+    source: "SMARD (Bundesnetzagentur), \"The electricity market in 2021\", table, https://www.smard.de/page/en/topic-article/5892/206870"
+  - name: de_2022_max
+    question: "Highest day-ahead price, Germany (DE_AT_LU, then DE_LU from 2018-10-01), 2022 (local year), EUR/MWh"
+    sql: |
+      SELECT max(price)
+      FROM entsoe_day_ahead_prices.prices
+      WHERE bidding_zone IN ('DE_AT_LU', 'DE_LU')
+        AND delivery_start >= TIMESTAMPTZ '2022-01-01 00:00:00+01'
+        AND delivery_start <  TIMESTAMPTZ '2023-01-01 00:00:00+01'
+    expected: 871.0
+    tolerance: 0.015
+    source: "SMARD (Bundesnetzagentur), \"The electricity market in 2023\", table, https://www.smard.de/page/en/topic-article/5892/211754/the-electricity-market-in-2023"
+  - name: de_2023_max
+    question: "Highest day-ahead price, Germany (DE_AT_LU, then DE_LU from 2018-10-01), 2023 (local year), EUR/MWh"
+    sql: |
+      SELECT max(price)
+      FROM entsoe_day_ahead_prices.prices
+      WHERE bidding_zone IN ('DE_AT_LU', 'DE_LU')
+        AND delivery_start >= TIMESTAMPTZ '2023-01-01 00:00:00+01'
+        AND delivery_start <  TIMESTAMPTZ '2024-01-01 00:00:00+01'
+    expected: 524.27
+    tolerance: 0.015
+    source: "SMARD (Bundesnetzagentur), \"The electricity market in 2023\", table, https://www.smard.de/page/en/topic-article/5892/211754/the-electricity-market-in-2023"
+  - name: de_2024_max
+    question: "Highest day-ahead price, Germany (DE_AT_LU, then DE_LU from 2018-10-01), 2024 (local year), EUR/MWh"
+    sql: |
+      SELECT max(price)
+      FROM entsoe_day_ahead_prices.prices
+      WHERE bidding_zone IN ('DE_AT_LU', 'DE_LU')
+        AND delivery_start >= TIMESTAMPTZ '2024-01-01 00:00:00+01'
+        AND delivery_start <  TIMESTAMPTZ '2025-01-01 00:00:00+01'
+    expected: 936.28
+    tolerance: 0.015
+    source: "SMARD (Bundesnetzagentur), \"Evaluation of last year\" (2 Jan 2025), https://smard.de/page/en/topic-article/5892/215704"
+  - name: de_2025_max
+    question: "Highest day-ahead price, Germany (DE_AT_LU, then DE_LU from 2018-10-01), 2025 (local year), EUR/MWh"
+    sql: |
+      SELECT max(price)
+      FROM entsoe_day_ahead_prices.prices
+      WHERE bidding_zone IN ('DE_AT_LU', 'DE_LU')
+        AND delivery_start >= TIMESTAMPTZ '2025-01-01 00:00:00+01'
+        AND delivery_start <  TIMESTAMPTZ '2026-01-01 00:00:00+01'
+    expected: 583.4
+    tolerance: 0.015
+    source: "SMARD (Bundesnetzagentur), \"The electricity market in 2025\" (5 Jan 2026), https://www.smard.de/page/en/topic-article/5892/219038/record-high-for-solar-generation-in-each-quarter"
+  - name: de_2020_mean
+    question: "Mean day-ahead price, Germany (DE_AT_LU, then DE_LU from 2018-10-01), 2020 (local year, weighted by duration), EUR/MWh"
+    sql: |
+      SELECT sum(price * epoch(resolution)) / sum(epoch(resolution))
+      FROM entsoe_day_ahead_prices.prices
+      WHERE bidding_zone IN ('DE_AT_LU', 'DE_LU')
+        AND delivery_start >= TIMESTAMPTZ '2020-01-01 00:00:00+01'
+        AND delivery_start <  TIMESTAMPTZ '2021-01-01 00:00:00+01'
+    expected: 30.47
+    tolerance: 0.015
+    source: "SMARD (Bundesnetzagentur), \"The electricity market in 2021\", table, https://www.smard.de/page/en/topic-article/5892/206870"
+  - name: de_2021_mean
+    question: "Mean day-ahead price, Germany (DE_AT_LU, then DE_LU from 2018-10-01), 2021 (local year, weighted by duration), EUR/MWh"
+    sql: |
+      SELECT sum(price * epoch(resolution)) / sum(epoch(resolution))
+      FROM entsoe_day_ahead_prices.prices
+      WHERE bidding_zone IN ('DE_AT_LU', 'DE_LU')
+        AND delivery_start >= TIMESTAMPTZ '2021-01-01 00:00:00+01'
+        AND delivery_start <  TIMESTAMPTZ '2022-01-01 00:00:00+01'
+    expected: 96.85
+    tolerance: 0.015
+    source: "SMARD (Bundesnetzagentur), \"The electricity market in 2021\", table, https://www.smard.de/page/en/topic-article/5892/206870"
+  - name: de_2022_mean
+    question: "Mean day-ahead price, Germany (DE_AT_LU, then DE_LU from 2018-10-01), 2022 (local year, weighted by duration), EUR/MWh"
+    sql: |
+      SELECT sum(price * epoch(resolution)) / sum(epoch(resolution))
+      FROM entsoe_day_ahead_prices.prices
+      WHERE bidding_zone IN ('DE_AT_LU', 'DE_LU')
+        AND delivery_start >= TIMESTAMPTZ '2022-01-01 00:00:00+01'
+        AND delivery_start <  TIMESTAMPTZ '2023-01-01 00:00:00+01'
+    expected: 235.45
+    tolerance: 0.015
+    source: "SMARD (Bundesnetzagentur), \"The electricity market in 2023\", table, https://www.smard.de/page/en/topic-article/5892/211754/the-electricity-market-in-2023"
+  - name: de_2023_mean
+    question: "Mean day-ahead price, Germany (DE_AT_LU, then DE_LU from 2018-10-01), 2023 (local year, weighted by duration), EUR/MWh"
+    sql: |
+      SELECT sum(price * epoch(resolution)) / sum(epoch(resolution))
+      FROM entsoe_day_ahead_prices.prices
+      WHERE bidding_zone IN ('DE_AT_LU', 'DE_LU')
+        AND delivery_start >= TIMESTAMPTZ '2023-01-01 00:00:00+01'
+        AND delivery_start <  TIMESTAMPTZ '2024-01-01 00:00:00+01'
+    expected: 95.18
+    tolerance: 0.015
+    source: "SMARD (Bundesnetzagentur), \"The electricity market in 2023\", table, https://www.smard.de/page/en/topic-article/5892/211754/the-electricity-market-in-2023"
+  - name: de_2024_mean
+    question: "Mean day-ahead price, Germany (DE_AT_LU, then DE_LU from 2018-10-01), 2024 (local year, weighted by duration), EUR/MWh"
+    sql: |
+      SELECT sum(price * epoch(resolution)) / sum(epoch(resolution))
+      FROM entsoe_day_ahead_prices.prices
+      WHERE bidding_zone IN ('DE_AT_LU', 'DE_LU')
+        AND delivery_start >= TIMESTAMPTZ '2024-01-01 00:00:00+01'
+        AND delivery_start <  TIMESTAMPTZ '2025-01-01 00:00:00+01'
+    expected: 78.51
+    tolerance: 0.015
+    source: "SMARD (Bundesnetzagentur), \"Evaluation of last year\" (2 Jan 2025), https://smard.de/page/en/topic-article/5892/215704"
+  - name: de_2025_mean
+    question: "Mean day-ahead price, Germany (DE_AT_LU, then DE_LU from 2018-10-01), 2025 (local year, weighted by duration), EUR/MWh"
+    sql: |
+      SELECT sum(price * epoch(resolution)) / sum(epoch(resolution))
+      FROM entsoe_day_ahead_prices.prices
+      WHERE bidding_zone IN ('DE_AT_LU', 'DE_LU')
+        AND delivery_start >= TIMESTAMPTZ '2025-01-01 00:00:00+01'
+        AND delivery_start <  TIMESTAMPTZ '2026-01-01 00:00:00+01'
+    expected: 89.32
+    tolerance: 0.015
+    source: "SMARD (Bundesnetzagentur), \"The electricity market in 2025\" (5 Jan 2026), https://www.smard.de/page/en/topic-article/5892/219038/record-high-for-solar-generation-in-each-quarter"
+  - name: ch_2015_negative_hours
+    question: "Hours with a negative day-ahead price, CH, 2015 (local year)"
+    sql: |
+      SELECT coalesce(sum(epoch(resolution)) FILTER (WHERE price < 0), 0) / 3600
+      FROM entsoe_day_ahead_prices.prices
+      WHERE bidding_zone = 'CH'
+        AND delivery_start >= TIMESTAMPTZ '2015-01-01 00:00:00+01'
+        AND delivery_start <  TIMESTAMPTZ '2016-01-01 00:00:00+01'
+    expected: 9
+    tolerance: 0.5
+    source: "ElCom, Analyse der negativen Preise 2015-2020 (Jan 2021), Tabelle 2, p.33, https://www.elcom.admin.ch/dam/en/sd-web/QuXm2cRVxBau/analysedernegativenpreisefuerdieschweizfrankreichunddeutschlandzwischen2015und2020.pdf"
+  - name: ch_2016_negative_hours
+    question: "Hours with a negative day-ahead price, CH, 2016 (local year)"
+    sql: |
+      SELECT coalesce(sum(epoch(resolution)) FILTER (WHERE price < 0), 0) / 3600
+      FROM entsoe_day_ahead_prices.prices
+      WHERE bidding_zone = 'CH'
+        AND delivery_start >= TIMESTAMPTZ '2016-01-01 00:00:00+01'
+        AND delivery_start <  TIMESTAMPTZ '2017-01-01 00:00:00+01'
+    expected: 24
+    tolerance: 0.5
+    source: "ElCom, Analyse der negativen Preise 2015-2020 (Jan 2021), Tabelle 2, p.33, https://www.elcom.admin.ch/dam/en/sd-web/QuXm2cRVxBau/analysedernegativenpreisefuerdieschweizfrankreichunddeutschlandzwischen2015und2020.pdf"
+  - name: ch_2017_negative_hours
+    question: "Hours with a negative day-ahead price, CH, 2017 (local year)"
+    sql: |
+      SELECT coalesce(sum(epoch(resolution)) FILTER (WHERE price < 0), 0) / 3600
+      FROM entsoe_day_ahead_prices.prices
+      WHERE bidding_zone = 'CH'
+        AND delivery_start >= TIMESTAMPTZ '2017-01-01 00:00:00+01'
+        AND delivery_start <  TIMESTAMPTZ '2018-01-01 00:00:00+01'
+    expected: 5
+    tolerance: 0.5
+    source: "ElCom, Analyse der negativen Preise 2015-2020 (Jan 2021), Tabelle 2, p.33, https://www.elcom.admin.ch/dam/en/sd-web/QuXm2cRVxBau/analysedernegativenpreisefuerdieschweizfrankreichunddeutschlandzwischen2015und2020.pdf"
+  - name: ch_2018_negative_hours
+    question: "Hours with a negative day-ahead price, CH, 2018 (local year)"
+    sql: |
+      SELECT coalesce(sum(epoch(resolution)) FILTER (WHERE price < 0), 0) / 3600
+      FROM entsoe_day_ahead_prices.prices
+      WHERE bidding_zone = 'CH'
+        AND delivery_start >= TIMESTAMPTZ '2018-01-01 00:00:00+01'
+        AND delivery_start <  TIMESTAMPTZ '2019-01-01 00:00:00+01'
+    expected: 29
+    tolerance: 0.5
+    source: "ElCom, Analyse der negativen Preise 2015-2020 (Jan 2021), Tabelle 2, p.33, https://www.elcom.admin.ch/dam/en/sd-web/QuXm2cRVxBau/analysedernegativenpreisefuerdieschweizfrankreichunddeutschlandzwischen2015und2020.pdf"
+  - name: ch_2019_negative_hours
+    question: "Hours with a negative day-ahead price, CH, 2019 (local year)"
+    sql: |
+      SELECT coalesce(sum(epoch(resolution)) FILTER (WHERE price < 0), 0) / 3600
+      FROM entsoe_day_ahead_prices.prices
+      WHERE bidding_zone = 'CH'
+        AND delivery_start >= TIMESTAMPTZ '2019-01-01 00:00:00+01'
+        AND delivery_start <  TIMESTAMPTZ '2020-01-01 00:00:00+01'
+    expected: 17
+    tolerance: 0.5
+    source: "ElCom, Analyse der negativen Preise 2015-2020 (Jan 2021), Tabelle 2, p.33, https://www.elcom.admin.ch/dam/en/sd-web/QuXm2cRVxBau/analysedernegativenpreisefuerdieschweizfrankreichunddeutschlandzwischen2015und2020.pdf"
+  - name: ch_2020_negative_hours
+    question: "Hours with a negative day-ahead price, CH, 2020 (local year)"
+    sql: |
+      SELECT coalesce(sum(epoch(resolution)) FILTER (WHERE price < 0), 0) / 3600
+      FROM entsoe_day_ahead_prices.prices
+      WHERE bidding_zone = 'CH'
+        AND delivery_start >= TIMESTAMPTZ '2020-01-01 00:00:00+01'
+        AND delivery_start <  TIMESTAMPTZ '2021-01-01 00:00:00+01'
+    expected: 75
+    tolerance: 0.5
+    source: "ElCom, Analyse der negativen Preise 2015-2020 (Jan 2021), Tabelle 2, p.33, https://www.elcom.admin.ch/dam/en/sd-web/QuXm2cRVxBau/analysedernegativenpreisefuerdieschweizfrankreichunddeutschlandzwischen2015und2020.pdf"
+  - name: ch_2015_min
+    question: "Lowest day-ahead price, CH, 2015 (local year), EUR/MWh"
+    sql: |
+      SELECT min(price)
+      FROM entsoe_day_ahead_prices.prices
+      WHERE bidding_zone = 'CH'
+        AND delivery_start >= TIMESTAMPTZ '2015-01-01 00:00:00+01'
+        AND delivery_start <  TIMESTAMPTZ '2016-01-01 00:00:00+01'
+    expected: -11.66
+    tolerance: 0.015
+    source: "ElCom, Analyse der negativen Preise 2015-2020 (Jan 2021), Tabelle 2, p.33, https://www.elcom.admin.ch/dam/en/sd-web/QuXm2cRVxBau/analysedernegativenpreisefuerdieschweizfrankreichunddeutschlandzwischen2015und2020.pdf"
+  - name: ch_2016_min
+    question: "Lowest day-ahead price, CH, 2016 (local year), EUR/MWh"
+    sql: |
+      SELECT min(price)
+      FROM entsoe_day_ahead_prices.prices
+      WHERE bidding_zone = 'CH'
+        AND delivery_start >= TIMESTAMPTZ '2016-01-01 00:00:00+01'
+        AND delivery_start <  TIMESTAMPTZ '2017-01-01 00:00:00+01'
+    expected: -45.68
+    tolerance: 0.015
+    source: "ElCom, Analyse der negativen Preise 2015-2020 (Jan 2021), Tabelle 2, p.33, https://www.elcom.admin.ch/dam/en/sd-web/QuXm2cRVxBau/analysedernegativenpreisefuerdieschweizfrankreichunddeutschlandzwischen2015und2020.pdf"
+  - name: ch_2017_min
+    question: "Lowest day-ahead price, CH, 2017 (local year), EUR/MWh"
+    sql: |
+      SELECT min(price)
+      FROM entsoe_day_ahead_prices.prices
+      WHERE bidding_zone = 'CH'
+        AND delivery_start >= TIMESTAMPTZ '2017-01-01 00:00:00+01'
+        AND delivery_start <  TIMESTAMPTZ '2018-01-01 00:00:00+01'
+    expected: -49.95
+    tolerance: 0.015
+    source: "ElCom, Analyse der negativen Preise 2015-2020 (Jan 2021), Tabelle 2, p.33, https://www.elcom.admin.ch/dam/en/sd-web/QuXm2cRVxBau/analysedernegativenpreisefuerdieschweizfrankreichunddeutschlandzwischen2015und2020.pdf"
+  - name: ch_2018_min
+    question: "Lowest day-ahead price, CH, 2018 (local year), EUR/MWh"
+    sql: |
+      SELECT min(price)
+      FROM entsoe_day_ahead_prices.prices
+      WHERE bidding_zone = 'CH'
+        AND delivery_start >= TIMESTAMPTZ '2018-01-01 00:00:00+01'
+        AND delivery_start <  TIMESTAMPTZ '2019-01-01 00:00:00+01'
+    expected: -30.62
+    tolerance: 0.015
+    source: "ElCom, Analyse der negativen Preise 2015-2020 (Jan 2021), Tabelle 2, p.33, https://www.elcom.admin.ch/dam/en/sd-web/QuXm2cRVxBau/analysedernegativenpreisefuerdieschweizfrankreichunddeutschlandzwischen2015und2020.pdf"
+  - name: ch_2019_min
+    question: "Lowest day-ahead price, CH, 2019 (local year), EUR/MWh"
+    sql: |
+      SELECT min(price)
+      FROM entsoe_day_ahead_prices.prices
+      WHERE bidding_zone = 'CH'
+        AND delivery_start >= TIMESTAMPTZ '2019-01-01 00:00:00+01'
+        AND delivery_start <  TIMESTAMPTZ '2020-01-01 00:00:00+01'
+    expected: -39.45
+    tolerance: 0.015
+    source: "ElCom, Analyse der negativen Preise 2015-2020 (Jan 2021), Tabelle 2, p.33, https://www.elcom.admin.ch/dam/en/sd-web/QuXm2cRVxBau/analysedernegativenpreisefuerdieschweizfrankreichunddeutschlandzwischen2015und2020.pdf"
+  - name: ch_2020_min
+    question: "Lowest day-ahead price, CH, 2020 (local year), EUR/MWh"
+    sql: |
+      SELECT min(price)
+      FROM entsoe_day_ahead_prices.prices
+      WHERE bidding_zone = 'CH'
+        AND delivery_start >= TIMESTAMPTZ '2020-01-01 00:00:00+01'
+        AND delivery_start <  TIMESTAMPTZ '2021-01-01 00:00:00+01'
+    expected: -59.61
+    tolerance: 0.015
+    source: "ElCom, Analyse der negativen Preise 2015-2020 (Jan 2021), Tabelle 2, p.33, https://www.elcom.admin.ch/dam/en/sd-web/QuXm2cRVxBau/analysedernegativenpreisefuerdieschweizfrankreichunddeutschlandzwischen2015und2020.pdf"
+  - name: ch_2015_mean
+    question: "Mean day-ahead price, CH, 2015 (local year, weighted by duration), EUR/MWh"
+    sql: |
+      SELECT sum(price * epoch(resolution)) / sum(epoch(resolution))
+      FROM entsoe_day_ahead_prices.prices
+      WHERE bidding_zone = 'CH'
+        AND delivery_start >= TIMESTAMPTZ '2015-01-01 00:00:00+01'
+        AND delivery_start <  TIMESTAMPTZ '2016-01-01 00:00:00+01'
+    expected: 40.3
+    tolerance: 0.015
+    source: "Keles et al. 2020, Energy Economics 90:104802, Table 2, p.9, https://publikationen.bibliothek.kit.edu/1000125633/142347297"
+  - name: ch_2016_mean
+    question: "Mean day-ahead price, CH, 2016 (local year, weighted by duration), EUR/MWh"
+    sql: |
+      SELECT sum(price * epoch(resolution)) / sum(epoch(resolution))
+      FROM entsoe_day_ahead_prices.prices
+      WHERE bidding_zone = 'CH'
+        AND delivery_start >= TIMESTAMPTZ '2016-01-01 00:00:00+01'
+        AND delivery_start <  TIMESTAMPTZ '2017-01-01 00:00:00+01'
+    expected: 37.88
+    tolerance: 0.015
+    source: "Keles et al. 2020, Energy Economics 90:104802, Table 2, p.9, https://publikationen.bibliothek.kit.edu/1000125633/142347297"
+  - name: ch_2017_mean
+    question: "Mean day-ahead price, CH, 2017 (local year, weighted by duration), EUR/MWh"
+    sql: |
+      SELECT sum(price * epoch(resolution)) / sum(epoch(resolution))
+      FROM entsoe_day_ahead_prices.prices
+      WHERE bidding_zone = 'CH'
+        AND delivery_start >= TIMESTAMPTZ '2017-01-01 00:00:00+01'
+        AND delivery_start <  TIMESTAMPTZ '2018-01-01 00:00:00+01'
+    expected: 46.0
+    tolerance: 0.015
+    source: "Keles et al. 2020, Energy Economics 90:104802, Table 2, p.9, https://publikationen.bibliothek.kit.edu/1000125633/142347297"
+  - name: ch_2018_mean
+    question: "Mean day-ahead price, CH, 2018 (local year, weighted by duration), EUR/MWh"
+    sql: |
+      SELECT sum(price * epoch(resolution)) / sum(epoch(resolution))
+      FROM entsoe_day_ahead_prices.prices
+      WHERE bidding_zone = 'CH'
+        AND delivery_start >= TIMESTAMPTZ '2018-01-01 00:00:00+01'
+        AND delivery_start <  TIMESTAMPTZ '2019-01-01 00:00:00+01'
+    expected: 52.22
+    tolerance: 0.015
+    source: "Keles et al. 2020, Energy Economics 90:104802, Table 2, p.9, https://publikationen.bibliothek.kit.edu/1000125633/142347297"
+  - name: ch_2015_std
+    question: "Standard deviation of the day-ahead prices, CH, 2015 (local year), EUR/MWh"
+    sql: |
+      SELECT stddev_samp(price)
+      FROM entsoe_day_ahead_prices.prices
+      WHERE bidding_zone = 'CH'
+        AND delivery_start >= TIMESTAMPTZ '2015-01-01 00:00:00+01'
+        AND delivery_start <  TIMESTAMPTZ '2016-01-01 00:00:00+01'
+    expected: 13.15
+    tolerance: 0.015
+    source: "Keles et al. 2020, Energy Economics 90:104802, Table 2, p.9, https://publikationen.bibliothek.kit.edu/1000125633/142347297"
+  - name: ch_2017_std
+    question: "Standard deviation of the day-ahead prices, CH, 2017 (local year), EUR/MWh"
+    sql: |
+      SELECT stddev_samp(price)
+      FROM entsoe_day_ahead_prices.prices
+      WHERE bidding_zone = 'CH'
+        AND delivery_start >= TIMESTAMPTZ '2017-01-01 00:00:00+01'
+        AND delivery_start <  TIMESTAMPTZ '2018-01-01 00:00:00+01'
+    expected: 19.6
+    tolerance: 0.015
+    source: "Keles et al. 2020, Energy Economics 90:104802, Table 2, p.9, https://publikationen.bibliothek.kit.edu/1000125633/142347297"
+  - name: ch_2018_std
+    question: "Standard deviation of the day-ahead prices, CH, 2018 (local year), EUR/MWh"
+    sql: |
+      SELECT stddev_samp(price)
+      FROM entsoe_day_ahead_prices.prices
+      WHERE bidding_zone = 'CH'
+        AND delivery_start >= TIMESTAMPTZ '2018-01-01 00:00:00+01'
+        AND delivery_start <  TIMESTAMPTZ '2019-01-01 00:00:00+01'
+    expected: 16.43
+    tolerance: 0.015
+    source: "Keles et al. 2020, Energy Economics 90:104802, Table 2, p.9, https://publikationen.bibliothek.kit.edu/1000125633/142347297"
+  - name: ch_2015_max
+    question: "Highest day-ahead price, CH, 2015 (local year), EUR/MWh"
+    sql: |
+      SELECT max(price)
+      FROM entsoe_day_ahead_prices.prices
+      WHERE bidding_zone = 'CH'
+        AND delivery_start >= TIMESTAMPTZ '2015-01-01 00:00:00+01'
+        AND delivery_start <  TIMESTAMPTZ '2016-01-01 00:00:00+01'
+    expected: 114.98
+    tolerance: 0.015
+    source: "Keles et al. 2020, Energy Economics 90:104802, Table 2, p.9, https://publikationen.bibliothek.kit.edu/1000125633/142347297"
+  - name: ch_2016_max
+    question: "Highest day-ahead price, CH, 2016 (local year), EUR/MWh"
+    sql: |
+      SELECT max(price)
+      FROM entsoe_day_ahead_prices.prices
+      WHERE bidding_zone = 'CH'
+        AND delivery_start >= TIMESTAMPTZ '2016-01-01 00:00:00+01'
+        AND delivery_start <  TIMESTAMPTZ '2017-01-01 00:00:00+01'
+    expected: 120.9
+    tolerance: 0.015
+    source: "Keles et al. 2020, Energy Economics 90:104802, Table 2, p.9, https://publikationen.bibliothek.kit.edu/1000125633/142347297"
+  - name: ch_2017_max
+    question: "Highest day-ahead price, CH, 2017 (local year), EUR/MWh"
+    sql: |
+      SELECT max(price)
+      FROM entsoe_day_ahead_prices.prices
+      WHERE bidding_zone = 'CH'
+        AND delivery_start >= TIMESTAMPTZ '2017-01-01 00:00:00+01'
+        AND delivery_start <  TIMESTAMPTZ '2018-01-01 00:00:00+01'
+    expected: 179.92
+    tolerance: 0.015
+    source: "Keles et al. 2020, Energy Economics 90:104802, Table 2, p.9, https://publikationen.bibliothek.kit.edu/1000125633/142347297"
+  - name: ch_2018_max
+    question: "Highest day-ahead price, CH, 2018 (local year), EUR/MWh"
+    sql: |
+      SELECT max(price)
+      FROM entsoe_day_ahead_prices.prices
+      WHERE bidding_zone = 'CH'
+        AND delivery_start >= TIMESTAMPTZ '2018-01-01 00:00:00+01'
+        AND delivery_start <  TIMESTAMPTZ '2019-01-01 00:00:00+01'
+    expected: 161.35
+    tolerance: 0.015
+    source: "Keles et al. 2020, Energy Economics 90:104802, Table 2, p.9, https://publikationen.bibliothek.kit.edu/1000125633/142347297"
+  - name: ch_2024_mean
+    question: "Mean day-ahead price, CH, 2024 (local year, weighted by duration), EUR/MWh"
+    sql: |
+      SELECT sum(price * epoch(resolution)) / sum(epoch(resolution))
+      FROM entsoe_day_ahead_prices.prices
+      WHERE bidding_zone = 'CH'
+        AND delivery_start >= TIMESTAMPTZ '2024-01-01 00:00:00+01'
+        AND delivery_start <  TIMESTAMPTZ '2025-01-01 00:00:00+01'
+    expected: 75.96
+    tolerance: 0.015
+    source: "SMARD (Bundesnetzagentur), \"Evaluation of last year\" (2 Jan 2025), https://smard.de/page/en/topic-article/5892/215704"
+  - name: ch_2025_mean
+    question: "Mean day-ahead price, CH, 2025 (local year, weighted by duration), EUR/MWh"
+    sql: |
+      SELECT sum(price * epoch(resolution)) / sum(epoch(resolution))
+      FROM entsoe_day_ahead_prices.prices
+      WHERE bidding_zone = 'CH'
+        AND delivery_start >= TIMESTAMPTZ '2025-01-01 00:00:00+01'
+        AND delivery_start <  TIMESTAMPTZ '2026-01-01 00:00:00+01'
+    expected: 101.69
+    tolerance: 0.015
+    source: "SMARD (Bundesnetzagentur), \"The electricity market in 2025\" (5 Jan 2026), https://www.smard.de/page/en/topic-article/5892/219038/record-high-for-solar-generation-in-each-quarter"
+  - name: ch_2019_mean_of_daily_means
+    question: "Mean of the daily base prices, CH, 2019 (local days), EUR/MWh"
+    sql: |
+      SELECT avg(day_mean) FROM (
+        SELECT sum(price * epoch(resolution)) / sum(epoch(resolution)) AS day_mean
+        FROM entsoe_day_ahead_prices.prices
+        WHERE bidding_zone = 'CH'
+          AND delivery_start >= TIMESTAMPTZ '2019-01-01 00:00:00+01'
+          AND delivery_start <  TIMESTAMPTZ '2020-01-01 00:00:00+01'
+        GROUP BY CAST(delivery_start AT TIME ZONE 'Europe/Zurich' AS DATE))
+    expected: 40.92
+    tolerance: 0.015
+    source: "ElCom, Market Transparency 2019, Table 2, p.10, https://www.elcom.admin.ch/dam/en/sd-web/wIP4920eE-uW/markttransparenz2019.pdf"
+  - name: ch_2020_mean_of_daily_means
+    question: "Mean of the daily base prices, CH, 2020 (local days), EUR/MWh"
+    sql: |
+      SELECT avg(day_mean) FROM (
+        SELECT sum(price * epoch(resolution)) / sum(epoch(resolution)) AS day_mean
+        FROM entsoe_day_ahead_prices.prices
+        WHERE bidding_zone = 'CH'
+          AND delivery_start >= TIMESTAMPTZ '2020-01-01 00:00:00+01'
+          AND delivery_start <  TIMESTAMPTZ '2021-01-01 00:00:00+01'
+        GROUP BY CAST(delivery_start AT TIME ZONE 'Europe/Zurich' AS DATE))
+    expected: 34.0
+    tolerance: 0.015
+    source: "ElCom, Market Transparency 2020, Table 2, p.10, https://www.elcom.admin.ch/dam/en/sd-web/fpi-vg4kth5X/20201231_Markttransparenzbericht_EN.pdf"
+  - name: ch_2021_mean_of_daily_means
+    question: "Mean of the daily base prices, CH, 2021 (local days), EUR/MWh"
+    sql: |
+      SELECT avg(day_mean) FROM (
+        SELECT sum(price * epoch(resolution)) / sum(epoch(resolution)) AS day_mean
+        FROM entsoe_day_ahead_prices.prices
+        WHERE bidding_zone = 'CH'
+          AND delivery_start >= TIMESTAMPTZ '2021-01-01 00:00:00+01'
+          AND delivery_start <  TIMESTAMPTZ '2022-01-01 00:00:00+01'
+        GROUP BY CAST(delivery_start AT TIME ZONE 'Europe/Zurich' AS DATE))
+    expected: 114.92
+    tolerance: 0.015
+    source: "ElCom, Market Transparency 2021, Table 2, p.8, https://www.elcom.admin.ch/dam/en/sd-web/h1okXBjjlaSh/markttransparenz2021-berichtderelcom.pdf"
+  - name: ch_2022_mean_of_daily_means
+    question: "Mean of the daily base prices, CH, 2022 (local days), EUR/MWh"
+    sql: |
+      SELECT avg(day_mean) FROM (
+        SELECT sum(price * epoch(resolution)) / sum(epoch(resolution)) AS day_mean
+        FROM entsoe_day_ahead_prices.prices
+        WHERE bidding_zone = 'CH'
+          AND delivery_start >= TIMESTAMPTZ '2022-01-01 00:00:00+01'
+          AND delivery_start <  TIMESTAMPTZ '2023-01-01 00:00:00+01'
+        GROUP BY CAST(delivery_start AT TIME ZONE 'Europe/Zurich' AS DATE))
+    expected: 281.66
+    tolerance: 0.015
+    source: "ElCom, Market Transparency 2022, Table 2, p.10, https://www.elcom.admin.ch/dam/en/sd-web/LF60QBlvQwoS/markttransparenz2022berichtderelcom.pdf"
+  - name: de_2019_mean_of_daily_means
+    question: "Mean of the daily base prices, Germany (DE_AT_LU, then DE_LU from 2018-10-01), 2019 (local days), EUR/MWh"
+    sql: |
+      SELECT avg(day_mean) FROM (
+        SELECT sum(price * epoch(resolution)) / sum(epoch(resolution)) AS day_mean
+        FROM entsoe_day_ahead_prices.prices
+        WHERE bidding_zone IN ('DE_AT_LU', 'DE_LU')
+          AND delivery_start >= TIMESTAMPTZ '2019-01-01 00:00:00+01'
+          AND delivery_start <  TIMESTAMPTZ '2020-01-01 00:00:00+01'
+        GROUP BY CAST(delivery_start AT TIME ZONE 'Europe/Berlin' AS DATE))
+    expected: 37.67
+    tolerance: 0.015
+    source: "ElCom, Market Transparency 2019, Table 2, p.10, https://www.elcom.admin.ch/dam/en/sd-web/wIP4920eE-uW/markttransparenz2019.pdf"
+  - name: fr_2019_mean_of_daily_means
+    question: "Mean of the daily base prices, FR, 2019 (local days), EUR/MWh"
+    sql: |
+      SELECT avg(day_mean) FROM (
+        SELECT sum(price * epoch(resolution)) / sum(epoch(resolution)) AS day_mean
+        FROM entsoe_day_ahead_prices.prices
+        WHERE bidding_zone = 'FR'
+          AND delivery_start >= TIMESTAMPTZ '2019-01-01 00:00:00+01'
+          AND delivery_start <  TIMESTAMPTZ '2020-01-01 00:00:00+01'
+        GROUP BY CAST(delivery_start AT TIME ZONE 'Europe/Paris' AS DATE))
+    expected: 39.45
+    tolerance: 0.015
+    source: "ElCom, Market Transparency 2019, Table 2, p.10, https://www.elcom.admin.ch/dam/en/sd-web/wIP4920eE-uW/markttransparenz2019.pdf"
+  - name: fr_2020_mean_of_daily_means
+    question: "Mean of the daily base prices, FR, 2020 (local days), EUR/MWh"
+    sql: |
+      SELECT avg(day_mean) FROM (
+        SELECT sum(price * epoch(resolution)) / sum(epoch(resolution)) AS day_mean
+        FROM entsoe_day_ahead_prices.prices
+        WHERE bidding_zone = 'FR'
+          AND delivery_start >= TIMESTAMPTZ '2020-01-01 00:00:00+01'
+          AND delivery_start <  TIMESTAMPTZ '2021-01-01 00:00:00+01'
+        GROUP BY CAST(delivery_start AT TIME ZONE 'Europe/Paris' AS DATE))
+    expected: 32.2
+    tolerance: 0.015
+    source: "ElCom, Market Transparency 2020, Table 2, p.10, https://www.elcom.admin.ch/dam/en/sd-web/fpi-vg4kth5X/20201231_Markttransparenzbericht_EN.pdf"
+  - name: fr_2021_mean_of_daily_means
+    question: "Mean of the daily base prices, FR, 2021 (local days), EUR/MWh"
+    sql: |
+      SELECT avg(day_mean) FROM (
+        SELECT sum(price * epoch(resolution)) / sum(epoch(resolution)) AS day_mean
+        FROM entsoe_day_ahead_prices.prices
+        WHERE bidding_zone = 'FR'
+          AND delivery_start >= TIMESTAMPTZ '2021-01-01 00:00:00+01'
+          AND delivery_start <  TIMESTAMPTZ '2022-01-01 00:00:00+01'
+        GROUP BY CAST(delivery_start AT TIME ZONE 'Europe/Paris' AS DATE))
+    expected: 109.17
+    tolerance: 0.015
+    source: "ElCom, Market Transparency 2021, Table 2, p.8, https://www.elcom.admin.ch/dam/en/sd-web/h1okXBjjlaSh/markttransparenz2021-berichtderelcom.pdf"
+  - name: fr_2022_mean_of_daily_means
+    question: "Mean of the daily base prices, FR, 2022 (local days), EUR/MWh"
+    sql: |
+      SELECT avg(day_mean) FROM (
+        SELECT sum(price * epoch(resolution)) / sum(epoch(resolution)) AS day_mean
+        FROM entsoe_day_ahead_prices.prices
+        WHERE bidding_zone = 'FR'
+          AND delivery_start >= TIMESTAMPTZ '2022-01-01 00:00:00+01'
+          AND delivery_start <  TIMESTAMPTZ '2023-01-01 00:00:00+01'
+        GROUP BY CAST(delivery_start AT TIME ZONE 'Europe/Paris' AS DATE))
+    expected: 275.89
+    tolerance: 0.015
+    source: "ElCom, Market Transparency 2022, Table 2, p.10, https://www.elcom.admin.ch/dam/en/sd-web/LF60QBlvQwoS/markttransparenz2022berichtderelcom.pdf"
+  - name: fr_2015_negative_hours
+    question: "Hours with a negative day-ahead price, FR, 2015 (local year)"
+    sql: |
+      SELECT coalesce(sum(epoch(resolution)) FILTER (WHERE price < 0), 0) / 3600
+      FROM entsoe_day_ahead_prices.prices
+      WHERE bidding_zone = 'FR'
+        AND delivery_start >= TIMESTAMPTZ '2015-01-01 00:00:00+01'
+        AND delivery_start <  TIMESTAMPTZ '2016-01-01 00:00:00+01'
+    expected: 0
+    tolerance: 0.5
+    source: "ElCom, Analyse der negativen Preise 2015-2020 (Jan 2021), Tabelle 3, p.34, https://www.elcom.admin.ch/dam/en/sd-web/QuXm2cRVxBau/analysedernegativenpreisefuerdieschweizfrankreichunddeutschlandzwischen2015und2020.pdf"
+  - name: fr_2016_negative_hours
+    question: "Hours with a negative day-ahead price, FR, 2016 (local year)"
+    sql: |
+      SELECT coalesce(sum(epoch(resolution)) FILTER (WHERE price < 0), 0) / 3600
+      FROM entsoe_day_ahead_prices.prices
+      WHERE bidding_zone = 'FR'
+        AND delivery_start >= TIMESTAMPTZ '2016-01-01 00:00:00+01'
+        AND delivery_start <  TIMESTAMPTZ '2017-01-01 00:00:00+01'
+    expected: 2
+    tolerance: 0.5
+    source: "ElCom, Analyse der negativen Preise 2015-2020 (Jan 2021), Tabelle 3, p.34, https://www.elcom.admin.ch/dam/en/sd-web/QuXm2cRVxBau/analysedernegativenpreisefuerdieschweizfrankreichunddeutschlandzwischen2015und2020.pdf"
+  - name: fr_2017_negative_hours
+    question: "Hours with a negative day-ahead price, FR, 2017 (local year)"
+    sql: |
+      SELECT coalesce(sum(epoch(resolution)) FILTER (WHERE price < 0), 0) / 3600
+      FROM entsoe_day_ahead_prices.prices
+      WHERE bidding_zone = 'FR'
+        AND delivery_start >= TIMESTAMPTZ '2017-01-01 00:00:00+01'
+        AND delivery_start <  TIMESTAMPTZ '2018-01-01 00:00:00+01'
+    expected: 4
+    tolerance: 0.5
+    source: "ElCom, Analyse der negativen Preise 2015-2020 (Jan 2021), Tabelle 3, p.34, https://www.elcom.admin.ch/dam/en/sd-web/QuXm2cRVxBau/analysedernegativenpreisefuerdieschweizfrankreichunddeutschlandzwischen2015und2020.pdf"
+  - name: fr_2018_negative_hours
+    question: "Hours with a negative day-ahead price, FR, 2018 (local year)"
+    sql: |
+      SELECT coalesce(sum(epoch(resolution)) FILTER (WHERE price < 0), 0) / 3600
+      FROM entsoe_day_ahead_prices.prices
+      WHERE bidding_zone = 'FR'
+        AND delivery_start >= TIMESTAMPTZ '2018-01-01 00:00:00+01'
+        AND delivery_start <  TIMESTAMPTZ '2019-01-01 00:00:00+01'
+    expected: 11
+    tolerance: 0.5
+    source: "ElCom, Analyse der negativen Preise 2015-2020 (Jan 2021), Tabelle 3, p.34, https://www.elcom.admin.ch/dam/en/sd-web/QuXm2cRVxBau/analysedernegativenpreisefuerdieschweizfrankreichunddeutschlandzwischen2015und2020.pdf"
+  - name: fr_2019_negative_hours
+    question: "Hours with a negative day-ahead price, FR, 2019 (local year)"
+    sql: |
+      SELECT coalesce(sum(epoch(resolution)) FILTER (WHERE price < 0), 0) / 3600
+      FROM entsoe_day_ahead_prices.prices
+      WHERE bidding_zone = 'FR'
+        AND delivery_start >= TIMESTAMPTZ '2019-01-01 00:00:00+01'
+        AND delivery_start <  TIMESTAMPTZ '2020-01-01 00:00:00+01'
+    expected: 27
+    tolerance: 0.5
+    source: "ElCom, Analyse der negativen Preise 2015-2020 (Jan 2021), Tabelle 3, p.34, https://www.elcom.admin.ch/dam/en/sd-web/QuXm2cRVxBau/analysedernegativenpreisefuerdieschweizfrankreichunddeutschlandzwischen2015und2020.pdf"
+  - name: fr_2020_negative_hours
+    question: "Hours with a negative day-ahead price, FR, 2020 (local year)"
+    sql: |
+      SELECT coalesce(sum(epoch(resolution)) FILTER (WHERE price < 0), 0) / 3600
+      FROM entsoe_day_ahead_prices.prices
+      WHERE bidding_zone = 'FR'
+        AND delivery_start >= TIMESTAMPTZ '2020-01-01 00:00:00+01'
+        AND delivery_start <  TIMESTAMPTZ '2021-01-01 00:00:00+01'
+    expected: 102
+    tolerance: 0.5
+    source: "ElCom, Analyse der negativen Preise 2015-2020 (Jan 2021), Tabelle 3, p.34, https://www.elcom.admin.ch/dam/en/sd-web/QuXm2cRVxBau/analysedernegativenpreisefuerdieschweizfrankreichunddeutschlandzwischen2015und2020.pdf"
+  - name: fr_2023_negative_hours
+    question: "Hours with a negative day-ahead price, FR, 2023 (local year)"
+    sql: |
+      SELECT coalesce(sum(epoch(resolution)) FILTER (WHERE price < 0), 0) / 3600
+      FROM entsoe_day_ahead_prices.prices
+      WHERE bidding_zone = 'FR'
+        AND delivery_start >= TIMESTAMPTZ '2023-01-01 00:00:00+01'
+        AND delivery_start <  TIMESTAMPTZ '2024-01-01 00:00:00+01'
+    expected: 147
+    tolerance: 0.5
+    source: "CRE, Rapport de surveillance 2024, p.68, https://www.cre.fr/fileadmin/Documents/Rapports_et_etudes/2025/Rapport_de_surveillance_2024.pdf"
+  - name: fr_2024_negative_hours
+    question: "Hours with a negative day-ahead price, FR, 2024 (local year)"
+    sql: |
+      SELECT coalesce(sum(epoch(resolution)) FILTER (WHERE price < 0), 0) / 3600
+      FROM entsoe_day_ahead_prices.prices
+      WHERE bidding_zone = 'FR'
+        AND delivery_start >= TIMESTAMPTZ '2024-01-01 00:00:00+01'
+        AND delivery_start <  TIMESTAMPTZ '2025-01-01 00:00:00+01'
+    expected: 352
+    tolerance: 0.5
+    source: "CRE, Rapport de surveillance 2024, p.68, https://www.cre.fr/fileadmin/Documents/Rapports_et_etudes/2025/Rapport_de_surveillance_2024.pdf"
+  - name: fr_2025_negative_hours_hourly_mean
+    question: "Hours whose mean price (over their quarter-hours) is negative, FR, 2025 (RTE's definition)"
+    sql: |
+      SELECT count(*) FROM (
+        SELECT date_trunc('hour', delivery_start) AS hour,
+               sum(price * epoch(resolution)) / sum(epoch(resolution)) AS hour_mean
+        FROM entsoe_day_ahead_prices.prices
+        WHERE bidding_zone = 'FR'
+          AND delivery_start >= TIMESTAMPTZ '2025-01-01 00:00:00+01'
+          AND delivery_start <  TIMESTAMPTZ '2026-01-01 00:00:00+01'
+        GROUP BY hour)
+      WHERE hour_mean < 0
+    expected: 513
+    tolerance: 0.5
+    source: "RTE, Bilan electrique 2025, principaux resultats, p.13, https://assets.rte-france.com/prod/public/2026-02/Bilan-electrique-2025-principaux-resultats.pdf"
+  - name: fr_2016_min
+    question: "Lowest day-ahead price, FR, 2016 (local year), EUR/MWh"
+    sql: |
+      SELECT min(price)
+      FROM entsoe_day_ahead_prices.prices
+      WHERE bidding_zone = 'FR'
+        AND delivery_start >= TIMESTAMPTZ '2016-01-01 00:00:00+01'
+        AND delivery_start <  TIMESTAMPTZ '2017-01-01 00:00:00+01'
+    expected: -10.69
+    tolerance: 0.015
+    source: "ElCom, Analyse der negativen Preise 2015-2020 (Jan 2021), Tabelle 3, p.34, https://www.elcom.admin.ch/dam/en/sd-web/QuXm2cRVxBau/analysedernegativenpreisefuerdieschweizfrankreichunddeutschlandzwischen2015und2020.pdf"
+  - name: fr_2017_min
+    question: "Lowest day-ahead price, FR, 2017 (local year), EUR/MWh"
+    sql: |
+      SELECT min(price)
+      FROM entsoe_day_ahead_prices.prices
+      WHERE bidding_zone = 'FR'
+        AND delivery_start >= TIMESTAMPTZ '2017-01-01 00:00:00+01'
+        AND delivery_start <  TIMESTAMPTZ '2018-01-01 00:00:00+01'
+    expected: -2.17
+    tolerance: 0.015
+    source: "ElCom, Analyse der negativen Preise 2015-2020 (Jan 2021), Tabelle 3, p.34, https://www.elcom.admin.ch/dam/en/sd-web/QuXm2cRVxBau/analysedernegativenpreisefuerdieschweizfrankreichunddeutschlandzwischen2015und2020.pdf"
+  - name: fr_2018_min
+    question: "Lowest day-ahead price, FR, 2018 (local year), EUR/MWh"
+    sql: |
+      SELECT min(price)
+      FROM entsoe_day_ahead_prices.prices
+      WHERE bidding_zone = 'FR'
+        AND delivery_start >= TIMESTAMPTZ '2018-01-01 00:00:00+01'
+        AND delivery_start <  TIMESTAMPTZ '2019-01-01 00:00:00+01'
+    expected: -31.82
+    tolerance: 0.015
+    source: "ElCom, Analyse der negativen Preise 2015-2020 (Jan 2021), Tabelle 3, p.34, https://www.elcom.admin.ch/dam/en/sd-web/QuXm2cRVxBau/analysedernegativenpreisefuerdieschweizfrankreichunddeutschlandzwischen2015und2020.pdf"
+  - name: fr_2019_min
+    question: "Lowest day-ahead price, FR, 2019 (local year), EUR/MWh"
+    sql: |
+      SELECT min(price)
+      FROM entsoe_day_ahead_prices.prices
+      WHERE bidding_zone = 'FR'
+        AND delivery_start >= TIMESTAMPTZ '2019-01-01 00:00:00+01'
+        AND delivery_start <  TIMESTAMPTZ '2020-01-01 00:00:00+01'
+    expected: -24.92
+    tolerance: 0.015
+    source: "ElCom, Analyse der negativen Preise 2015-2020 (Jan 2021), Tabelle 3, p.34, https://www.elcom.admin.ch/dam/en/sd-web/QuXm2cRVxBau/analysedernegativenpreisefuerdieschweizfrankreichunddeutschlandzwischen2015und2020.pdf"
+  - name: fr_2020_min
+    question: "Lowest day-ahead price, FR, 2020 (local year), EUR/MWh"
+    sql: |
+      SELECT min(price)
+      FROM entsoe_day_ahead_prices.prices
+      WHERE bidding_zone = 'FR'
+        AND delivery_start >= TIMESTAMPTZ '2020-01-01 00:00:00+01'
+        AND delivery_start <  TIMESTAMPTZ '2021-01-01 00:00:00+01'
+    expected: -75.82
+    tolerance: 0.015
+    source: "ElCom, Analyse der negativen Preise 2015-2020 (Jan 2021), Tabelle 3, p.34, https://www.elcom.admin.ch/dam/en/sd-web/QuXm2cRVxBau/analysedernegativenpreisefuerdieschweizfrankreichunddeutschlandzwischen2015und2020.pdf"
+  - name: fr_2023_mean
+    question: "Mean day-ahead price, FR, 2023 (local year, weighted by duration), EUR/MWh"
+    sql: |
+      SELECT sum(price * epoch(resolution)) / sum(epoch(resolution))
+      FROM entsoe_day_ahead_prices.prices
+      WHERE bidding_zone = 'FR'
+        AND delivery_start >= TIMESTAMPTZ '2023-01-01 00:00:00+01'
+        AND delivery_start <  TIMESTAMPTZ '2024-01-01 00:00:00+01'
+    expected: 96.9
+    tolerance: 0.05
+    source: "CRE, Rapport de surveillance 2024, Tableau 29, p.114 (rounded to 0.1), https://www.cre.fr/fileadmin/Documents/Rapports_et_etudes/2025/Rapport_de_surveillance_2024.pdf"
+  - name: fr_2024_mean
+    question: "Mean day-ahead price, FR, 2024 (local year, weighted by duration), EUR/MWh"
+    sql: |
+      SELECT sum(price * epoch(resolution)) / sum(epoch(resolution))
+      FROM entsoe_day_ahead_prices.prices
+      WHERE bidding_zone = 'FR'
+        AND delivery_start >= TIMESTAMPTZ '2024-01-01 00:00:00+01'
+        AND delivery_start <  TIMESTAMPTZ '2025-01-01 00:00:00+01'
+    expected: 58.02
+    tolerance: 0.015
+    source: "SMARD (Bundesnetzagentur), \"Evaluation of last year\" (2 Jan 2025), https://smard.de/page/en/topic-article/5892/215704"
+  - name: fr_2025_mean
+    question: "Mean day-ahead price, FR, 2025 (local year, weighted by duration), EUR/MWh"
+    sql: |
+      SELECT sum(price * epoch(resolution)) / sum(epoch(resolution))
+      FROM entsoe_day_ahead_prices.prices
+      WHERE bidding_zone = 'FR'
+        AND delivery_start >= TIMESTAMPTZ '2025-01-01 00:00:00+01'
+        AND delivery_start <  TIMESTAMPTZ '2026-01-01 00:00:00+01'
+    expected: 61.07
+    tolerance: 0.015
+    source: "SMARD (Bundesnetzagentur), \"The electricity market in 2025\" (5 Jan 2026), https://www.smard.de/page/en/topic-article/5892/219038/record-high-for-solar-generation-in-each-quarter"

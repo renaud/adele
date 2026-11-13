@@ -13,7 +13,7 @@ from pathlib import Path
 
 import yaml
 
-from . import engine, state, storage
+from . import checks, engine, state, storage
 from .catalog import DELIVERY_FIELD, Dataset, Table, category_values
 from .config import Config
 from .engine import QueryResult, iso_duration
@@ -58,6 +58,25 @@ def table_facts(data_dir: Path, t: Table, declared_resolution: list[dict]) -> Ta
         _cache.clear()
     _cache[key] = TableFacts(stats, periods)
     return _cache[key]
+
+
+_window_cache: dict[tuple, tuple] = {}
+
+
+def window_range(data_dir: Path, t: Table, column: str) -> tuple:
+    """(first, last, distinct values) of the window column, when it isn't delivery_start (forecasts)."""
+    files = storage.partitions(data_dir, t)
+    key = (t.sql_name, column, tuple((p.name, p.stat().st_mtime_ns) for p in files))
+    if key not in _window_cache:
+        con = storage.connect()
+        try:
+            _window_cache.clear() if len(_window_cache) > 256 else None
+            _window_cache[key] = con.execute(
+                f"SELECT min({ident(column)}), max({ident(column)}), count(DISTINCT {ident(column)}) "
+                f"FROM ({storage.select_sql(data_dir, t)})").fetchone()
+        finally:
+            con.close()
+    return _window_cache[key]
 
 
 def resolution_periods(con, data_dir: Path, t: Table) -> list[dict]:
@@ -112,8 +131,11 @@ def render_list(cfg: Config, catalog: dict[str, Dataset]) -> str:
             f = table_facts(cfg.data_dir, t, ds.resolution)
             res |= {p["resolution"] for p in f.periods if p["resolution"]}
             if f.stats.first:
-                cov.append((f.stats.first, f.stats.last))
+                cov.append(window_range(cfg.data_dir, t, ds.window)[:2] if ds.window != DELIVERY_FIELD
+                           else (f.stats.first, f.stats.last))
         coverage = f"{ts(min(c[0] for c in cov))} .. {ts(max(c[1] for c in cov))}" if cov else "no data"
+        if cov and ds.window != DELIVERY_FIELD:
+            coverage = f"{ds.window} {coverage}"
         lines.append(f"{ds.id} | {ds.title} | {', '.join(sorted(res)) or '?'} | {coverage} | {st.get('status')}")
     return "\n".join(lines) + "\n"
 
@@ -151,10 +173,12 @@ def describe_dict(cfg: Config, ds: Dataset) -> dict:
         "last_fetched_at": ts(st.get("last_fetched_at")),
         "last_changed_at": ts(st.get("last_changed_at")),
         "next_fetch_eta": ts(eta) if eta else "on the next scheduled run",
-        "refresh": f"every {iso_duration(ds.refresh.every)}, window [now - {iso_duration(ds.refresh.lookback)}, "
-                   f"now + {iso_duration(ds.refresh.horizon)})",
+        "refresh": f"every {iso_duration(ds.refresh.every)}, window on {ds.window} "
+                   f"[now - {iso_duration(ds.refresh.lookback)}, now + {iso_duration(ds.refresh.horizon)})",
     }
     card["revisions"] = {"overwrite": "only the latest value of each row is kept"}.get(ds.revisions, ds.revisions)
+    if ds.checks:
+        card["published_figures"] = published_figures_line(ds, st)
     card["conventions"] = CONVENTIONS
     if ds.warnings:
         card["warnings"] = ds.warnings
@@ -169,6 +193,9 @@ def describe_dict(cfg: Config, ds: Dataset) -> dict:
                 entry["description"] = t.description.strip()
             entry["coverage"] = (f"{ts(facts.stats.first)} .. {ts(facts.stats.last)} (first and last interval start)"
                                  if facts.stats.first else "no data")
+            if ds.window != DELIVERY_FIELD and facts.stats.rows:
+                lo, hi, n = window_range(cfg.data_dir, t, ds.window)
+                entry[f"{ds.window} coverage"] = f"{ts(lo)} .. {ts(hi)} ({n} distinct values)"
             entry["resolution"] = [
                 (f"{p['series']}: " if p["series"] else "") + f"{p['resolution']} "
                 + (f"{ts(p['first'])} .. {ts(p['last'])}" if isinstance(p["first"], dt.datetime) else f"from {p['first']}")
@@ -204,6 +231,22 @@ def describe_dict(cfg: Config, ds: Dataset) -> dict:
     return card
 
 
+def failing_checks(st: dict) -> list[str]:
+    pre = checks.CHECK_PREFIX
+    return [p[len(pre):].split()[0].rstrip(":") for p in st.get("problems", []) if p.startswith(pre)]
+
+
+def published_figures_line(ds: Dataset, st: dict) -> str:
+    """One line on checks.yaml: how many published figures the data reproduces (not the list)."""
+    sources = list(dict.fromkeys(c["source"].split(",")[0].strip() for c in ds.checks))
+    head = f"{len(ds.checks)} figures published by {', '.join(sources)} are recomputed from this data after each fetch"
+    ran = st.get("published_checks") or {}
+    if ran.get("count") != len(ds.checks):
+        return head + ": not run yet"
+    bad = failing_checks(st)
+    return head + (f": {len(bad)} differ ({', '.join(bad)})" if bad else ": all match")
+
+
 def render_describe(cfg: Config, ds: Dataset) -> str:
     return yaml.dump(describe_dict(cfg, ds), Dumper=_CardDumper, sort_keys=False, allow_unicode=True, width=100)
 
@@ -215,6 +258,9 @@ def merged_descriptor(cfg: Config, ds: Dataset) -> dict:
     computed: dict = {"status": st.get("status"), "problems": st.get("problems", []),
                       "last_fetched_at": ts(st.get("last_fetched_at"), False),
                       "last_changed_at": ts(st.get("last_changed_at"), False)}
+    if ds.checks:
+        computed["published_checks"] = {"count": len(ds.checks), "failing": failing_checks(st),
+                                        "run_at": (st.get("published_checks") or {}).get("at")}
     eta = state.next_fetch_eta(st, ds.refresh.every)
     computed["next_fetch_eta"] = ts(eta, False) if eta else None
     tables = {}

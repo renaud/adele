@@ -7,8 +7,15 @@ from __future__ import annotations
 
 import datetime as dt
 import fcntl
+import json
 import logging
 import multiprocessing
+import os
+import re
+import shutil
+import signal
+import subprocess
+import tempfile
 from contextlib import contextmanager
 from dataclasses import dataclass
 from pathlib import Path
@@ -60,19 +67,93 @@ def _fetch_in_child(folder: str, ds_id: str, start: dt.datetime, end: dt.datetim
     return _load_fetch(ds_id, Path(folder) / "fetch.py")(start, end)
 
 
-def call_fetch(ds: Dataset, start: dt.datetime, end: dt.datetime, timeout_s: float):
+def call_fetch(ds: Dataset, start: dt.datetime, end: dt.datetime, timeout_s: float, workdir: Path | None = None):
     """Run fetch(start, end) in a child process, and stop it at the time limit.
 
     A hung source (e.g. an HTTP request without a timeout) would otherwise hold the dataset's
     lock forever: every scheduled run would skip, and the data would go stale silently. A
     thread can't be stopped, a process can. The child inherits the environment (credentials).
+
+    A fetch.py with inline script metadata (PEP 723) runs in its own environment, built by
+    `uv run --script` from the dependencies it declares; it returns Parquet paths in `workdir`.
     """
+    if ds.script_metadata is not None:
+        if workdir is None:
+            raise ValueError("a fetch.py with inline dependencies needs a workdir")
+        return _run_script(ds, start, end, timeout_s, workdir)
     with multiprocessing.get_context("spawn").Pool(1) as pool:
         res = pool.apply_async(_fetch_in_child, (str(ds.folder), ds.id, start, end))
         try:
             return res.get(timeout=timeout_s)
         except multiprocessing.TimeoutError:
             raise FetchError(f"fetch did not finish within {timeout_s:g} s (time limit); stopped") from None
+
+
+# The runner calls fetch(start, end) and writes each table with DuckDB, which keeps the types
+# (timezone-aware timestamps, durations as INTERVAL) without pyarrow on either side.
+_RUNNER_BODY = """
+import datetime as dt
+import importlib.util
+import sys
+
+import duckdb
+
+spec = importlib.util.spec_from_file_location("adele_fetch", sys.argv[1])
+module = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(module)
+start, end = (dt.datetime.fromisoformat(a) for a in sys.argv[2:4])
+result = module.fetch(start, end)
+tables = result if isinstance(result, dict) else {"_": result}
+con = duckdb.connect()
+con.execute("SET TimeZone = 'UTC'")
+for name, frame in tables.items():
+    con.register("frame", frame)
+    con.execute(f"COPY frame TO '{sys.argv[4]}/{name}.parquet' (FORMAT parquet)")
+    con.unregister("frame")
+"""
+RUNNER_DEPS = ("pandas>=2.2", "duckdb>=2.0")
+
+
+def runner_source(meta: dict) -> str:
+    """fetch.py's dependencies plus what the runner needs, as a PEP 723 script."""
+    deps = list(meta.get("dependencies", []))
+    named = {re.split(r"[<>=!~;\[ ]", d, maxsplit=1)[0].lower() for d in deps}
+    deps += [d for d in RUNNER_DEPS if re.split(r"[<>=]", d)[0] not in named]
+    head = ["# /// script"]
+    if meta.get("requires-python"):
+        head.append(f"# requires-python = {json.dumps(meta['requires-python'])}")
+    head += [f"# dependencies = {json.dumps(deps)}", "# ///"]
+    return "\n".join(head) + "\n" + _RUNNER_BODY
+
+
+def _run_script(ds: Dataset, start: dt.datetime, end: dt.datetime, timeout_s: float, workdir: Path):
+    uv = shutil.which("uv")
+    if uv is None:
+        raise FetchError("uv not found on PATH: needed to run a fetch.py that declares its dependencies")
+    runner = workdir / "_runner.py"
+    runner.write_text(runner_source(ds.script_metadata))
+    out = workdir / "out"
+    out.mkdir()
+    cmd = [uv, "run", "--quiet", "--no-project", "--script", str(runner),
+           str(ds.folder / "fetch.py"), start.isoformat(), end.isoformat(), str(out)]
+    log_path = workdir / "fetch.log"
+    with open(log_path, "w") as log_fh:
+        proc = subprocess.Popen(cmd, stdout=log_fh, stderr=subprocess.STDOUT, start_new_session=True,
+                                cwd=ds.folder)
+        try:
+            rc = proc.wait(timeout=timeout_s)
+        except subprocess.TimeoutExpired:
+            os.killpg(proc.pid, signal.SIGKILL)  # uv and the python it started
+            proc.wait()
+            raise FetchError(f"fetch did not finish within {timeout_s:g} s (time limit); stopped") from None
+    text = log_path.read_text(errors="replace")
+    if rc != 0:
+        tail = " | ".join(ln.strip() for ln in text.strip().splitlines()[-3:] if ln.strip()) or "no output"
+        raise FetchError(f"fetch.py exited with code {rc}: {tail[-800:]}")
+    if text.strip():
+        log.info("fetch.py of %s said:\n%s", ds.id, text[-4000:])
+    files = {p.stem: p for p in out.glob("*.parquet")}
+    return files.get("_") or files
 
 
 @contextmanager
@@ -105,13 +186,14 @@ def fetch_window(cfg: Config, catalog: dict[str, Dataset], ds: Dataset, start: d
         st["last_attempt_at"] = state.now()
         st["last_window"] = [start.isoformat(), end.isoformat()]
         con = storage.connect()
+        workdir = tempfile.TemporaryDirectory(prefix=f"adele-{ds.id}-")
         try:
-            result = call_fetch(ds, start, end, cfg.fetch_timeout_s)
+            result = call_fetch(ds, start, end, cfg.fetch_timeout_s, Path(workdir.name))
             batches = _as_tables(ds, result)
             for t in ds.tables.values():
-                out.rows += _stage(con, t, batches[t.name], start, end)
+                out.rows += _stage(con, t, batches[t.name], start, end, ds.window)
             for t in ds.tables.values():
-                m = storage.merge_overwrite(con, cfg.data_dir, t, f"_batch_{t.name}")
+                m = storage.merge_overwrite(con, cfg.data_dir, t, f"_batch_{t.name}", ds.window)
                 out.rows_changed += m.rows_changed
                 out.months_written += len(m.months_written)
             st["last_fetched_at"] = st["last_attempt_at"]
@@ -125,7 +207,12 @@ def fetch_window(cfg: Config, catalog: dict[str, Dataset], ds: Dataset, start: d
             log.exception("fetch of %s failed", ds.id)
         finally:
             con.close()
-        problems = checks.run_checks(catalog, ds, cfg.data_dir, cfg.query) if run_checks else st.get("problems", [])
+            workdir.cleanup()
+        if run_checks:
+            problems = checks.run_checks(catalog, ds, cfg.data_dir, cfg.query)
+            st["published_checks"] = {"count": len(ds.checks), "at": state.now().isoformat()}
+        else:
+            problems = st.get("problems", [])
         if out.error:
             problems = [f"last fetch failed: {out.error}"] + list(problems)
         out.problems = problems
@@ -144,6 +231,7 @@ def recheck(cfg: Config, catalog: dict[str, Dataset], ds: Dataset) -> list[str]:
         st = state.load(cfg.data_dir, ds.id)
         old = st.get("status")
         problems = checks.run_checks(catalog, ds, cfg.data_dir, cfg.query)
+        st["published_checks"] = {"count": len(ds.checks), "at": state.now().isoformat()}
         if st.get("last_error"):
             problems = [f"last fetch failed: {st['last_error']}"] + problems
         st["problems"] = problems
@@ -175,13 +263,23 @@ def _as_tables(ds: Dataset, result) -> dict:
         return result
     if len(ds.tables) != 1:
         raise FetchError(f"fetch must return a dict of tables {sorted(ds.tables)}")
+    if result is None:
+        raise FetchError("fetch returned nothing")
     return {next(iter(ds.tables)): result}
 
 
-def _stage(con: duckdb.DuckDBPyConnection, t: Table, frame, start: dt.datetime, end: dt.datetime) -> int:
-    """Check one fetched table against its schema; keep the rows of [start, end) in a temp table."""
+def _stage(con: duckdb.DuckDBPyConnection, t: Table, frame, start: dt.datetime, end: dt.datetime,
+           window: str = DELIVERY_FIELD) -> int:
+    """Check one fetched table against its schema; keep the rows of [start, end) in a temp table.
+
+    `frame` is a data frame, or the path of a Parquet file (from a fetch.py run by uv). The
+    window [start, end) applies to the column `window` (adele.window).
+    """
     raw = f"_raw_{t.name}"
-    con.register(raw, frame)
+    if isinstance(frame, Path):
+        con.execute(f"CREATE OR REPLACE TEMP VIEW {raw} AS SELECT * FROM read_parquet({storage.sql_str(frame)})")
+    else:
+        con.register(raw, frame)
     got = {r[0]: r[1] for r in con.execute(f"DESCRIBE SELECT * FROM {raw}").fetchall()}
     declared = {f["name"]: f["type"] for f in t.fields}
     errors = []
@@ -198,8 +296,11 @@ def _stage(con: duckdb.DuckDBPyConnection, t: Table, frame, start: dt.datetime, 
     cols = ", ".join(f"CAST({ident(c)} AS {types[c]}) AS {ident(c)}" for c in t.field_names)
     batch = f"_batch_{t.name}"
     con.execute(f"CREATE OR REPLACE TEMP TABLE {batch} AS SELECT {cols} FROM {raw} "
-                f"WHERE {ident(DELIVERY_FIELD)} >= $s AND {ident(DELIVERY_FIELD)} < $e", {"s": start, "e": end})
-    con.unregister(raw)
+                f"WHERE {ident(window)} >= $s AND {ident(window)} < $e", {"s": start, "e": end})
+    if isinstance(frame, Path):
+        con.execute(f"DROP VIEW {raw}")
+    else:
+        con.unregister(raw)
     pk = ", ".join(ident(k) for k in t.primary_key)
     nulls = con.execute(f"SELECT count(*) FROM {batch} WHERE "
                         + " OR ".join(f"{ident(k)} IS NULL" for k in t.primary_key)).fetchone()[0]

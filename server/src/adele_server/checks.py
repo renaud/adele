@@ -1,6 +1,7 @@
 """Declared means checked: test what a descriptor states against the stored data.
 
-Run after each fetch. Any problem sets the dataset's status to failing.
+Run after each fetch. Any problem sets the dataset's status to failing. Besides the descriptor,
+`checks.yaml` lists published figures (regulators, papers) that the data must reproduce.
 """
 from __future__ import annotations
 
@@ -64,4 +65,29 @@ def run_checks(catalog: dict[str, Dataset], ds: Dataset, data_dir: Path, limits:
                 problems.append(f"example {i + 1} ({ex['question']!r}) returns no rows")
         except engine.QueryError as e:
             problems.append(f"example {i + 1} ({ex['question']!r}) fails: {str(e).splitlines()[0]}")
+    for c in ds.checks:
+        problem = run_published_check(catalog, data_dir, limits, c)
+        if problem:
+            problems.append(problem)
     return problems
+
+
+CHECK_PREFIX = "check "  # problems from checks.yaml start with it (the describe card counts them)
+
+
+def run_published_check(catalog: dict[str, Dataset], data_dir: Path, limits: QueryLimits, c: dict) -> str | None:
+    """None if the query reproduces the published figure within the tolerance, else the problem."""
+    name = f"{CHECK_PREFIX}{c['name']}"
+    try:
+        res = engine.run(catalog, data_dir, limits, c["sql"], max_rows=1)
+    except engine.QueryError as e:
+        return f"{name} fails: {str(e).splitlines()[0]}"
+    if not res.rows or not res.rows[0]:
+        return f"{name} returns no row"
+    v = res.rows[0][0]
+    if isinstance(v, bool) or not isinstance(v, (int, float)):
+        return f"{name} returns {v!r}, not a number"
+    if abs(v - c["expected"]) > c["tolerance"] + 1e-9:
+        return (f"{name}: got {v:.6g}, published {c['expected']:g} (tolerance {c['tolerance']:g}; "
+                f"{c['source'].split(',')[0]})")
+    return None

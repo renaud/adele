@@ -1,3 +1,7 @@
+# /// script
+# requires-python = ">=3.12"
+# dependencies = ["entsoe-py==0.8.1", "pandas>=2.2", "requests>=2.31"]
+# ///
 """Fetch ENTSO-E day-ahead prices (document A44) for the bidding zones of the descriptor.
 
 Measured on 2026-11-13 (scratch measurements, ENTSO-E Transparency Platform API):
@@ -14,6 +18,8 @@ Measured on 2026-11-13 (scratch measurements, ENTSO-E Transparency Platform API)
   hourly with `.first()`, which would keep only the first quarter-hour of FR on 2025-09-30.
 - The raw client has no timeout by default: on 2026-11-13 a request of the backfill waited
   28 minutes without an answer. Each request now has a timeout and is retried.
+- entsoe-py is pinned (script block above): this file uses two of its private functions
+  (`_extract_timeseries`, `parse_prices`). The server runs it with `uv run --script`.
 """
 from __future__ import annotations
 

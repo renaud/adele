@@ -6,6 +6,12 @@ annual means, minimum, maximum, standard deviation, hours with a negative price;
 2015-2025). Candidates for QA questions with known answers, and for checks that the server could
 run after each fetch.
 
+Since 2026-11-13 the server runs them: `datasets/entsoe_day_ahead_prices/checks.yaml` holds 82
+checks (the 79 matches, plus FR 2015 negative hours = 0, CRE's FR 2023 mean of 96.9 with a tolerance
+of 0.05 for its rounding, and RTE's 513 negative hours of 2025 with RTE's definition). The other 5
+differences below stay out. Generator: `gen_checks.py` in the session scratchpad (one-off); edit
+checks.yaml directly from now on.
+
 ## Sources
 
 | source | what | URL |

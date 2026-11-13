@@ -8,6 +8,11 @@ User=adele
 Group=adele
 UMask=0027
 EnvironmentFile=/etc/adele/env
+# fetch.py files run with `uv run --script` (PEP 723); uv in /usr/local/bin, its cache outside the data
+Environment=UV_CACHE_DIR=/var/cache/adele/uv
+Environment=UV_PYTHON_INSTALL_DIR=/opt/uv-python
+Environment=GOOGLE_APPLICATION_CREDENTIALS=/etc/adele/gcloud-adc.json
+CacheDirectory=adele
 ExecStart=/opt/adele/server/.venv/bin/adele-server --config /etc/adele/adele-server.toml fetch --due
 NoNewPrivileges=yes
 PrivateTmp=yes

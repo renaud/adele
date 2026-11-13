@@ -1,6 +1,7 @@
-"""Storage: each table is Parquet, one file per delivery month (UTC), written by DuckDB (D9).
+"""Storage: each table is Parquet, one file per month (UTC), written by DuckDB (D9).
 
-Layout: <data_dir>/<dataset>/<table>/<YYYY-MM>.parquet. A partition is written to a temp file
+The month is that of the dataset's window column: delivery_start, unless `adele.window` names
+another column (e.g. init_time for forecasts). Layout: <data_dir>/<dataset>/<table>/<YYYY-MM>.parquet. A partition is written to a temp file
 and renamed, so readers never see a half-written partition (SPEC.md, Storage).
 """
 from __future__ import annotations
@@ -63,17 +64,19 @@ class MergeResult:
     rows_changed: int  # rows of the batch that were new, or differed from the stored row
 
 
-def merge_overwrite(con: duckdb.DuckDBPyConnection, data_dir: Path, table: Table, batch: str) -> MergeResult:
+def merge_overwrite(con: duckdb.DuckDBPyConnection, data_dir: Path, table: Table, batch: str,
+                    window: str = DELIVERY_FIELD) -> MergeResult:
     """Merge the rows of the temp table `batch` into the month partitions; the batch wins on the key.
 
     Stored rows of the window that the batch doesn't contain are kept (a source that stops
     sending a row doesn't delete it).
     """
     cols = ", ".join(ident(c) for c in table.field_names)
-    order = ", ".join(ident(c) for c in [DELIVERY_FIELD] + [k for k in table.primary_key if k != DELIVERY_FIELD])
+    first = list(dict.fromkeys([window, DELIVERY_FIELD]))
+    order = ", ".join(ident(c) for c in first + [k for k in table.primary_key if k not in first])
     pk = ", ".join(ident(k) for k in table.primary_key)
     months = [r[0] for r in con.execute(
-        f"SELECT DISTINCT strftime({ident(DELIVERY_FIELD)}, '%Y-%m') AS m FROM {batch} ORDER BY m").fetchall()]
+        f"SELECT DISTINCT strftime({ident(window)}, '%Y-%m') AS m FROM {batch} ORDER BY m").fetchall()]
     out_dir = table_dir(data_dir, table)
     out_dir.mkdir(parents=True, exist_ok=True)
     written, changed_total = [], 0
@@ -81,7 +84,7 @@ def merge_overwrite(con: duckdb.DuckDBPyConnection, data_dir: Path, table: Table
         start, end = month_bounds(month)
         con.execute(
             f"CREATE OR REPLACE TEMP TABLE _month AS SELECT {cols} FROM {batch} "
-            f"WHERE {ident(DELIVERY_FIELD)} >= $s AND {ident(DELIVERY_FIELD)} < $e", {"s": start, "e": end})
+            f"WHERE {ident(window)} >= $s AND {ident(window)} < $e", {"s": start, "e": end})
         path = out_dir / f"{month}.parquet"
         if path.exists():
             old = f"(SELECT {cols} FROM read_parquet({sql_str(path)}))"

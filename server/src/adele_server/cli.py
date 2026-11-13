@@ -37,6 +37,8 @@ def main(argv: list[str] | None = None) -> int:
     b.add_argument("--start", type=_date, required=True)
     b.add_argument("--end", type=_date, help="default: now + horizon")
     b.add_argument("--step-days", type=int, default=365)
+    b.add_argument("--step-hours", type=int, help="window length in hours, instead of --step-days "
+                   "(forecasts: one window per run keeps each fetch under the time limit)")
     c = sub.add_parser("check", help="run the checks on the stored data and update the status")
     c.add_argument("dataset")
     args = p.parse_args(argv)
@@ -90,7 +92,8 @@ def main(argv: list[str] | None = None) -> int:
     if args.cmd == "backfill":
         ds = catalog[args.dataset]
         end = args.end or ingest.scheduled_window(ds, now)[1]
-        outs = ingest.backfill(cfg, catalog, ds, args.start, end, dt.timedelta(days=args.step_days))
+        step = dt.timedelta(hours=args.step_hours) if args.step_hours else dt.timedelta(days=args.step_days)
+        outs = ingest.backfill(cfg, catalog, ds, args.start, end, step)
         failed = [o for o in outs if not o.ok]
         st = state.load(cfg.data_dir, ds.id)
         print(f"{ds.id}: {len(outs)} windows, {sum(o.rows for o in outs)} rows, {len(failed)} failed; "
