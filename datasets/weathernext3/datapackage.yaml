@@ -1,58 +1,195 @@
-# Definitions (titles, descriptions, warnings, licenses) are written by Renaud
-# (skills/add-dataset). TODO(Renaud) marks the ones that are missing; the agent does not fill
-# them. Structure, defaults to confirm and measured traps: docs/weathernext3.md.
+# Definitions (titles, descriptions, warnings, licenses, labels) are Renaud's (skills/add-dataset).
+# Claude drafted them; Renaud accepted the drafts on 2026-11-14. Structure, defaults and measured
+# traps: docs/weathernext3.md.
 name: weathernext3
-title: WeatherNext 3 forecasts of solar radiation, Switzerland (draft title, TODO(Renaud))
-# TODO(Renaud): description of the dataset
-# TODO(Renaud): licenses. Google's terms: values for times 1 h ago or more are CC BY 4.0; newer
-# values (every forecast of the future) fall under experimental terms, with required notices.
+title: WeatherNext 3 forecasts of solar radiation and cloud cover, Switzerland
+description: >-
+  Forecasts of WeatherNext 3, the ensemble weather model of Google DeepMind, on a grid of 0.1
+  degree over Switzerland (1,456 cells). The model starts a run every hour from 2026, and every 3
+  hours in 2024 and 2025. This dataset keeps the first 48 hours of each run. The model has 64
+  members, and the source publishes only statistics across them: the mean, and the 10th, 50th
+  and 90th percentiles. The table solar_radiation holds the solar radiation of each forecast
+  hour. The table weather holds the cloud cover at each forecast instant.
+licenses:
+  - name: CC-BY-4.0
+    path: https://creativecommons.org/licenses/by/4.0/
+    title: CC BY 4.0 for values about a time 1 h ago or more. Cite WeatherNext 3 (Google DeepMind).
+  - path: https://storage.googleapis.com/weathernext-public/terms-of-use.pdf
+    title: >-
+      Google's experimental terms for newer values (every forecast of the future): internal use,
+      copyright notice "Copyright 2024-6 Google LLC". Required notice: "This data is intended for
+      experimental modelling only and is not intended, validated, or approved for real world use."
 resources:
   - name: solar_radiation
+    description: >-
+      Solar radiation per forecast hour: one row per run, forecast hour and grid cell.
     schema:
       primaryKey: [init_time, delivery_start, lat, lon]
       fields:
         - name: init_time
           type: datetime
-          # TODO(Renaud): description. Fact: start of the forecast run, UTC. The run was readable
-          # about 7 h later (one observation); there is one run per hour.
+          description: >-
+            Start of the forecast run, UTC. One run per hour from 2026, one every 3 hours in 2024
+            and 2025. A run becomes readable about 7 h after this time.
         - name: delivery_start
           type: datetime
-          # TODO(Renaud): description. Fact: start of the forecast hour, UTC (valid time - 1 h).
+          description: >-
+            Start of the forecast hour, UTC. The value covers the hour [delivery_start,
+            delivery_start + 1 h).
         - name: lead_h
           type: integer
           unit: h
-          # TODO(Renaud): description. Fact: hours from init_time to the END of the forecast hour
-          # (the source's lead time): lead_h = 1 for [init_time, init_time + 1 h). 1..48 here.
+          description: >-
+            Hours from init_time to the end of the forecast hour, as the source counts them: 1 for
+            the hour that starts at init_time, 48 for the last. delivery_start = init_time +
+            lead_h - 1 h.
         - name: lat
           type: number
           unit: degree_north
-          # TODO(Renaud): description. Fact: centre of a 0.1 deg grid cell.
+          description: Latitude of the centre of the grid cell. The cell spans 0.1 degree.
         - name: lon
           type: number
           unit: degree_east
+          description: Longitude of the centre of the grid cell. The cell spans 0.1 degree.
+        - name: checkpoint
+          type: string
+          description: >-
+            The version of the model that made the run. evaluation: runs of 2024 and 2025, by a
+            model trained on data up to 2023-12-31, so these runs are out of sample. production:
+            runs from 2026, by a model trained on data up to 2026-06-30, so the runs of January to
+            June 2026 are in sample.
+          categories:
+            - {value: evaluation, label: trained on data up to 2023-12-31}
+            - {value: production, label: trained on data up to 2026-06-30}
         - name: ssrd_mean
           type: number
           unit: W/m2
-          # TODO(Renaud): description. Fact: mean of the 64 members of surface solar radiation
-          # downwards, as the mean power over the forecast hour (source: J/m2 per hour / 3600).
+          description: >-
+            Solar radiation that reaches a horizontal surface (global horizontal irradiance), as
+            the mean power over the forecast hour. Mean across the 64 members. The source gives
+            the energy of the hour in J/m2; here it is divided by 3600.
         - name: ssrd_p10
           type: number
           unit: W/m2
-          # Fact: 10th percentile across the 64 members, per cell and hour.
+          description: Solar radiation as in ssrd_mean, 10th percentile across the 64 members.
         - name: ssrd_p50
           type: number
           unit: W/m2
+          description: Solar radiation as in ssrd_mean, median across the 64 members.
         - name: ssrd_p90
           type: number
           unit: W/m2
+          description: Solar radiation as in ssrd_mean, 90th percentile across the 64 members.
+  - name: weather
+    description: >-
+      Cloud cover at each forecast instant: one row per run, instant and grid cell.
+    schema:
+      primaryKey: [init_time, valid_at, lat, lon]
+      fields:
+        - name: init_time
+          type: datetime
+          description: Start of the forecast run, UTC, as in solar_radiation.
+        - name: valid_at
+          type: datetime
+          description: >-
+            The instant that the values refer to, UTC: init_time + lead_h. A value at an instant,
+            not a mean over an hour.
+        - name: lead_h
+          type: integer
+          unit: h
+          description: Hours from init_time to valid_at, 1 to 48.
+        - name: lat
+          type: number
+          unit: degree_north
+          description: Latitude of the centre of the grid cell, as in solar_radiation.
+        - name: lon
+          type: number
+          unit: degree_east
+          description: Longitude of the centre of the grid cell, as in solar_radiation.
+        - name: checkpoint
+          type: string
+          description: The version of the model that made the run, as in solar_radiation.
+          categories:
+            - {value: evaluation, label: trained on data up to 2023-12-31}
+            - {value: production, label: trained on data up to 2026-06-30}
+        - name: total_cloud_cover_mean
+          type: number
+          unit: fraction (0-1)
+          description: >-
+            Share of the sky covered by cloud at valid_at, from 0 (clear) to 1 (overcast). Mean
+            across the 64 members.
+        - name: total_cloud_cover_p10
+          type: number
+          unit: fraction (0-1)
+          description: Cloud cover as in total_cloud_cover_mean, 10th percentile across the members.
+        - name: total_cloud_cover_p50
+          type: number
+          unit: fraction (0-1)
+          description: Cloud cover as in total_cloud_cover_mean, median across the members.
+        - name: total_cloud_cover_p90
+          type: number
+          unit: fraction (0-1)
+          description: Cloud cover as in total_cloud_cover_mean, 90th percentile across the members.
+        - name: low_cloud_cover_mean
+          type: number
+          unit: fraction (0-1)
+          description: >-
+            Share of the sky covered by low cloud at valid_at, from 0 to 1 (low: the lowest levels
+            of the model, roughly below 2 km). Mean across the 64 members.
+        - name: low_cloud_cover_p10
+          type: number
+          unit: fraction (0-1)
+          description: Low cloud cover as in low_cloud_cover_mean, 10th percentile across the members.
+        - name: low_cloud_cover_p50
+          type: number
+          unit: fraction (0-1)
+          description: Low cloud cover as in low_cloud_cover_mean, median across the members.
+        - name: low_cloud_cover_p90
+          type: number
+          unit: fraction (0-1)
+          description: Low cloud cover as in low_cloud_cover_mean, 90th percentile across the members.
 adele:
-  window: init_time  # the fetch window, the [start, end) filter and the month partitions use it
-  resolution:
-    - {from: 2026-01-01, value: PT1H}
+  format_version: 1
+  # Google's Application Default Credentials: the key file on the server. On the Mac the
+  # default file under HOME is found without it.
+  secrets: [GOOGLE_APPLICATION_CREDENTIALS]
+  window: init_time  # the fetch window, the [start, end) filter and the partitions use it
+  partition: day  # a month of runs is 52 million rows per table; one file per init day
+  resolution:  # of solar_radiation; weather holds instants (valid_at)
+    - {from: 2024-01-01, value: PT1H}
   refresh:
     every: PT1H
-    lookback: PT12H  # runs appear ~7 h after init; a run older than 10 h without its marker fails
+    lookback: PT12H  # runs appear ~7 h after init; a 2026 run older than 10 h without its marker fails
     horizon: PT1H
-  revisions: overwrite
-  # TODO(Renaud): warnings (in-sample Jan-Jun 2026, p10 is not a member's trajectory, night
-  # values are not 0, a cell is not a station; docs/weathernext3.md, Traps)
+  revisions: none  # a run never changes once written: each run is fetched once
+  warnings:
+    - >-
+      Runs of January to June 2026 come from a model trained on data up to 2026-06-30: they
+      forecast weather that the model has already seen, so their errors look smaller than they
+      are. To measure forecast skill, use runs with checkpoint = 'evaluation' (2024-2025) or runs
+      from July 2026.
+    - >-
+      The columns p10, p50 and p90 are quantiles across the 64 members, per cell and per hour. A
+      series of hourly p10 values is not the forecast of one member, and the sum of hourly p10
+      values over a day is not the 10th percentile of the daily sum.
+    - >-
+      Solar radiation at night is not exactly 0 (about 0.1 to 0.2 W/m2 on average over the
+      cells). A ratio to clear-sky radiation is unstable at dawn and dusk.
+    - >-
+      A value covers a grid cell of 0.1 degree (about 8 x 11 km), not a point. It can differ from
+      a station measurement, most in the mountains.
+    - >-
+      A run becomes readable about 7 h after its init_time (observed in November 2026). A
+      backtest may use a run only from about init_time + 7 h on, not from init_time.
+    - >-
+      Cloud cover in weather is the value at the instant valid_at, not a mean over an hour. Solar
+      radiation in solar_radiation is the mean over [delivery_start, delivery_start + 1 h). To
+      pair them, choose the instant (the start or the end of the hour, or the mean of both) and
+      say which.
+    - >-
+      Low cloud cover can exceed total cloud cover by up to 0.04 (in about 9 % of the rows of a
+      run), because the model forecasts each variable on its own. Total minus low cloud cover can
+      be negative.
+    - >-
+      There are 8 runs per day in 2024 and 2025 (every 3 hours) and 24 from 2026. The latest run
+      before a given hour, and the number of runs per day, change on 2026-01-01.
