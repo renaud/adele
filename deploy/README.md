@@ -11,6 +11,12 @@ The query process can't write the data, by two layers: its user (`adele-query`, 
 group-readable) and its mount namespace (`ReadOnlyPaths=/var/lib/adele`). DuckDB's own settings and
 the statement filter come on top (D10). Source credentials (`ENTSO_TOKEN`, Google's) reach only the fetch
 unit: `adele-query` is in group `adele`, so `adele-server.service` hides the two files (`InaccessiblePaths=`).
+Within the fetch unit, each `fetch.py` gets only the variables that its descriptor declares in
+`adele.secrets` (entsoe: `ENTSO_TOKEN`; weathernext3: `GOOGLE_APPLICATION_CREDENTIALS`), plus
+what uv and Python need (`PATH`, `HOME`, locale, certificates, proxies, `UV_*`, `PYTHON*`,
+`XDG_*`). That filters environment variables only: files that the user `adele` can read (e.g.
+`/etc/adele/gcloud-adc.json`) stay readable by every fetch. Separating the datasets for real
+needs one user per fetch (later, with datasets from other repositories).
 
 ## Layout
 
@@ -24,8 +30,11 @@ unit: `adele-query` is in group `adele`, so `adele-server.service` hides the two
 /var/log/adele/              queries.jsonl, alerts.log   adele:adele 2770
 ```
 
-In `/etc/adele/adele-server.toml`: `datasets_dir = "/opt/adele/datasets"`, `data_dir = "/var/lib/adele"`,
-`log_dir = "/var/log/adele"`, no `env_file` (systemd passes the environment).
+In `/etc/adele/adele-server.toml`: `datasets_dirs = ["/opt/adele/datasets"]`, `data_dir = "/var/lib/adele"`,
+`log_dir = "/var/log/adele"`, no `env_file` (systemd passes the environment). A dataset kept in its
+own repository is one more entry in `datasets_dirs` (its checkout folder, e.g.
+`/opt/adele-datasets/<repo>`); an entry with a `datapackage.yaml` is one dataset, any other entry a
+folder of dataset folders.
 
 ## Install
 
@@ -55,5 +64,24 @@ file to `/etc/adele/gcloud-adc.json`. If those credentials carry a quota project
 
 Open: `uv sync` links the venv to a Python that uv installs under the home of the user who runs it,
 which `ProtectHome=yes` hides from the units; install with `UV_PYTHON_INSTALL_DIR=/opt/uv-python` or use
-the system Python. And how team members reach the server (SSH tunnel, VPN, or a reverse proxy with TLS). The API key
-travels in a header, so not over plain HTTP outside the machine.
+the system Python.
+
+## Access from outside: HTTPS through Caddy
+
+Decided 2026-11-13: steacher1 has a DNS name and can be reached from outside, so team members call
+the server over HTTPS. An SSH tunnel would need an SSH account per member, which is a shell: more
+access than an API key. uvicorn stays on 127.0.0.1:8000; Caddy (`deploy/Caddyfile`) terminates TLS
+and forwards. The API key travels in a header, so never over plain HTTP outside the machine.
+
+```bash
+sudo apt install caddy
+sudo cp Caddyfile /etc/caddy/Caddyfile     # after replacing the host name
+sudo systemctl reload caddy
+```
+
+Clients: `ADELE_URL=https://<steacher1's DNS name>`, plus their own `ADELE_API_KEY` (one key per
+person in `[keys]`, so that `queries.jsonl` says who ran what, and one key can be revoked).
+
+Before opening the ports: ask the university's IT whether ports 80 and 443 may be opened on
+steacher1, and whether to limit them to the university network and the VPN (the commented
+`remote_ip` block in the Caddyfile).

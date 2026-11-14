@@ -1,0 +1,22 @@
+# Reverse proxy with TLS in front of adele-server (draft, 2026-11-13, not tried yet).
+# uvicorn stays on 127.0.0.1:8000; only Caddy listens on the network (ports 80 and 443).
+#
+# Replace adele.example.org with steacher1's DNS name. Caddy gets and renews a Let's Encrypt
+# certificate by itself if that name resolves to this machine and port 80 or 443 is reachable
+# from the internet. Without that, use the university's certificate (`tls <cert> <key>`).
+adele.example.org {
+	# agent SQL arrives as a small JSON body
+	request_body {
+		max_size 64KB
+	}
+
+	# Optional: only the university network and its VPN (fill in the real ranges).
+	# @outside not remote_ip 192.0.2.0/24 198.51.100.0/24
+	# respond @outside 403
+
+	reverse_proxy 127.0.0.1:8000
+
+	log {
+		output file /var/log/caddy/adele.log
+	}
+}

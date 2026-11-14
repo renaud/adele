@@ -1,8 +1,10 @@
-"""The catalog: one folder per dataset in `datasets/`, with `datapackage.yaml` and `fetch.py`,
-and optionally `checks.yaml` (published figures that the data must reproduce).
+"""The catalog: one folder per dataset, with `datapackage.yaml` and `fetch.py`, and optionally
+`checks.yaml` (published figures that the data must reproduce).
 
-The server loads and validates every descriptor at startup and refuses to start on an error
-(SPEC.md, Catalog). Table names are `<dataset>.<table>` (D8).
+The server reads the folders listed in its config (`datasets_dirs`): an entry that holds a
+datapackage.yaml is one dataset (e.g. the checkout of a dataset's own repository), any other
+entry is a folder of dataset folders. It loads and validates every descriptor at startup and
+refuses to start on an error (SPEC.md, Catalog). Table names are `<dataset>.<table>` (D8).
 """
 from __future__ import annotations
 
@@ -20,8 +22,14 @@ import yaml
 
 NAME_RE = re.compile(r"^[a-z][a-z0-9_]*$")
 RESERVED_SCHEMAS = {"main", "temp", "system", "memory", "information_schema", "pg_catalog"}
-DELIVERY_FIELD = "delivery_start"  # every table has it: UTC start of the delivery interval
-REVISION_POLICIES = {"overwrite"}  # append-only comes with POC 2
+DELIVERY_FIELD = "delivery_start"  # UTC start of the interval that a value covers [start, start + resolution)
+INSTANT_FIELD = "valid_at"  # UTC instant that a value refers to (e.g. cloud cover at 12:00); no resolution
+FORMATS = {1}  # adele.format_version: the version of the descriptor format that this server reads
+SECRET_RE = re.compile(r"^[A-Z_][A-Z0-9_]*$")
+# overwrite: the latest fetch wins on the key. none: stored rows never change (forecast runs);
+# the server fetches only the parts of a window that hold no stored rows. append-only: POC 2.
+REVISION_POLICIES = {"overwrite", "none"}
+PARTITIONS = {"month", "day"}  # adele.partition: one Parquet file per month or per day of the window column
 
 # Table Schema type --> the DuckDB type in which the server stores the column.
 STORAGE_TYPE = {
@@ -74,6 +82,15 @@ class Table:
     def field_names(self) -> list[str]:
         return [f["name"] for f in self.fields]
 
+    @property
+    def time_field(self) -> str:
+        """delivery_start (values over intervals) or valid_at (values at instants)."""
+        return DELIVERY_FIELD if DELIVERY_FIELD in self.field_names else INSTANT_FIELD
+
+    @property
+    def is_instant(self) -> bool:
+        return self.time_field == INSTANT_FIELD
+
     def storage_types(self) -> dict[str, str]:
         return {f["name"]: STORAGE_TYPE[f["type"]] for f in self.fields}
 
@@ -100,6 +117,16 @@ class Dataset:
         return self.adele.get("window", DELIVERY_FIELD)
 
     @property
+    def secrets(self) -> list[str]:
+        """The environment variables (source credentials) that fetch() gets; no other secret."""
+        return list(self.adele.get("secrets", []))
+
+    @property
+    def partition(self) -> str:
+        """One Parquet file per `month` (default) or per `day` (UTC) of the window column."""
+        return self.adele.get("partition", "month")
+
+    @property
     def title(self) -> str:
         return self.descriptor.get("title", self.id)
 
@@ -120,22 +147,35 @@ class Dataset:
         return {f"{t.name}.{f['name']}": f["unit"] for t in self.tables.values() for f in t.fields if f.get("unit")}
 
 
-def load_catalog(datasets_dir: Path) -> dict[str, Dataset]:
-    if not datasets_dir.is_dir():
-        raise CatalogError(f"datasets folder not found: {datasets_dir}")
-    catalog, errors = {}, []
-    for folder in sorted(p for p in datasets_dir.iterdir() if p.is_dir() and not p.name.startswith((".", "_"))):
-        try:
-            ds = load_dataset(folder)
-            catalog[ds.id] = ds
-        except CatalogError as e:
-            errors.append(f"{folder.name}: {e}")
+def load_catalog(dirs: Path | list[Path]) -> dict[str, Dataset]:
+    """Every dataset of the listed folders: a folder with a datapackage.yaml is one dataset,
+    another folder holds dataset folders. Two datasets with the same id are an error."""
+    catalog, errors, origin = {}, [], {}
+    for entry in [dirs] if isinstance(dirs, Path) else list(dirs):
+        if not entry.is_dir():
+            errors.append(f"datasets folder not found: {entry}")
+            continue
+        if (entry / "datapackage.yaml").exists():
+            folders, single = [entry], True
+        else:
+            folders = sorted(p for p in entry.iterdir() if p.is_dir() and not p.name.startswith((".", "_")))
+            single = False
+        for folder in folders:
+            try:
+                ds = load_dataset(folder, check_folder_name=not single)
+            except CatalogError as e:
+                errors.append(f"{folder.name}: {e}")
+                continue
+            if ds.id in catalog:
+                errors.append(f"dataset {ds.id!r} is defined twice: {origin[ds.id]} and {folder}")
+                continue
+            catalog[ds.id], origin[ds.id] = ds, folder
     if errors:
         raise CatalogError("invalid catalog:\n" + "\n".join(f"  - {e}" for e in errors))
     return catalog
 
 
-def load_dataset(folder: Path) -> Dataset:
+def load_dataset(folder: Path, check_folder_name: bool = True) -> Dataset:
     desc_path = folder / "datapackage.yaml"
     if not desc_path.exists():
         raise CatalogError("missing datapackage.yaml")
@@ -144,7 +184,7 @@ def load_dataset(folder: Path) -> Dataset:
         raise CatalogError("datapackage.yaml is not a mapping")
     errors: list[str] = []
     ds_id = descriptor.get("name")
-    if ds_id != folder.name:
+    if check_folder_name and ds_id != folder.name:
         errors.append(f"name {ds_id!r} differs from the folder name {folder.name!r}")
     if not isinstance(ds_id, str) or not NAME_RE.match(ds_id):
         raise CatalogError(f"dataset name {ds_id!r} must match {NAME_RE.pattern}")
@@ -173,10 +213,12 @@ def load_dataset(folder: Path) -> Dataset:
         if not pk:
             errors.append(f"{tname}: primaryKey is required (it states the grain)")
         names = [f.get("name") for f in fields]
-        if DELIVERY_FIELD not in names:
-            errors.append(f"{tname}: every table needs a field {DELIVERY_FIELD!r} of type datetime")
-        elif next(f for f in fields if f.get("name") == DELIVERY_FIELD).get("type") != "datetime":
-            errors.append(f"{tname}: {DELIVERY_FIELD!r} must have type datetime")
+        times = [n for n in (DELIVERY_FIELD, INSTANT_FIELD) if n in names]
+        if len(times) != 1:
+            errors.append(f"{tname}: every table needs one time field: {DELIVERY_FIELD!r} (the start of the "
+                          f"interval that a value covers) or {INSTANT_FIELD!r} (the instant that a value refers to)")
+        elif next(f for f in fields if f.get("name") == times[0]).get("type") != "datetime":
+            errors.append(f"{tname}: {times[0]!r} must have type datetime")
         tables[tname] = Table(ds_id, tname, fields, pk, res.get("description"))
     if not tables:
         errors.append("no resources")
@@ -190,9 +232,20 @@ def load_dataset(folder: Path) -> Dataset:
         errors.append("adele.refresh needs every, lookback and horizon")
     except ValueError as e:
         errors.append(f"adele.refresh: {e}")
+    fmt = adele.get("format_version")
+    readable = ", ".join(map(str, sorted(FORMATS)))
+    if fmt is None:
+        errors.append(f"adele.format_version is missing (this server reads version {readable})")
+    elif isinstance(fmt, bool) or fmt not in FORMATS:
+        errors.append(f"adele.format_version {fmt!r} is unknown (this server reads version {readable})")
+    secrets = adele.get("secrets", [])
+    if not isinstance(secrets, list) or not all(isinstance(x, str) and SECRET_RE.match(x) for x in secrets):
+        errors.append("adele.secrets must be a list of environment variable names (e.g. [ENTSO_TOKEN])")
     revisions = adele.get("revisions")
     if revisions not in REVISION_POLICIES:
         errors.append(f"adele.revisions must be one of {sorted(REVISION_POLICIES)} (append-only: POC 2), got {revisions!r}")
+    if adele.get("partition", "month") not in PARTITIONS:
+        errors.append(f"adele.partition must be one of {sorted(PARTITIONS)}, got {adele.get('partition')!r}")
     errors += _adele_errors(adele)
 
     window = adele.get("window", DELIVERY_FIELD)

@@ -20,7 +20,7 @@ class QueryLimits:
 @dataclass
 class Config:
     path: Path
-    datasets_dir: Path
+    datasets_dirs: list[Path]  # each: one dataset folder, or a folder of dataset folders
     data_dir: Path
     log_dir: Path
     env_file: Path | None
@@ -28,6 +28,11 @@ class Config:
     keys: dict[str, str]  # key name (team member) --> API key
     query: QueryLimits = field(default_factory=QueryLimits)
     fetch_timeout_s: float = 1800.0  # per call of fetch(start, end); a hung source must not go unnoticed
+
+    @property
+    def datasets_dir(self) -> Path:
+        """The first entry of datasets_dirs (configs and tests with a single folder)."""
+        return self.datasets_dirs[0]
 
 
 def load(path: str | os.PathLike | None = None) -> Config:
@@ -45,9 +50,14 @@ def load(path: str | os.PathLike | None = None) -> Config:
     if len(set(keys.values())) != len(keys):
         raise SystemExit("config: two team members have the same API key")
     data_dir = path_of("data_dir")
+    if "datasets_dirs" in raw and "datasets_dir" in raw:
+        raise SystemExit("config: set datasets_dirs or datasets_dir, not both")
+    dirs = raw.get("datasets_dirs", [raw["datasets_dir"]] if "datasets_dir" in raw else None)
+    if not dirs or not isinstance(dirs, list) or not all(isinstance(d, str) for d in dirs):
+        raise SystemExit("config: datasets_dirs must be a non-empty list of folders")
     return Config(
         path=p,
-        datasets_dir=path_of("datasets_dir"),
+        datasets_dirs=[(base / d).resolve() for d in dirs],
         data_dir=data_dir,
         log_dir=path_of("log_dir") or data_dir / "logs",
         env_file=path_of("env_file"),

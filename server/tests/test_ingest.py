@@ -29,7 +29,7 @@ def test_fetch_stores_and_is_idempotent(env):
     assert o.ok and o.rows == 96 and o.rows_changed == 96 and o.problems == []
     assert state.load(cfg.data_dir, "test_prices")["status"] == "ok"
     o2 = fetch(env)
-    assert o2.ok and o2.rows_changed == 0 and o2.months_written == 0
+    assert o2.ok and o2.rows_changed == 0 and o2.partitions_written == 0
     assert stored(cfg) == [(96,)]
 
 

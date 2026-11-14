@@ -1,5 +1,7 @@
 # Copy to adele-server.toml (gitignored: it holds the API keys). Paths are relative to this file.
-datasets_dir = "../datasets"
+# Each entry: a folder of dataset folders, or one dataset folder (e.g. a dataset's own repository).
+# A single `datasets_dir = "..."` is still accepted.
+datasets_dirs = ["../datasets"]
 data_dir = "../data_nosync"          # D7. On the Linux server: a backed-up folder (SPEC.md, Backups)
 log_dir = "../data_nosync/logs"      # queries.jsonl (one line per query), alerts.log
 env_file = "../.env"                 # source credentials (ENTSO_TOKEN); read by fetch commands only

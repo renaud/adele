@@ -10,7 +10,7 @@ from pathlib import Path
 from . import engine
 from .catalog import Dataset, category_values
 from .config import QueryLimits
-from .storage import connect, ident, partitions, select_sql, table_dir, sql_str
+from .storage import StorageError, check_layout, connect, ident, partitions, select_sql, table_dir, sql_str
 
 
 def run_checks(catalog: dict[str, Dataset], ds: Dataset, data_dir: Path, limits: QueryLimits) -> list[str]:
@@ -20,6 +20,11 @@ def run_checks(catalog: dict[str, Dataset], ds: Dataset, data_dir: Path, limits:
         for t in ds.tables.values():
             if not partitions(data_dir, t):
                 problems.append(f"{t.sql_name}: no data yet")
+                continue
+            try:
+                check_layout(data_dir, t, ds.partition)
+            except StorageError as e:
+                problems.append(str(e))
                 continue
             # schema of the stored files (a descriptor change without a refetch shows up here)
             raw = con.execute(f"DESCRIBE SELECT * FROM read_parquet({sql_str(table_dir(data_dir, t) / '*.parquet')})").fetchall()

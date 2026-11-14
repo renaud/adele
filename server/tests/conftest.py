@@ -26,6 +26,8 @@ resources:
         - {name: resolution, type: duration}
         - {name: price, type: number, unit: EUR/MWh}
 adele:
+  format_version: 1
+  secrets: [ADELE_TEST_FAULT, ADELE_TEST_BUMP]
   refresh: {every: PT1H, lookback: P1D, horizon: P1D}
   revisions: overwrite
   warnings: ["Synthetic data, do not use."]
@@ -45,6 +47,8 @@ def fetch(start, end):
         raise RuntimeError("source down")
     if fault == "hang":
         time.sleep(60)
+    if fault == "env":  # which variables did the fetch get?
+        raise RuntimeError("env: " + ",".join(sorted(k for k in os.environ if k.startswith(("ADELE_", "TEST_")))))
     bump = float(os.environ.get("ADELE_TEST_BUMP", "0"))
     idx = pd.date_range(start, end, freq="h", inclusive="left", tz="UTC")
     zones = ["A", "B"] + (["Z"] if fault == "undeclared" else [])

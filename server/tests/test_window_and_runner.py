@@ -28,6 +28,7 @@ resources:
         - {name: delivery_start, type: datetime}
         - {name: value, type: number}
 adele:
+  format_version: 1
   refresh: {every: PT1H, lookback: PT6H, horizon: PT1H}
   revisions: overwrite
   window: init_time

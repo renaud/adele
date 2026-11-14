@@ -29,6 +29,8 @@ resources:
           type: number
           unit: EUR/MWh
 adele:
+  format_version: 1
+  secrets: [ENTSO_TOKEN]
   refresh:
     every: PT1H  # proposal: prices of the next day appear around 13:00 CET
     lookback: P3D

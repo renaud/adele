@@ -9,12 +9,12 @@ import datetime as dt
 import fcntl
 import json
 import logging
-import multiprocessing
 import os
 import re
 import shutil
 import signal
 import subprocess
+import sys
 import tempfile
 from contextlib import contextmanager
 from dataclasses import dataclass
@@ -56,44 +56,101 @@ class Outcome:
     ok: bool
     rows: int = 0
     rows_changed: int = 0
-    months_written: int = 0
+    partitions_written: int = 0
+    windows_fetched: int = 0  # revisions: none fetches only the parts of the window without stored rows
     problems: list[str] | None = None
     error: str | None = None
 
 
-def _fetch_in_child(folder: str, ds_id: str, start: dt.datetime, end: dt.datetime):
-    from .catalog import _load_fetch
-
-    return _load_fetch(ds_id, Path(folder) / "fetch.py")(start, end)
+EPSILON = dt.timedelta(microseconds=1)  # DuckDB's timestamp resolution: (a, b) = [a + EPSILON, b)
 
 
-def call_fetch(ds: Dataset, start: dt.datetime, end: dt.datetime, timeout_s: float, workdir: Path | None = None):
-    """Run fetch(start, end) in a child process, and stop it at the time limit.
+def windows_to_fetch(data_dir: Path, ds: Dataset, start: dt.datetime, end: dt.datetime) -> list[tuple]:
+    """The windows to pass to fetch() for [start, end).
+
+    overwrite: the whole window. none: stored rows never change, so only the parts of [start,
+    end) that hold no stored value of the window column: the gaps between the distinct stored
+    values, each value excluded. A value counts as stored when every table has rows for it.
+    A gap may hold no data at all (between two hourly runs); fetch() then returns no rows.
+    """
+    if ds.revisions != "none":
+        return [(start, end)]
+    stored = None
+    con = storage.connect()
+    try:
+        for t in ds.tables.values():
+            if not storage.partitions(data_dir, t):
+                stored = set()
+                break
+            vals = {r[0] for r in con.execute(
+                f"SELECT DISTINCT {ident(ds.window)} FROM ({storage.select_sql(data_dir, t)}) "
+                f"WHERE {ident(ds.window)} >= $s AND {ident(ds.window)} < $e", {"s": start, "e": end}).fetchall()}
+            stored = vals if stored is None else stored & vals
+    finally:
+        con.close()
+    gaps, lo = [], start
+    for v in sorted(stored or ()):
+        if v > lo:
+            gaps.append((lo, v))
+        lo = v + EPSILON
+    if lo < end:
+        gaps.append((lo, end))
+    return gaps
+
+
+# What a fetch gets from the server's environment: what uv and Python need (paths, locale,
+# certificates, proxies, uv and Python settings), plus the secrets that its descriptor declares
+# (adele.secrets). Not the other datasets' credentials.
+BASE_ENV = ("PATH", "HOME", "USER", "LOGNAME", "SHELL", "LANG", "LC_ALL", "LC_CTYPE", "TZ", "TMPDIR",
+            "SSL_CERT_FILE", "SSL_CERT_DIR", "REQUESTS_CA_BUNDLE", "CURL_CA_BUNDLE",
+            "HTTP_PROXY", "HTTPS_PROXY", "NO_PROXY", "http_proxy", "https_proxy", "no_proxy")
+BASE_ENV_PREFIXES = ("UV_", "PYTHON", "XDG_")
+
+
+def fetch_env(ds: Dataset) -> dict[str, str]:
+    env = {k: v for k, v in os.environ.items() if k in BASE_ENV or k.startswith(BASE_ENV_PREFIXES)}
+    env.update({k: os.environ[k] for k in ds.secrets if k in os.environ})
+    return env
+
+
+def call_fetch(ds: Dataset, windows: list[tuple], timeout_s: float, workdir: Path) -> dict[str, list[Path]]:
+    """Run fetch(start, end) on each window in one child process, and stop it at the time limit.
 
     A hung source (e.g. an HTTP request without a timeout) would otherwise hold the dataset's
     lock forever: every scheduled run would skip, and the data would go stale silently. A
-    thread can't be stopped, a process can. The child inherits the environment (credentials).
+    thread can't be stopped, a process can. The child gets only the environment of fetch_env().
 
     A fetch.py with inline script metadata (PEP 723) runs in its own environment, built by
-    `uv run --script` from the dependencies it declares; it returns Parquet paths in `workdir`.
+    `uv run --script` from the dependencies it declares; without it, in the server's Python.
+    Either way, the child writes each table of each window as Parquet in `workdir/out`: returns
+    {table: [paths]}, "_" for a fetch that returns one table.
     """
+    out = workdir / "out"
+    out.mkdir()
+    runner = workdir / "_runner.py"
+    args = [str(ds.folder / "fetch.py"), json.dumps([[s.isoformat(), e.isoformat()] for s, e in windows]), str(out)]
     if ds.script_metadata is not None:
-        if workdir is None:
-            raise ValueError("a fetch.py with inline dependencies needs a workdir")
-        return _run_script(ds, start, end, timeout_s, workdir)
-    with multiprocessing.get_context("spawn").Pool(1) as pool:
-        res = pool.apply_async(_fetch_in_child, (str(ds.folder), ds.id, start, end))
-        try:
-            return res.get(timeout=timeout_s)
-        except multiprocessing.TimeoutError:
-            raise FetchError(f"fetch did not finish within {timeout_s:g} s (time limit); stopped") from None
+        uv = shutil.which("uv")
+        if uv is None:
+            raise FetchError("uv not found on PATH: needed to run a fetch.py that declares its dependencies")
+        runner.write_text(runner_source(ds.script_metadata))
+        cmd = [uv, "run", "--quiet", "--no-project", "--script", str(runner), *args]
+    else:
+        runner.write_text(_RUNNER_BODY)
+        cmd = [sys.executable, str(runner), *args]
+    _run_child(ds, cmd, timeout_s, workdir)
+    files: dict[str, list[Path]] = {}
+    for p in sorted(out.glob("*.parquet")):
+        files.setdefault(p.name.split(".")[0], []).append(p)
+    return files
 
 
-# The runner calls fetch(start, end) and writes each table with DuckDB, which keeps the types
-# (timezone-aware timestamps, durations as INTERVAL) without pyarrow on either side.
+# The runner calls fetch(start, end) on each window and writes each table with DuckDB, which
+# keeps the types (timezone-aware timestamps, durations as INTERVAL) without pyarrow.
 _RUNNER_BODY = """
 import datetime as dt
 import importlib.util
+import json
 import sys
 
 import duckdb
@@ -101,15 +158,19 @@ import duckdb
 spec = importlib.util.spec_from_file_location("adele_fetch", sys.argv[1])
 module = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(module)
-start, end = (dt.datetime.fromisoformat(a) for a in sys.argv[2:4])
-result = module.fetch(start, end)
-tables = result if isinstance(result, dict) else {"_": result}
+windows = [tuple(dt.datetime.fromisoformat(x) for x in w) for w in json.loads(sys.argv[2])]
+out = sys.argv[3]
 con = duckdb.connect()
 con.execute("SET TimeZone = 'UTC'")
-for name, frame in tables.items():
-    con.register("frame", frame)
-    con.execute(f"COPY frame TO '{sys.argv[4]}/{name}.parquet' (FORMAT parquet)")
-    con.unregister("frame")
+for i, (start, end) in enumerate(windows):
+    result = module.fetch(start, end)
+    if result is None:
+        raise RuntimeError(f"fetch returned nothing for [{start}, {end})")
+    tables = result if isinstance(result, dict) else {"_": result}
+    for name, frame in tables.items():
+        con.register("frame", frame)
+        con.execute(f"COPY frame TO '{out}/{name}.{i}.parquet' (FORMAT parquet)")
+        con.unregister("frame")
 """
 RUNNER_DEPS = ("pandas>=2.2", "duckdb>=2.0")
 
@@ -126,20 +187,11 @@ def runner_source(meta: dict) -> str:
     return "\n".join(head) + "\n" + _RUNNER_BODY
 
 
-def _run_script(ds: Dataset, start: dt.datetime, end: dt.datetime, timeout_s: float, workdir: Path):
-    uv = shutil.which("uv")
-    if uv is None:
-        raise FetchError("uv not found on PATH: needed to run a fetch.py that declares its dependencies")
-    runner = workdir / "_runner.py"
-    runner.write_text(runner_source(ds.script_metadata))
-    out = workdir / "out"
-    out.mkdir()
-    cmd = [uv, "run", "--quiet", "--no-project", "--script", str(runner),
-           str(ds.folder / "fetch.py"), start.isoformat(), end.isoformat(), str(out)]
+def _run_child(ds: Dataset, cmd: list[str], timeout_s: float, workdir: Path) -> None:
     log_path = workdir / "fetch.log"
     with open(log_path, "w") as log_fh:
         proc = subprocess.Popen(cmd, stdout=log_fh, stderr=subprocess.STDOUT, start_new_session=True,
-                                cwd=ds.folder)
+                                cwd=ds.folder, env=fetch_env(ds))
         try:
             rc = proc.wait(timeout=timeout_s)
         except subprocess.TimeoutExpired:
@@ -152,8 +204,6 @@ def _run_script(ds: Dataset, start: dt.datetime, end: dt.datetime, timeout_s: fl
         raise FetchError(f"fetch.py exited with code {rc}: {tail[-800:]}")
     if text.strip():
         log.info("fetch.py of %s said:\n%s", ds.id, text[-4000:])
-    files = {p.stem: p for p in out.glob("*.parquet")}
-    return files.get("_") or files
 
 
 @contextmanager
@@ -188,14 +238,19 @@ def fetch_window(cfg: Config, catalog: dict[str, Dataset], ds: Dataset, start: d
         con = storage.connect()
         workdir = tempfile.TemporaryDirectory(prefix=f"adele-{ds.id}-")
         try:
-            result = call_fetch(ds, start, end, cfg.fetch_timeout_s, Path(workdir.name))
-            batches = _as_tables(ds, result)
             for t in ds.tables.values():
-                out.rows += _stage(con, t, batches[t.name], start, end, ds.window)
-            for t in ds.tables.values():
-                m = storage.merge_overwrite(con, cfg.data_dir, t, f"_batch_{t.name}", ds.window)
-                out.rows_changed += m.rows_changed
-                out.months_written += len(m.months_written)
+                storage.check_layout(cfg.data_dir, t, ds.partition)
+            windows = windows_to_fetch(cfg.data_dir, ds, start, end)
+            out.windows_fetched = len(windows)
+            if windows:
+                batches = _as_tables(ds, call_fetch(ds, windows, cfg.fetch_timeout_s, Path(workdir.name)))
+                for t in ds.tables.values():
+                    out.rows += _stage(con, t, batches[t.name], windows, ds.window)
+                merge = storage.merge_append if ds.revisions == "none" else storage.merge_overwrite
+                for t in ds.tables.values():
+                    m = merge(con, cfg.data_dir, t, f"_batch_{t.name}", ds.window, ds.partition)
+                    out.rows_changed += m.rows_changed
+                    out.partitions_written += len(m.partitions_written)
             st["last_fetched_at"] = st["last_attempt_at"]
             if out.rows_changed:
                 st["last_changed_at"] = st["last_attempt_at"]
@@ -254,32 +309,32 @@ def alert_on_change(cfg: Config, ds_id: str, old: str | None, new: str, problems
     log.warning("ALERT %s", line)
 
 
-def _as_tables(ds: Dataset, result) -> dict:
-    if isinstance(result, dict):
-        missing = set(ds.tables) - set(result)
-        extra = set(result) - set(ds.tables)
-        if missing or extra:
-            raise FetchError(f"fetch returned tables {sorted(result)}, declared {sorted(ds.tables)}")
-        return result
-    if len(ds.tables) != 1:
-        raise FetchError(f"fetch must return a dict of tables {sorted(ds.tables)}")
-    if result is None:
+def _as_tables(ds: Dataset, files: dict[str, list[Path]]) -> dict[str, list[Path]]:
+    if "_" in files:
+        if len(ds.tables) != 1:
+            raise FetchError(f"fetch must return a dict of tables {sorted(ds.tables)}")
+        if len(files) > 1:
+            raise FetchError("fetch returned a single table for some windows and a dict for others")
+        return {next(iter(ds.tables)): files["_"]}
+    if not files:
         raise FetchError("fetch returned nothing")
-    return {next(iter(ds.tables)): result}
+    missing, extra = set(ds.tables) - set(files), set(files) - set(ds.tables)
+    if missing or extra:
+        raise FetchError(f"fetch returned tables {sorted(files)}, declared {sorted(ds.tables)}")
+    return files
 
 
-def _stage(con: duckdb.DuckDBPyConnection, t: Table, frame, start: dt.datetime, end: dt.datetime,
+def _stage(con: duckdb.DuckDBPyConnection, t: Table, files: list[Path], windows: list[tuple],
            window: str = DELIVERY_FIELD) -> int:
-    """Check one fetched table against its schema; keep the rows of [start, end) in a temp table.
+    """Check one fetched table against its schema; keep the rows of its windows in a temp table.
 
-    `frame` is a data frame, or the path of a Parquet file (from a fetch.py run by uv). The
-    window [start, end) applies to the column `window` (adele.window).
+    `files`: the Parquet files that the child wrote for this table, `<table>.<i>.parquet` for
+    windows[i]. Each file keeps only the rows of its own window [start, end), on the column
+    `window` (adele.window): a source may ignore the window, the server filters.
     """
     raw = f"_raw_{t.name}"
-    if isinstance(frame, Path):
-        con.execute(f"CREATE OR REPLACE TEMP VIEW {raw} AS SELECT * FROM read_parquet({storage.sql_str(frame)})")
-    else:
-        con.register(raw, frame)
+    paths = "[" + ", ".join(storage.sql_str(f) for f in files) + "]"
+    con.execute(f"CREATE OR REPLACE TEMP VIEW {raw} AS SELECT * FROM read_parquet({paths}, union_by_name = true)")
     got = {r[0]: r[1] for r in con.execute(f"DESCRIBE SELECT * FROM {raw}").fetchall()}
     declared = {f["name"]: f["type"] for f in t.fields}
     errors = []
@@ -295,12 +350,14 @@ def _stage(con: duckdb.DuckDBPyConnection, t: Table, frame, start: dt.datetime, 
     types = t.storage_types()
     cols = ", ".join(f"CAST({ident(c)} AS {types[c]}) AS {ident(c)}" for c in t.field_names)
     batch = f"_batch_{t.name}"
-    con.execute(f"CREATE OR REPLACE TEMP TABLE {batch} AS SELECT {cols} FROM {raw} "
-                f"WHERE {ident(window)} >= $s AND {ident(window)} < $e", {"s": start, "e": end})
-    if isinstance(frame, Path):
-        con.execute(f"DROP VIEW {raw}")
-    else:
-        con.unregister(raw)
+    parts = []
+    for f in files:
+        s, e = windows[int(f.name.split(".")[1])]
+        parts.append(f"SELECT * FROM read_parquet({storage.sql_str(f)}) WHERE {ident(window)} >= "
+                     f"'{s.isoformat()}'::TIMESTAMPTZ AND {ident(window)} < '{e.isoformat()}'::TIMESTAMPTZ")
+    con.execute(f"CREATE OR REPLACE TEMP TABLE {batch} AS SELECT {cols} FROM ("
+                + " UNION ALL BY NAME ".join(parts) + ")")
+    con.execute(f"DROP VIEW {raw}")
     pk = ", ".join(ident(k) for k in t.primary_key)
     nulls = con.execute(f"SELECT count(*) FROM {batch} WHERE "
                         + " OR ".join(f"{ident(k)} IS NULL" for k in t.primary_key)).fetchone()[0]

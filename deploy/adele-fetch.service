@@ -7,6 +7,8 @@ Type=oneshot
 User=adele
 Group=adele
 UMask=0027
+# Source credentials. Each fetch.py gets only the ones that its descriptor lists in adele.secrets
+# (plus PATH, HOME, locale, certificates, proxies, UV_*, PYTHON*, XDG_*).
 EnvironmentFile=/etc/adele/env
 # fetch.py files run with `uv run --script` (PEP 723); uv in /usr/local/bin, its cache outside the data
 Environment=UV_CACHE_DIR=/var/cache/adele/uv

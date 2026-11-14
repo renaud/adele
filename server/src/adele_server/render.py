@@ -22,6 +22,9 @@ from .storage import ident
 CONVENTIONS = ("Timestamps are UTC. delivery_start is the start of the delivery interval; intervals are "
                "half-open: [delivery_start, delivery_start + resolution). To group by local day, convert "
                "first, e.g. date_trunc('day', delivery_start AT TIME ZONE 'Europe/Zurich').")
+CONVENTIONS_INSTANTS = (" A table with valid_at instead of delivery_start holds values at an instant (e.g. cloud "
+                        "cover at 12:00), not over an interval: resolution doesn't apply. To match an hourly "
+                        "interval, choose the instant (its start, its end, or the mean of both) and say which.")
 
 
 def ts(v: dt.datetime | None, minutes: bool = True) -> str | None:
@@ -50,8 +53,13 @@ def table_facts(data_dir: Path, t: Table, declared_resolution: list[dict]) -> Ta
     con = storage.connect()
     try:
         stats = storage.table_stats(con, data_dir, t)
-        periods = resolution_periods(con, data_dir, t) if "resolution" in t.field_names and stats.rows else [
-            {"series": None, "resolution": r["value"], "first": r["from"], "last": None} for r in declared_resolution]
+        if t.is_instant:
+            periods = []  # values at instants: no resolution
+        elif "resolution" in t.field_names and stats.rows:
+            periods = resolution_periods(con, data_dir, t)
+        else:
+            periods = [{"series": None, "resolution": r["value"], "first": r["from"], "last": None}
+                       for r in declared_resolution]
     finally:
         con.close()
     if len(_cache) > 256:
@@ -129,7 +137,7 @@ def render_list(cfg: Config, catalog: dict[str, Dataset]) -> str:
         res, cov = set(), []
         for t in ds.tables.values():
             f = table_facts(cfg.data_dir, t, ds.resolution)
-            res |= {p["resolution"] for p in f.periods if p["resolution"]}
+            res |= {p["resolution"] for p in f.periods if p["resolution"]} | ({"instants"} if t.is_instant else set())
             if f.stats.first:
                 cov.append(window_range(cfg.data_dir, t, ds.window)[:2] if ds.window != DELIVERY_FIELD
                            else (f.stats.first, f.stats.last))
@@ -147,9 +155,12 @@ class _CardDumper(yaml.SafeDumper):
 
 
 def _str_repr(dumper, data):
-    """SQL and CSV as literal blocks; text with ' in double quotes, so YAML doesn't double the '."""
+    """SQL and CSV as literal blocks; long text folded (no quotes, no escapes); short text with '
+    in double quotes, so YAML doesn't double the '."""
     if "\n" in data.strip():
         return dumper.represent_scalar("tag:yaml.org,2002:str", data.rstrip() + "\n", style="|")
+    if len(data) > 80:
+        return dumper.represent_scalar("tag:yaml.org,2002:str", data, style=">")
     return dumper.represent_scalar("tag:yaml.org,2002:str", data, style='"' if "'" in data else None)
 
 
@@ -163,8 +174,8 @@ def describe_dict(cfg: Config, ds: Dataset) -> dict:
     if ds.descriptor.get("description"):
         card["description"] = ds.descriptor["description"].strip()
     lic = ds.descriptor.get("licenses")
-    card["license"] = ", ".join(lc.get("title") or lc.get("name") or lc.get("path", "?") for lc in lic) if lic \
-        else "not declared"
+    titles = [(lc.get("title") or lc.get("name") or lc.get("path", "?")).strip() for lc in lic or []]
+    card["license"] = (titles[0] if len(titles) == 1 else titles) if titles else "not declared"
     card["status"] = st.get("status")
     if st.get("problems"):
         card["problems"] = st["problems"]
@@ -176,10 +187,11 @@ def describe_dict(cfg: Config, ds: Dataset) -> dict:
         "refresh": f"every {iso_duration(ds.refresh.every)}, window on {ds.window} "
                    f"[now - {iso_duration(ds.refresh.lookback)}, now + {iso_duration(ds.refresh.horizon)})",
     }
-    card["revisions"] = {"overwrite": "only the latest value of each row is kept"}.get(ds.revisions, ds.revisions)
+    card["revisions"] = {"overwrite": "only the latest value of each row is kept",
+                         "none": "rows never change once stored (each is fetched once)"}.get(ds.revisions, ds.revisions)
     if ds.checks:
         card["published_figures"] = published_figures_line(ds, st)
-    card["conventions"] = CONVENTIONS
+    card["conventions"] = CONVENTIONS + (CONVENTIONS_INSTANTS if any(t.is_instant for t in ds.tables.values()) else "")
     if ds.warnings:
         card["warnings"] = ds.warnings
     tables = []
@@ -191,12 +203,13 @@ def describe_dict(cfg: Config, ds: Dataset) -> dict:
                            "rows": facts.stats.rows}
             if t.description:
                 entry["description"] = t.description.strip()
-            entry["coverage"] = (f"{ts(facts.stats.first)} .. {ts(facts.stats.last)} (first and last interval start)"
+            what = "first and last valid_at" if t.is_instant else "first and last interval start"
+            entry["coverage"] = (f"{ts(facts.stats.first)} .. {ts(facts.stats.last)} ({what})"
                                  if facts.stats.first else "no data")
             if ds.window != DELIVERY_FIELD and facts.stats.rows:
                 lo, hi, n = window_range(cfg.data_dir, t, ds.window)
                 entry[f"{ds.window} coverage"] = f"{ts(lo)} .. {ts(hi)} ({n} distinct values)"
-            entry["resolution"] = [
+            entry["resolution"] = "none: values at instants (valid_at)" if t.is_instant else [
                 (f"{p['series']}: " if p["series"] else "") + f"{p['resolution']} "
                 + (f"{ts(p['first'])} .. {ts(p['last'])}" if isinstance(p["first"], dt.datetime) else f"from {p['first']}")
                 for p in facts.periods] or "not declared"
@@ -216,7 +229,7 @@ def describe_dict(cfg: Config, ds: Dataset) -> dict:
             entry["fields"] = fields
             if facts.stats.rows:
                 cur = con.execute(f"SELECT * FROM ({storage.select_sql(cfg.data_dir, t)}) "
-                                  f"USING SAMPLE reservoir(5 ROWS) REPEATABLE (42) ORDER BY {ident(DELIVERY_FIELD)}")
+                                  f"USING SAMPLE reservoir(5 ROWS) REPEATABLE (42) ORDER BY {ident(t.time_field)}")
                 cols = [d[0] for d in cur.description]
                 entry["sample_rows"] = to_csv(cols, [[engine.to_json(v) for v in r] for r in cur.fetchall()])
             tables.append(entry)
@@ -293,8 +306,10 @@ def query_footer(cfg: Config, catalog: dict[str, Dataset], datasets: list[str]) 
     for ds_id in datasets:
         ds = catalog[ds_id]
         st = state.load(cfg.data_dir, ds.id)
-        units = ", ".join(f"{k.split('.', 1)[1]} {v}" for k, v in ds.units().items()) or "none declared"
-        res = "; ".join(resolution_summary(table_facts(cfg.data_dir, t, ds.resolution).periods)
+        units = ", ".join(dict.fromkeys(f"{k.split('.', 1)[1]} {v}" for k, v in ds.units().items())) or "none declared"
+        many = len(ds.tables) > 1
+        res = "; ".join((f"{t.name} " if many else "") + ("instants (valid_at)" if t.is_instant else
+                        resolution_summary(table_facts(cfg.data_dir, t, ds.resolution).periods))
                         for t in ds.tables.values())
         lines.append(f"-- {ds.id}: units: {units}. resolution: {res}. status {st.get('status')}, "
                      f"last fetched {ts(st.get('last_fetched_at')) or 'never'}.")

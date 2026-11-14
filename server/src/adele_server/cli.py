@@ -1,4 +1,4 @@
-"""adele-server: validate | serve | fetch | backfill | check."""
+"""adele-server: validate | serve | fetch | backfill | check | repartition."""
 from __future__ import annotations
 
 import argparse
@@ -41,12 +41,14 @@ def main(argv: list[str] | None = None) -> int:
                    "(forecasts: one window per run keeps each fetch under the time limit)")
     c = sub.add_parser("check", help="run the checks on the stored data and update the status")
     c.add_argument("dataset")
+    rp = sub.add_parser("repartition", help="rewrite the stored files after a change of adele.partition")
+    rp.add_argument("dataset")
     args = p.parse_args(argv)
 
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
     cfg = config_mod.load(args.config)
     try:
-        catalog = load_catalog(cfg.datasets_dir)
+        catalog = load_catalog(cfg.datasets_dirs)
     except CatalogError as e:
         print(f"error: {e}", file=sys.stderr)
         return 2
@@ -84,7 +86,9 @@ def main(argv: list[str] | None = None) -> int:
                 continue
             print(f"{ds.id} [{start:%Y-%m-%d %H:%M}, {end:%Y-%m-%d %H:%M}) UTC: "
                   f"{'ok' if o.ok else 'FAILED'}, {o.rows} rows, {o.rows_changed} new or changed, "
-                  f"{o.months_written} partitions written; status {'failing' if o.problems else 'ok'}")
+                  f"{o.partitions_written} partitions written"
+                  f"{f' ({o.windows_fetched} windows fetched)' if ds.revisions == 'none' else ''}; "
+                  f"status {'failing' if o.problems else 'ok'}")
             for pr in o.problems or []:
                 print(f"  problem: {pr}")
             rc = rc or (0 if o.ok else 1)
@@ -103,6 +107,16 @@ def main(argv: list[str] | None = None) -> int:
         for pr in st.get("problems", []):
             print(f"  problem: {pr}")
         return 1 if failed else 0
+    if args.cmd == "repartition":
+        from . import storage
+        ds = catalog[args.dataset]
+        with ingest.dataset_lock(cfg.data_dir, ds.id):
+            con = storage.connect()
+            for t in ds.tables.values():
+                n = storage.repartition(con, cfg.data_dir, t, ds.window, ds.partition)
+                print(f"{t.sql_name}: {n} files, one per {ds.partition} of {ds.window}")
+            con.close()
+        return 0
     if args.cmd == "check":
         problems = ingest.recheck(cfg, catalog, catalog[args.dataset])
         print("ok" if not problems else "\n".join(f"problem: {x}" for x in problems))
