@@ -97,6 +97,16 @@ journalctl -u adele-fetch@<id>.service --since -1h   # one dataset
 A backfill holds the lock of its dataset until it ends: the ticks of the timer skip the dataset
 meanwhile. The first scheduled run after it fetches the time that the backfill took (D25).
 
+Memory: each fetch unit may use 4.5 GiB (`MemoryMax=`); past that, the kernel kills `fetch.py`
+and the server records the failure (`OOMPolicy=continue`). If the whole machine runs out of
+memory, the kernel kills a fetch before any other process (`OOMScoreAdjust=1000`). A weathernext3
+fetch peaks at 3.5 GB (3.9 GB for a backfill of 80 runs). A dataset or a backfill that needs more
+gets a drop-in, `/etc/systemd/system/adele-fetch@<id>.service.d/limits.conf` with `MemoryMax=`.
+
+The result of a fetch that has ended is in its journal. Without an enabled timer, systemd
+unloads the service once it ends, and `systemctl show` then prints default values
+(`Result=success`, no timestamps).
+
 The data folder holds nothing but data: no home directory, credentials or caches go there. Agent
 SQL reads only the folders of the tables since 2026-11-14 (`allowed_directories`, D24; before, it
 could read any file under `data_dir`), and this rule stays as a second layer. That is why

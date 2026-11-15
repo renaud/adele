@@ -1,4 +1,4 @@
-# Draft, not tried on a server yet. One instance per dataset: adele-fetch@<dataset id>.service,
+# Runs on steacher1 since 2026-11-15 (WP1). One instance per dataset: adele-fetch@<dataset id>.service,
 # started every minute by adele-fetch@<dataset id>.timer (D27). Instances of different datasets
 # run side by side. systemd does not start an instance again while it runs, and the lock of the
 # dataset in the server covers the same case a second time.
@@ -29,6 +29,20 @@ ExecStart=/opt/adele/server/.venv/bin/adele-server --config /etc/adele/adele-ser
 # never wait that long gets a shorter one in a drop-in:
 # /etc/systemd/system/adele-fetch@<dataset id>.service.d/limits.conf with TimeoutStartSec=
 TimeoutStartSec=6h
+# Memory (WP1, 2026-11-15). The server shares the machine with other services and has no swap.
+# A weathernext3 fetch is almost all process memory (anon), which the kernel can't free: 3.5 GB
+# peak for a scheduled fetch, 3.9 GB for a backfill of 80 runs, on a server of 7.8 GB.
+# - OOMScoreAdjust: if the machine runs out of memory, the kernel kills a fetch first, not a
+#   process of another service. Every process of the unit (uv, fetch.py) inherits it.
+# - MemoryMax: a fetch that grows past 4.5 GiB is killed inside its own unit, before the
+#   machine runs short. A dataset or a backfill that needs more gets a drop-in, as for
+#   TimeoutStartSec: /etc/systemd/system/adele-fetch@<dataset id>.service.d/limits.conf
+# - OOMPolicy=continue: systemd lets the server record the kill (`fetch.py exited with code
+#   -9`, a failure). With the default (stop), systemd would send SIGTERM, and the server would
+#   record "interrupted by SIGTERM", which is false and counts as no sign of a problem.
+OOMScoreAdjust=1000
+MemoryMax=4608M
+OOMPolicy=continue
 NoNewPrivileges=yes
 PrivateTmp=yes
 # DuckDB puts its temporary files in .tmp under the working directory; / is read-only here

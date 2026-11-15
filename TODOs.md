@@ -190,8 +190,8 @@ only runs not stored yet), partitions by day, a `checkpoint` column, ssrd and cl
 (total, low) for now, clouds in their own table with `valid_at`; no temperature or wind yet.
 History of the clouds later. Done 2026-11-13: the sample (9 solar runs, clouds of 2 runs),
 definitions accepted 2026-11-14. Open: whether the pass-1 pull of 2026-10-28 ran on steacher1
-(Renaud checks), the few-days backfill on steacher1 (it also reads the 7 sample runs again, all
-12 fields, to add their clouds).
+(Renaud checks). Done 2026-11-15: the backfill on steacher1 (the 2024-2025 runs, every run from
+2026-11-12 00 UTC), with the clouds of all 9 sample runs (WP1 log).
 
 Packaging: one repository per dataset (decided 2026-11-13; reasons: owners without access to
 the server code, sharing outside the team, a tidy server repo). Prepare now: `adele.format_version`,

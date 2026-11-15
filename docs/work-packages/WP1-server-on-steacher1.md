@@ -3,16 +3,16 @@
 Draft by Claude, 2026-11-15, not accepted. From `PLAN.md` (WP1) and `TODOs.md` (POC step 6).
 Renaud's answers of 2026-11-15 are in.
 
-## Where WP1 stands (2026-11-15, 12:20 UTC)
+## Where WP1 stands (2026-11-15, 16:10 UTC)
 
-- Steps 0-4 done. Step 5 (backfill) in progress: the backfills run on steacher1 as the fetch
-  units with a runtime drop-in each; they were stopped at 12:16 to give `adele` a new uid
-  (`deploy/wp1-step5-uid-fix.sh`, see the log) and start again at the end of that script.
-  Next: `deploy/wp1-step5-backfill.sh finish` once both have stopped, then the timers, step 6
-  (HTTPS, once Renaud opens the port), step 7 (the week), step 8.
-- steacher1 runs commit f1766c9 (`/opt/adele`). It stays there during the week: the evidence
-  of the week holds for one version. Only a fix that WP1 needs is pulled there, and it goes
-  into the log below.
+- Steps 0-5 done: both backfills ended with status ok, their figures match the Mac, and both
+  timers run since 16:11 (enabled by hand: the script's check misread the state of the units,
+  see the log). To run: `deploy/wp1-memory-limits.sh` (memory limits of the fetch units).
+  Next: step 6 (HTTPS, once Renaud opens the port), step 7 (the week, from 2026-11-15), step 8.
+- steacher1 runs the code of commit f1766c9 (`/opt/adele`). The code stays there during the
+  week: the evidence of the week holds for one version. Only a fix that WP1 needs is pulled
+  there, and it goes into the log below. `wp1-memory-limits.sh` pulls `main` only if no file
+  of `server/`, `client/`, `datasets/` or `skills/` changed.
 - Rules for other sessions (WP3 runs in its own worktree from 2026-11-15, Renaud):
   - `main` holds what steacher1 runs plus WP1 fixes. WP3 lands in `main` after the week, and
     reaches steacher1 only once WP1 is done (as `WP3-versions.md` says).
@@ -79,7 +79,8 @@ outside the server can query it over HTTPS.
    Done (2026-11-15): `deploy/wp1-step4-install.sh`, run twice by Renaud; `adele-server.service`
    runs on 127.0.0.1:8000. See the log.
 5. **Backfill**, then enable the timers. entsoe: from 2015. weathernext3: a few days, plus the 7
-   sample runs again to add their clouds (`TODOs.md`).
+   sample runs again to add their clouds (`TODOs.md`). Backfills done (2026-11-15):
+   `deploy/wp1-step5-backfill.sh`, figures equal to the Mac's. Timers enabled by hand at 16:11.
 6. **HTTPS on another port**, once Renaud has opened it (see below). One API key for Renaud;
    test with the CLI from a laptop. The CLI uses Python's `urllib`, which trusts only the
    system's authorities: it gets a setting `ADELE_CA_FILE` (the root certificate of adele's
@@ -90,7 +91,8 @@ outside the server can query it over HTTPS.
 8. **Faults on purpose**, each on a copy of a dataset under another id, so that the real data
    stays clean: a renamed column, a duplicated row, an undeclared zone code. Each must set the
    status to failing. Added by Claude: stop the timers for two hours; the next run must fetch
-   the hole (D25).
+   the hole (D25). And a fetch that passes its memory limit (a drop-in with a small
+   `MemoryMax=` on the copy): status failing, with `exited with code -9`.
 
 ## HTTPS on another port
 
@@ -245,3 +247,42 @@ None on 2026-11-15.
   12:22:46 as 5100. After: `setpriv --reuid=adele ... kill -0 <postgres pid>` --> `Operation
   not permitted`.
 - Pace after the restart: entsoe about 35 s per year window, weathernext3 about 53 s per run.
+
+### 2026-11-15, step 5 finish (`deploy/wp1-step5-backfill.sh finish`, run by Renaud at 16:00)
+
+- Both backfills ended with status ok (`deploy/wp1-step5-finish.txt`). entsoe at 12:33:58: 12
+  windows, 372,486 rows, 0 failed (2 min of CPU, 211 MB memory peak). weathernext3 at 13:32:36:
+  86 windows, 10,343,424 rows (74 runs), 0 failed (1 h 34 min of CPU, 3.9 GB memory peak).
+  Before the uid fix, weathernext3 had stored the 2024 run and 6 runs of 2026-11-12; after it,
+  it skipped the 2024 run, stored the two 2025 runs, then every run from 2026-11-12 06
+  (the window cut by the kill) to 2026-11-15 07. The windows after that had no `success`
+  marker yet (0 rows): left to the timer.
+- Compared with the Mac, through the HTTP API: entsoe before 2026, the 35 rows (zone, year) are
+  equal to the Mac's (302,439 rows). `weathernext3.solar_radiation`: the 9 sample runs, same
+  count (69,888 each) and same sum of `ssrd_p50` to 3 decimals. `weathernext3.weather`: the 2
+  runs that the Mac has, same sums; the 7 other sample runs now have their clouds. Both tables:
+  83 runs (1 + 2 + 80), 5,800,704 rows (83 x 69,888), from 2024-11-12 00 to 2026-11-15 07.
+- Drop-ins removed (`DropInPaths=` empty), `daemon-reload`. `/health`: both datasets ok.
+- **The timers were not enabled.** `systemctl show` gave `Result=success` with empty
+  timestamps for both units, and the script reads an empty `ExecMainStartTimestamp` as "never
+  ran". Cause, checked over `sc-run`: `InactiveEnterTimestamp` and `StateChangeTimestamp` are
+  empty too, and the journal says `Deactivated successfully`. systemd unloads a unit that has
+  ended and that nothing refers to (no timer enabled); `systemctl show` then shows a new unit
+  with default values, so its `Result=success` says nothing either. The check failed safe. The
+  result of a finished backfill is in its journal, not in `systemctl show`. Once the timers
+  ran, `systemctl show` kept the last result (16:13): an enabled timer refers to its service,
+  which then stays loaded.
+- Timers enabled by Renaud at 16:11. The first scheduled weathernext3 fetch caught up
+  `[2026-11-15 00:24, 17:11)` in 17 pieces: the 08Z and 09Z runs (279,552 rows); the runs
+  from 10Z had no `success` marker yet (about 6 h after their start time); status ok.
+- Memory: the weathernext3 backfill peaked at 3.9 GB, the first scheduled fetch at 3.5 GB, on
+  a server of 7.8 GB with no swap, beside the 7 containers of steacher.org. Sampled in the
+  unit's cgroup during that fetch: anon 2.1-2.4 GB, file cache 26 MB, so `MemoryHigh=` (which
+  makes the kernel reclaim memory) would only slow the fetch down. The unit had no limit. Fix
+  (Renaud asked for it): `OOMScoreAdjust=1000`, `MemoryMax=4608M` and `OOMPolicy=continue` in
+  `deploy/adele-fetch@.service` (why each: the comment there), installed by
+  `deploy/wp1-memory-limits.sh`. `OOMPolicy=continue` because with the default, systemd sends
+  SIGTERM after a kill, and the server would record "interrupted by SIGTERM", not a failure.
+- Disk: weathernext3 226 MB, entsoe 2.0 MB; 8.6 GB free (82 % used). About 2.7 MB per
+  weathernext3 run, 24 runs a day: about 65 MB a day, so the free space would last about 4
+  months. The week measures it.

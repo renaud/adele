@@ -1,0 +1,108 @@
+== adele-fetch@entsoe_day_ahead_prices.service
+Result=success
+ExecMainStartTimestamp=
+ExecMainExitTimestamp=
+ExecMainStatus=0
+-- the lines of the backfill command (summary, failed windows, problems)
+entsoe_day_ahead_prices: 5 windows, 104859 rows, 1 failed; status failing
+  failed [2018-12-30 00:00, 2019-12-30 00:00) UTC: interrupted by SIGTERM: fetch.py was stopped
+  problem: last fetch failed: interrupted by SIGTERM: fetch.py was stopped
+  problem: never fetched
+entsoe_day_ahead_prices: 12 windows, 372486 rows, 0 failed; status ok
+== adele-fetch@weathernext3.service
+Result=success
+ExecMainStartTimestamp=
+ExecMainExitTimestamp=
+ExecMainStatus=0
+-- the lines of the backfill command (summary, failed windows, problems)
+weathernext3: 1 windows, 139776 rows, 0 failed; status ok
+weathernext3: 1 windows, 0 rows, 1 failed; status failing
+  failed [2025-11-12 00:00, 2025-11-12 04:00) UTC: interrupted by SIGTERM: fetch.py was stopped
+  problem: last fetch failed: interrupted by SIGTERM: fetch.py was stopped
+weathernext3: 7 windows, 838656 rows, 1 failed; status failing
+  failed [2026-11-12 06:00, 2026-11-12 07:00) UTC: interrupted by SIGTERM: fetch.py was stopped
+  problem: last fetch failed: interrupted by SIGTERM: fetch.py was stopped
+weathernext3: 1 windows, 0 rows, 0 failed; status ok
+weathernext3: 1 windows, 279552 rows, 0 failed; status ok
+weathernext3: 86 windows, 10343424 rows, 0 failed; status ok
+== remove the drop-ins
+DropInPaths=
+
+DropInPaths=
+== health
+{"ok":true,"datasets":{"entsoe_day_ahead_prices":"ok","weathernext3":"ok"}}
+== entsoe: rows per zone and year before 2026 (Mac: 35 rows, 302439 in all)
+bidding_zone	y	n
+CH	2014	1
+CH	2015	8760
+CH	2016	8784
+CH	2017	8760
+CH	2018	8760
+CH	2019	8760
+CH	2020	8784
+CH	2021	8760
+CH	2022	8760
+CH	2023	8760
+CH	2024	8784
+CH	2025	8760
+DE_AT_LU	2015	8665
+DE_AT_LU	2016	8784
+DE_AT_LU	2017	8760
+DE_AT_LU	2018	6550
+DE_LU	2018	2210
+DE_LU	2019	8760
+DE_LU	2020	8784
+DE_LU	2021	8760
+DE_LU	2022	8760
+DE_LU	2023	8760
+DE_LU	2024	8784
+DE_LU	2025	15390
+FR	2015	8665
+FR	2016	8784
+FR	2017	8760
+FR	2018	8760
+FR	2019	8760
+FR	2020	8784
+FR	2021	8760
+FR	2022	8760
+FR	2023	8760
+FR	2024	8784
+FR	2025	15462
+== weathernext3.solar_radiation: the sample runs (to compare with the Mac)
+run	n	s
+2024-11-12 00	69888	4976972.577
+2025-11-12 00	69888	6787108.361
+2025-11-12 03	69888	6770165.815
+2026-11-12 00	69888	3484370.488
+2026-11-12 01	69888	3511145.255
+2026-11-12 02	69888	3470036.445
+2026-11-12 03	69888	3482034.607
+2026-11-12 04	69888	3443976.019
+2026-11-12 05	69888	3478219.464
+== weathernext3.solar_radiation: all runs
+runs	n	first	last
+83	5800704	2024-11-12 00	2026-11-15 07
+== weathernext3.weather: the sample runs (to compare with the Mac)
+run	n	s
+2024-11-12 00	69888	56243.015
+2025-11-12 00	69888	58833.469
+2025-11-12 03	69888	60217.94
+2026-11-12 00	69888	55175.873
+2026-11-12 01	69888	53834.408
+2026-11-12 02	69888	53008.358
+2026-11-12 03	69888	52601.979
+2026-11-12 04	69888	51246.861
+2026-11-12 05	69888	50271.419
+== weathernext3.weather: all runs
+runs	n	first	last
+83	5800704	2024-11-12 00	2026-11-15 07
+== disk
+2.0M	/var/lib/adele/entsoe_day_ahead_prices
+226M	/var/lib/adele/weathernext3
+/dev/sda1        48G   39G  8.6G  82% /
+== timers (only for a backfill that succeeded)
+NOT enabled: adele-fetch@entsoe_day_ahead_prices.timer (result of the backfill: never ran)
+NOT enabled: adele-fetch@weathernext3.timer (result of the backfill: never ran)
+NEXT LEFT LAST PASSED UNIT ACTIVATES
+
+0 timers listed.
