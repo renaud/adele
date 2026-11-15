@@ -99,7 +99,9 @@ Next, state at the end of 2026-11-15:
   order of the three server builds: WP3 (versions), then WP4 (the Swissgrid files, which need
   WP3), then WP2 (table shapes). `append-only` can be built during the week of unattended
   fetches on steacher1. Revised proposal (Claude, 2026-11-15, not decided): WP2 before WP4.
-  WP2 is decided (D22, D26) and frees 13 datasets; WP4 frees 8 and has three open questions
+  WP2 is decided (D22, D26) and frees 13 datasets (9 by D22 and D26 alone: the other 4 need a
+  period with its own end, a state at a date, or are derived; `docs/work-packages/WP5-datasets.md`,
+  open question 2); WP4 frees 8 and has three open questions
   (raw answers G4, whole files G6, who takes over from the poller), and the Swissgrid poller
   keeps every version meanwhile. During WP1's week: WP5 on the Mac (27 datasets that fit
   today, ENTSO-E first), installed on steacher1 after 2026-11-22.
@@ -110,6 +112,14 @@ Next, state at the end of 2026-11-15:
   schedules leave WP5 (schedules change before delivery: 541 of 1,258 hours ahead changed;
   flows are corrected up to months later). Until Renaud decides, a session that does WP5
   leaves A11 and A09 out, so that they aren't built twice with two policies.
+- WP5 split into datasets (Claude, 2026-11-15, at Renaud's request; a proposal, not decided):
+  `docs/work-packages/WP5-datasets.md`. With WP1 to WP3 done: 44 datasets (26 with no build, 9
+  need WP3, 9 need WP2), in 10 sub-packages WP5.1 to WP5.10 grouped by what their fetch shares,
+  and 15 left out (8 for WP4). Six open questions for Renaud there (flows and schedules, WP2
+  frees 9, neighbours' A86, `pv_plants` versions, one dataset or several, `forecast_versions`). `PLAN.md`
+  still puts the 18 WP2/WP3 datasets in WP6: Renaud's edit. The Claude Doc "adele: WP5 by
+  dataset" (https://claude.ai/artifact/Jg2jVRVd4AW9URE7iJtsBY) has the same list without the
+  sub-packages; the file is the one to keep up to date.
 - What WP4 needs before a build (Claude, 2026-11-15, asked "what prevents us from doing WP4
   first"): nothing is missing in the server (WP3 is in `main`, G5 was built with D27), but no
   WP4 doc exists. Its design points: where raw answers are kept (G4: place, retention, one copy
