@@ -6,6 +6,9 @@ adele serves datasets to agents: a server fetches and stores them, a CLI queries
 - Layout: `server/` (fetch, storage, HTTP), `client/` (CLI), `datasets/<id>/`
   (`datapackage.yaml`, `fetch.py`, `checks.yaml`), `skills/`, `deploy/`, `docs/`.
 - Test: `cd server && uv run pytest`. Check the descriptors: `uv run adele-server validate`.
+- Server (steacher1): `/usr/local/bin/sc-run '<command>'` runs one command there as the user
+  `claude` (no sudo). ssh and scp are refused to agents: never look for another route. Steps
+  that need root are scripts in `deploy/` that Renaud reads and runs.
 - A dataset: add it with `skills/add-dataset`, review it with `skills/review-dataset`. Its QA is
   a list of published figures in `checks.yaml`.
 - What the data means is written by Renaud. A draft by an agent is marked `# draft by Claude`.

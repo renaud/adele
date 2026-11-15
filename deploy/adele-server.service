@@ -9,11 +9,14 @@ ExecStart=/opt/adele/server/.venv/bin/adele-server --config /etc/adele/adele-ser
 Restart=on-failure
 NoNewPrivileges=yes
 PrivateTmp=yes
+# DuckDB puts its temporary files in .tmp under the working directory; / is read-only here
+WorkingDirectory=/tmp
 ProtectSystem=strict
 ProtectHome=yes
 ReadOnlyPaths=/var/lib/adele /opt/adele
 # adele-query is in group adele (to read the data), so hide the sources' credentials from it
-InaccessiblePaths=/etc/adele/env /etc/adele/gcloud-adc.json
+# The leading - lets the unit start when a path does not exist yet
+InaccessiblePaths=-/etc/adele/env.d -/etc/adele/gcloud-adc.json
 ReadWritePaths=/var/log/adele
 
 [Install]

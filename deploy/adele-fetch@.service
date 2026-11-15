@@ -31,6 +31,8 @@ ExecStart=/opt/adele/server/.venv/bin/adele-server --config /etc/adele/adele-ser
 TimeoutStartSec=6h
 NoNewPrivileges=yes
 PrivateTmp=yes
+# DuckDB puts its temporary files in .tmp under the working directory; / is read-only here
+WorkingDirectory=/tmp
 ProtectSystem=strict
 ProtectHome=yes
 ReadOnlyPaths=/opt/adele

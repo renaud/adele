@@ -1,9 +1,10 @@
 #!/usr/bin/env bash
 # adele: test the claims about systemd that the scheduling design rests on.
 #
-# STATUS: written on a Mac without systemd. This script has NOT been run. Only its syntax was
-# checked (bash -n). Read it before you run it. Each step prints what is expected if the claim
-# holds ("EXPECTED") and what the server did ("GOT"), and PASS or FAIL where a program can tell.
+# STATUS: run in a container on the Mac (container-test/result-2026-11-15.txt) and on steacher1
+# (result-steacher1.txt, 2026-11-15): 27 passed, 0 failed, both times. Read it before you run it.
+# Each step prints what is expected if the claim holds ("EXPECTED") and what the server did
+# ("GOT"), and PASS or FAIL where a program can tell.
 #
 # Run as root on the Linux server:   sudo bash adele-systemd-claims-test.sh 2>&1 | tee result.txt
 # Duration: about 6 minutes (step 8 waits for three full minutes of the clock).

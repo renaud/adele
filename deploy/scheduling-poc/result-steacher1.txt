@@ -1,0 +1,153 @@
+systemd: systemd 255 (255.4-1ubuntu8.18)
+kernel:  6.8.0-147-generic    folder: /run/adelepoc.xlIgqQ    unit prefix: adelepoc1636666
+
+== 1. The six settings hold for the process of the unit, for its child and for a grandchild in a new session (R1; candidates C and A2)
+   Claim: every process that a unit starts inherits the limits. ingest.py starts fetch.py with
+   start_new_session=True, so the grandchild below is started with setsid.
+   The unit is transient (systemd-run -p ...): this is also the test of candidate A2.
+rc of systemd-run: 0 (expected 0)
+--- child
+uid=65534 session=1636736 pid=1636737
+NoNewPrivs: 1
+write /etc/adelepoc1636666-probe: Read-only file system
+write /usr/adelepoc1636666-probe: Read-only file system
+write /var/lib/adelepoc1636666-probe: Read-only file system
+write /run/adelepoc.xlIgqQ/ro/x: Read-only file system
+write /run/adelepoc.xlIgqQ/rw/ok-child: written
+mode of /home: 0
+entries in /tmp at start: 0
+write /tmp/adelepoc1636666-inside: written
+EXPECTED: NoNewPrivs: 1
+PASS
+EXPECTED: three lines 'write /etc|/usr|/var/lib ...: Read-only file system' (ProtectSystem=strict; 'Permission denied' would mean: no sandbox)
+PASS
+EXPECTED: write /run/adelepoc.xlIgqQ/ro/x: Read-only file system (ReadOnlyPaths; the folder belongs to nobody)
+PASS
+EXPECTED: write /run/adelepoc.xlIgqQ/rw/ok-child: written (ReadWritePaths)
+PASS
+EXPECTED: mode of /home: 0 (ProtectHome=yes replaces /home by an empty folder without access)
+PASS
+EXPECTED: entries in /tmp at start: 0 for the child, 1 for the grandchild (the child's file): a /tmp of the unit, shared by its processes
+GOT:      entries in /tmp at start: 0
+--- grandchild
+uid=65534 session=1636766 pid=1636766
+NoNewPrivs: 1
+write /etc/adelepoc1636666-probe: Read-only file system
+write /usr/adelepoc1636666-probe: Read-only file system
+write /var/lib/adelepoc1636666-probe: Read-only file system
+write /run/adelepoc.xlIgqQ/ro/x: Read-only file system
+write /run/adelepoc.xlIgqQ/rw/ok-grandchild: written
+mode of /home: 0
+entries in /tmp at start: 1
+write /tmp/adelepoc1636666-inside: written
+EXPECTED: NoNewPrivs: 1
+PASS
+EXPECTED: three lines 'write /etc|/usr|/var/lib ...: Read-only file system' (ProtectSystem=strict; 'Permission denied' would mean: no sandbox)
+PASS
+EXPECTED: write /run/adelepoc.xlIgqQ/ro/x: Read-only file system (ReadOnlyPaths; the folder belongs to nobody)
+PASS
+EXPECTED: write /run/adelepoc.xlIgqQ/rw/ok-grandchild: written (ReadWritePaths)
+PASS
+EXPECTED: mode of /home: 0 (ProtectHome=yes replaces /home by an empty folder without access)
+PASS
+EXPECTED: entries in /tmp at start: 0 for the child, 1 for the grandchild (the child's file): a /tmp of the unit, shared by its processes
+GOT:      entries in /tmp at start: 1
+EXPECTED: the grandchild has another session than the child, and uid 65534
+GOT:      uid=65534 session=1636736 pid=1636737 | uid=65534 session=1636766 pid=1636766
+EXPECTED: /tmp/adelepoc1636666-inside does not exist on the host (PrivateTmp; systemd removed the unit's /tmp when it stopped)
+PASS
+PASS
+
+== 2. A oneshot unit that is still running is not started a second time (claim behind L, B and D)
+EXPECTED: state while it runs: activating (a oneshot unit is never 'active')
+GOT:      activating
+rc of the second start: 0 (expected 0: accepted, joined with the run in progress)
+EXPECTED: 1 run so far
+PASS
+EXPECTED: a blocking start waits for the run in progress (about 15 s) and starts no new run: still 1
+GOT:      waited 15 s
+PASS
+EXPECTED: after the end, a start runs the unit again: 2 runs
+PASS
+
+== 3. A timer that elapses while its unit runs drops that tick (timer every 5 s, run of 12 s, watched for 36 s)
+EXPECTED: 3 runs (at most 4), not 7; no two starts closer than 12 s; the journal of the timer has no line for a dropped tick
+GOT:      3 runs, start times (s): 1794742575 1794742587 1794742599 
+PASS
+Nov 15 11:36:15.128703 steacher1 systemd[1]: Starting adelepoc1636666-tick.service - adele test: a oneshot unit that runs for 12 s, started by a timer every 5 s...
+Nov 15 11:36:27.137156 steacher1 systemd[1]: adelepoc1636666-tick.service: Deactivated successfully.
+Nov 15 11:36:27.137665 steacher1 systemd[1]: Finished adelepoc1636666-tick.service - adele test: a oneshot unit that runs for 12 s, started by a timer every 5 s.
+Nov 15 11:36:27.153206 steacher1 systemd[1]: Starting adelepoc1636666-tick.service - adele test: a oneshot unit that runs for 12 s, started by a timer every 5 s...
+Nov 15 11:36:39.161402 steacher1 systemd[1]: adelepoc1636666-tick.service: Deactivated successfully.
+Nov 15 11:36:39.161765 steacher1 systemd[1]: Finished adelepoc1636666-tick.service - adele test: a oneshot unit that runs for 12 s, started by a timer every 5 s.
+Nov 15 11:36:39.175822 steacher1 systemd[1]: Starting adelepoc1636666-tick.service - adele test: a oneshot unit that runs for 12 s, started by a timer every 5 s...
+Nov 15 11:36:46.665576 steacher1 systemd[1]: adelepoc1636666-tick.timer: Deactivated successfully.
+Nov 15 11:36:46.665650 steacher1 systemd[1]: Stopped adelepoc1636666-tick.timer - adele test: every 5 seconds.
+Nov 15 11:36:46.668116 steacher1 systemd[1]: adelepoc1636666-tick.service: Main process exited, code=killed, status=15/TERM
+Nov 15 11:36:46.668226 steacher1 systemd[1]: adelepoc1636666-tick.service: Failed with result 'signal'.
+Nov 15 11:36:46.668658 steacher1 systemd[1]: Stopped adelepoc1636666-tick.service - adele test: a oneshot unit that runs for 12 s, started by a timer every 5 s.
+
+== 4. Template unit: one instance per dataset, side by side; a running instance is not started twice (B and D; R2, R3, R6)
+EXPECTED: 2 lines: 'aaa start uid=65534' and 'bbb start uid=65534' (both run at once; no second aaa)
+aaa start uid=65534
+bbb start uid=65534
+PASS
+EXPECTED: two units listed as activating
+  adelepoc1636666-fetch@aaa.service loaded activating start start adele test: template unit, one instance per dataset (aaa)
+  adelepoc1636666-fetch@bbb.service loaded activating start start adele test: template unit, one instance per dataset (bbb)
+EXPECTED: the journal of one instance holds only its own lines (what a person reads per dataset)
+Nov 15 11:36:48.558468 steacher1 systemd[1]: /run/systemd/system/adelepoc1636666-fetch@.service:5: Special user nobody configured, this is not safe!
+Nov 15 11:36:48.572759 steacher1 systemd[1]: Starting adelepoc1636666-fetch@aaa.service - adele test: template unit, one instance per dataset (aaa)...
+
+== 5. A user who is not root may not start a unit (D: what right does the tick need?)
+EXPECTED: refused, rc not 0, a message such as 'Interactive authentication required' or 'Access denied'; no line 'denied start' in inst.log
+GOT:      rc=1 Failed to start adelepoc1636666-fetch@denied.service: Interactive authentication required.
+See system logs and 'systemctl status adelepoc1636666-fetch@denied.service' for details.
+PASS
+PASS
+
+== 6. In a unit of User=nobody, a line with the + prefix runs as root and may start an instance (D without polkit)
+rc: 0 (expected 0)
+EXPECTED: 'plain line: uid=65534' then 'plus line: uid=0', and a line 'fromtick start' in inst.log
+plain line: uid=65534
+plus line: uid=0
+PASS
+PASS
+PASS
+
+== 7. A service that stays running (candidate C): what a restart, a crash and a stop do to a child in its own session
+GOT:      main pid 1637313, child pid 1637314 (in its own session)
+EXPECTED: restart: the old child is gone (KillMode=control-group, the default: every process of the unit is stopped)
+PASS
+EXPECTED: crash of the main process (kill -9): the child is stopped too, the unit is 'failed'
+PASS
+GOT:      state: failed
+EXPECTED: KillMode=mixed: stop sends SIGTERM to the main process only, waits TimeoutStopSec (8 s) for the child, then kills it: about 8 s, child gone
+GOT:      stop took 0 s; child gone
+   Meaning for C: a restart of the scheduler either stops every fetch in progress (default), or waits for
+   the longest fetch while no new fetch starts (mixed with a long TimeoutStopSec).
+
+== 8. A timer every minute: with AccuracySec=1s it fires in the first second; with the default (1 min) anywhere in the minute
+waiting for three full minutes ...
+EXPECTED: AccuracySec=1s: 3 lines, each between 00.00 and 01.00 (second.fraction at the start of the command)
+GOT:      00.135 00.137 00.140 
+EXPECTED: default accuracy: 3 lines (2 if the first minute was missed) with the same second each time, anywhere between 00 and 59
+GOT:      00.151 00.145 00.150 
+
+== 9. A file of secrets that only root can read reaches a unit of User=nobody (one file per dataset: B and D)
+EXPECTED: variable seen: yes / file readable: no
+variable seen: yes
+file readable: no
+PASS
+PASS
+
+== 10. A time limit of systemd on a oneshot unit, as a second layer under fetch_timeout_s
+EXPECTED: back after about 5 s with rc not 0 (result 'timeout'); the sleep is gone
+GOT:      rc=1 after 5 s; the sleep is still running: no
+PASS
+
+NOT TESTED by this script: Persistent=true after a reboot, a step of the clock, behaviour at shutdown.
+
+== cleanup
+units left with the prefix: 0 (expected 0)
+passed 27, failed 0
