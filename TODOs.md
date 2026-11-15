@@ -92,7 +92,17 @@ Next, state at the end of 2026-11-15:
 - The work packages are in `PLAN.md`, which Renaud edits himself. Claude's proposal for the
   order of the three server builds: WP3 (versions), then WP4 (the Swissgrid files, which need
   WP3), then WP2 (table shapes). `append-only` can be built during the week of unattended
-  fetches on steacher1.
+  fetches on steacher1. Revised proposal (Claude, 2026-11-15, not decided): WP2 before WP4.
+  WP2 is decided (D22, D26) and frees 13 datasets; WP4 frees 8 and has three open questions
+  (raw answers G4, whole files G6, who takes over from the poller), and the Swissgrid poller
+  keeps every version meanwhile. During WP1's week: WP5 on the Mac (27 datasets that fit
+  today, ENTSO-E first), installed on steacher1 after 2026-11-22.
+- `PLAN.md`, the table "Order and state" is out of date (Renaud edits it): WP1 steps 0-5
+  done, the week runs until 2026-11-22, step 6 waits for the port; WP3 built on the branch
+  `wp3` (D30), lands after WP1's week, then 1-2 days of fetches on steacher1.
+- `main` holds code that steacher1 doesn't run since 72f2b1a (D31). A WP1 fix now comes from
+  a branch made at 32237db (`WP1-server-on-steacher1.md`). `wp3` will conflict with `main` in
+  `DECISIONS.md` (D30 and D31 both at the end): keep both, D30 first.
 
 Next for Claude (decided 2026-11-14, not built):
 
