@@ -1,0 +1,47 @@
+== 1. pull
+From https://github.com/renaud/adele
+   f1766c9..32237db  main       -> origin/main
+running: f1766c9; origin/main: 32237db
+Updating f1766c9..32237db
+Fast-forward
+ TODOs.md                                      |   4 +-
+ deploy/README.md                              |  60 +++++++---
+ deploy/adele-fetch@.service                   |  16 ++-
+ deploy/wp1-memory-limits.sh                   |  44 ++++++++
+ deploy/wp1-step4-install.sh                   | 151 ++++++++++++++++++++++++++
+ deploy/wp1-step4-result.txt                   |  58 ++++++++++
+ deploy/wp1-step5-backfill.sh                  | 146 +++++++++++++++++++++++++
+ deploy/wp1-step5-finish.txt                   | 108 ++++++++++++++++++
+ deploy/wp1-step5-start.txt                    |  25 +++++
+ deploy/wp1-step5-uid-fix.sh                   |  77 +++++++++++++
+ deploy/wp1-step5-uid-fix.txt                  |   7 ++
+ docs/work-packages/WP1-server-on-steacher1.md | 112 ++++++++++++++++++-
+ docs/work-packages/WP3-versions.md            | 106 ++++++++++++++++++
+ 13 files changed, 893 insertions(+), 21 deletions(-)
+ create mode 100644 deploy/wp1-memory-limits.sh
+ create mode 100644 deploy/wp1-step4-install.sh
+ create mode 100644 deploy/wp1-step4-result.txt
+ create mode 100644 deploy/wp1-step5-backfill.sh
+ create mode 100644 deploy/wp1-step5-finish.txt
+ create mode 100644 deploy/wp1-step5-start.txt
+ create mode 100644 deploy/wp1-step5-uid-fix.sh
+ create mode 100644 deploy/wp1-step5-uid-fix.txt
+ create mode 100644 docs/work-packages/WP3-versions.md
+32237db 2026-11-15 WP1 step 5 done: backfills match the Mac, timers run; memory limits for the fetch units
+== 2. install the fetch unit
+systemd-analyze verify: rc=0 (expected 0, no lines above)
+== 3. what systemd now applies (expected: 4831838208, 1000, continue)
+-- adele-fetch@entsoe_day_ahead_prices.service
+OOMPolicy=continue
+MemoryMax=4831838208
+OOMScoreAdjust=1000
+-- adele-fetch@weathernext3.service
+OOMPolicy=continue
+MemoryMax=4831838208
+OOMScoreAdjust=1000
+NEXT                        LEFT LAST                         PASSED UNIT                                      ACTIVATES
+Sun 2026-11-15 16:17:00 UTC  11s Sun 2026-11-15 16:16:00 UTC 47s ago adele-fetch@entsoe_day_ahead_prices.timer adele-fetch@entsoe_day_ahead_prices.service
+Sun 2026-11-15 16:17:00 UTC  11s Sun 2026-11-15 16:16:00 UTC 47s ago adele-fetch@weathernext3.timer            adele-fetch@weathernext3.service
+
+2 timers listed.
+== done

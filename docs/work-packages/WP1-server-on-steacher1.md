@@ -7,12 +7,12 @@ Renaud's answers of 2026-11-15 are in.
 
 - Steps 0-5 done: both backfills ended with status ok, their figures match the Mac, and both
   timers run since 16:11 (enabled by hand: the script's check misread the state of the units,
-  see the log). To run: `deploy/wp1-memory-limits.sh` (memory limits of the fetch units).
+  see the log). The fetch units have memory limits since 16:16 (`deploy/wp1-memory-limits.sh`).
   Next: step 6 (HTTPS, once Renaud opens the port), step 7 (the week, from 2026-11-15), step 8.
-- steacher1 runs the code of commit f1766c9 (`/opt/adele`). The code stays there during the
-  week: the evidence of the week holds for one version. Only a fix that WP1 needs is pulled
-  there, and it goes into the log below. `wp1-memory-limits.sh` pulls `main` only if no file
-  of `server/`, `client/`, `datasets/` or `skills/` changed.
+- steacher1 runs commit 32237db (`/opt/adele`), whose code (`server/`, `client/`, `datasets/`,
+  `skills/`) is that of f1766c9. The code stays there during the week: the evidence of the
+  week holds for one version. Only a fix that WP1 needs is pulled there, and it goes into the
+  log below. Once WP3 is in `main`, such a fix comes from a branch made at 32237db.
 - Rules for other sessions (WP3 runs in its own worktree from 2026-11-15, Renaud):
   - `main` holds what steacher1 runs plus WP1 fixes. WP3 lands in `main` after the week, and
     reaches steacher1 only once WP1 is done (as `WP3-versions.md` says).
@@ -283,6 +283,12 @@ None on 2026-11-15.
   `deploy/adele-fetch@.service` (why each: the comment there), installed by
   `deploy/wp1-memory-limits.sh`. `OOMPolicy=continue` because with the default, systemd sends
   SIGTERM after a kill, and the server would record "interrupted by SIGTERM", not a failure.
+- `deploy/wp1-memory-limits.sh`, run by Renaud at 16:16 (`deploy/wp1-memory-limits.txt`):
+  `/opt/adele` fast-forwarded from f1766c9 to 32237db (docs and `deploy/` only),
+  `systemd-analyze verify` rc 0, both instances show `MemoryMax=4831838208`,
+  `OOMScoreAdjust=1000`, `OOMPolicy=continue`. The ticks of 16:17 ended with success. Not
+  checked yet: that `fetch.py` inherits the score (`/proc/<pid>/oom_score_adj` during a fetch
+  that stores a run).
 - Disk: weathernext3 226 MB, entsoe 2.0 MB; 8.6 GB free (82 % used). About 2.7 MB per
   weathernext3 run, 24 runs a day: about 65 MB a day, so the free space would last about 4
   months. The week measures it.
