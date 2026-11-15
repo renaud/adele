@@ -130,7 +130,7 @@ redistributed (SGP `data/entsoe/README.md`).
 | dataset (document type) | what | how it arrives | fits? |
 |---|---|---|---|
 | CH `da_price` (A44) | day-ahead prices | in adele since 2026-11-13 (CH, DE, FR) | yes |
-| CH `load` (A65) | actual load and day-ahead forecast, 207,442 rows from 2015 | actual load is corrected days later; stamped 1 h late before 2025 | later: G3 |
+| CH `load` (A65) | actual load and day-ahead forecast, 207,442 rows from 2015 | no correction seen from 2026-10-31 to 2026-11-15 (WP3, measured); stamped 1 h late before 2025 | later: G3 |
 | CH `generation` (A75) | actual generation per type, 608,417 rows | the Swiss PV series is Pronovo rescaled | later: G3 |
 | CH `ws_forecast` (A69) | wind and solar forecast: day-ahead, intraday, current; 235,094 rows | the platform keeps only the latest version of a forecast | later: G3; G4 |
 | CH `forecast_versions` | each version of the Swiss PV and load forecasts; 634 values so far | a collector every 3 hours, 4 requests, keeps each answer (not deployed on 2026-11-01). The versions of 2026-10-16 to 2026-10-26 are lost | later: G3 (it is `append-only` with a refresh every 3 hours); G4 |

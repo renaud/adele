@@ -153,11 +153,41 @@ in the merge; switching from a to c now costs only code, because no real dataset
      `skills/add-dataset/SKILL.md`: an `append-only` `fetch.py` returns no stamp of its own.
    - Tests: `server/tests/test_versions.py`, and one in `test_e2e.py` for `--as-of` through HTTP.
 4. **First real dataset.** Decided (Renaud, 2026-11-15): ENTSO-E actual load and day-ahead
-   forecast for CH (A65). Its actual load is corrected days later, and it was the dataset of
-   POC 2. Its descriptor and `fetch.py` belong to WP6, done here for this one dataset. Its
-   lookback must cover the corrections: to measure on the data of POC 2 before the descriptor
-   is written. Backfill from 2015 on steacher1, then 1-2 days of fetches (Renaud: "we won't
-   wait a week, just 1-2 days"). Whether a revision happens in that time depends on ENTSO-E.
+   forecast for CH (A65), the dataset planned for POC 2. Its descriptor and `fetch.py` belong
+   to WP6, done here for this one dataset. Backfill from 2015 on steacher1, then 1-2 days of
+   fetches (Renaud: "we won't wait a week, just 1-2 days"). Whether a revision happens in that
+   time depends on ENTSO-E: none was seen in 15 days (below).
+   - Done in the worktree (2026-11-15): `datasets/entsoe_load/` (`datapackage.yaml`,
+     `fetch.py`), `server/tests/test_entsoe_load_fetch.py`, the measure below, a backfill from
+     2015 on the Mac (checks ok). The definitions are drafts by Claude, at Renaud's request;
+     Renaud confirmed the unit (MW) and the one-hour move.
+   - To do: Renaud confirms the results of the two examples (`verified_at`), then the backfill
+     and 1-2 days of fetches on steacher1 once WP1 is done.
+
+## How late ENTSO-E corrects the load (2026-11-15)
+
+The inventory (`docs/datasets-inventory.md`) says that the actual load "is corrected days
+later". No measure backs it: POC 2 was planned, not built, so it left no data. What exists:
+
+- The swissgrid project compared two of its downloads, two days apart (2026-10-29 and
+  2026-10-31), on the hours up to 2026-10-15: 17,135 hours of actual load and 17,135 of
+  forecast, 0 revised.
+- Its collector of forecast versions (two runs, 2026-10-28 and 2026-11-01) saw one version of
+  each of the 122 hours of the load forecast.
+- New, by Claude: the raw answers of 2026-10-31 (every year from 2015) against fresh answers
+  for the same windows, both parsed by `datasets/entsoe_load/fetch.py`. Actual load: 103,714
+  hours in both, 0 different, also for the hours that were less than a day old on 2026-10-31.
+  Forecast: 103,728 hours, 0 different. Script and output:
+  `measure_load_revisions.py` and `measure_load_revisions.txt` in the scratchpad of this
+  session, not kept; the fresh answers are kept there too, for a later comparison.
+
+So in 15 days ENTSO-E corrected no value of the Swiss load, old or recent. A later correction
+(months) can't be ruled out, but no month changed between 2026-10-31 and 2026-11-15, the
+turn of a month included. The lookback can't be set from the corrections; it is P14D, which
+costs two small requests per hour. The 1-2 days on steacher1 will most likely store no
+second version of a real value: the tests on synthetic data stand for that part. Some recent
+hours look wrong (the actual load at night on 2026-11-03, 11-10 and 11-14 is about half of
+the forecast, `fetch.py`); if ENTSO-E corrects them, adele will store the versions.
 
 ## Text for `SPEC.md`, Revisions
 
@@ -264,3 +294,33 @@ Built in the worktree, replacing a. Decided by Claude:
 4. Files written in layout a fail the column check like a changed policy. Only the tests of
    this worktree wrote such files.
 5. D30 is amended rather than followed by a new entry: it was never committed.
+
+### 2026-11-15, step 4: entsoe_load
+
+Renaud: "1 done" (the text for `SPEC.md`), "2 sure, go ahead" (commit on `wp3`: 86a4afa),
+"3 yes" (ENTSO-E load for CH as the first dataset), "we won't wait a week, just 1-2 days".
+Decided by Claude:
+
+1. Two tables, `actual` (A16) and `forecast` (A01), each with key (`bidding_zone`,
+   `delivery_start`): the two series have their own versions, and a forecast "as known the day
+   before" is a query on `forecast_versions` alone. `bidding_zone` as in
+   `entsoe_day_ahead_prices`, so that the two join; only CH for now.
+2. The value stays in MW, the mean power of the hour, as served. POC 2 planned MW --> MWh at
+   ingestion; MW keeps the value independent of the resolution. Renaud decides before the
+   backfill on steacher1 (a later change of unit can't convert stored versions, answer d).
+3. The actual load before 2024-12-31 23:00 UTC moves back one hour (end stamps), as in the
+   swissgrid project, whose evidence is cited in `fetch.py`. Also to confirm before the
+   backfill on steacher1, for the same reason.
+4. `fetch.py` parses the XML itself (curve types A01 and A03) and uses entsoe-py only for the
+   requests; it refuses another unit, curve type or resolution.
+5. Lookback P14D (above), horizon P2D, every PT1H.
+6. The holes and the low stretches of the actual load are kept as served, and listed as draft
+   warnings for Renaud.
+7. A test of `fetch.py` on synthetic answers, with entsoe-py stubbed: the first test of a
+   dataset's `fetch.py`.
+
+Renaud, after the step: "confirm choice 2 and 3. go ahead with defs. commit all on wp3, too".
+Claude wrote the definitions as drafts (title, description, the description of each table and
+field, four warnings, two examples) and ran the examples on the backfill of the Mac. The
+warnings come from the measures in `fetch.py` and from the swissgrid project's comparison with
+the Energy Statistic (QA 5 c7). The licence stays a TODO, as in `entsoe_day_ahead_prices`.

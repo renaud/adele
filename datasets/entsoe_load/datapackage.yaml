@@ -1,0 +1,114 @@
+# Definitions (titles, descriptions, labels, warnings, questions) are Renaud's (skills/add-dataset).
+# On 2026-11-15 he asked Claude to write them: every definition below is a draft by Claude until
+# he changes or confirms it. Structure (keys, types, refresh) by Claude, WP3 step 4. Renaud
+# confirmed the unit (MW, as served) and the one-hour move of the actual load before 2025.
+# Sources of the facts: the docstring of fetch.py, and swissgrid_project/data/entsoe/README.md
+# (QA 5 c5 and c7) for the comparison with Swissgrid's Energy Statistic.
+name: entsoe_load
+title: Total load per bidding zone, actual and day-ahead forecast (ENTSO-E)  # draft by Claude
+# draft by Claude
+description: >-
+  Total load of each bidding zone as published on the ENTSO-E Transparency Platform (document
+  A65): the actual load (table actual, process type A16) and its day-ahead forecast (table
+  forecast, process type A01). Total load is the generation plus imports minus exports and minus
+  the power used for energy storage, losses included (Regulation (EU) 543/2013, article 6). For
+  CH the data comes from Swissgrid. Every version that adele fetched is kept (revisions:
+  append-only).
+# TODO(Renaud): licenses (ENTSO-E Transparency Platform terms)
+resources:
+  - name: actual
+    description: Actual total load per delivery interval (A65, process type A16).  # draft by Claude
+    schema:
+      primaryKey: [bidding_zone, delivery_start]
+      fields:
+        - name: bidding_zone
+          type: string
+          description: Short zone name.  # draft by Claude
+          categories:
+            - {value: CH, label: Switzerland}
+        - name: delivery_start
+          type: datetime
+          # draft by Claude
+          description: >-
+            Start of the delivery interval, UTC. ENTSO-E served the Swiss actual load with the end
+            of the hour as its stamp until 2024-12-31 22:00 UTC; adele moves those values back by
+            one hour, so they start at the hour they cover.
+        - name: resolution
+          type: duration
+          description: Length of the delivery interval.  # draft by Claude
+        - name: load
+          type: number
+          unit: MW
+          description: Actual total load, mean power over the delivery interval, as published.  # draft by Claude
+  - name: forecast
+    description: Day-ahead forecast of the total load per delivery interval (A65, process type A01), published the day before delivery.  # draft by Claude
+    schema:
+      primaryKey: [bidding_zone, delivery_start]
+      fields:
+        - name: bidding_zone
+          type: string
+          description: Short zone name.  # draft by Claude
+          categories:
+            - {value: CH, label: Switzerland}
+        - name: delivery_start
+          type: datetime
+          description: Start of the delivery interval, UTC.
+        - name: resolution
+          type: duration
+          description: Length of the delivery interval.  # draft by Claude
+        - name: load
+          type: number
+          unit: MW
+          description: Day-ahead forecast of the total load, mean power over the delivery interval.  # draft by Claude
+adele:
+  format_version: 1
+  secrets: [ENTSO_TOKEN]
+  refresh:
+    every: PT1H
+    # No correction was seen in 15 days (fetch.py); 14 days cost two small requests per hour
+    # and catch a correction up to two weeks late. Also the time for which a failed stretch is
+    # retried. Proposal by Claude.
+    lookback: P14D
+    horizon: P2D    # the forecast of the next day
+  revisions: append-only
+  # drafts by Claude
+  warnings:
+    - >-
+      CH: the actual load is not the Swiss consumption of Swissgrid's Energy Statistic. Its level
+      is lower by 230 to 460 MW from Nov 2016 to Dec 2018, by 260 to 470 MW in Sep-Dec 2023 and
+      by 300 to 390 MW in Jul-Dec 2024 (monthly medians); in Jan-Aug 2023 and in 2026 it differs
+      hour by hour by up to 1 GW. Where the level matters, use the Energy Statistic.
+    - >-
+      CH: the actual load jumps by about +350 MW on average at 2025-01-01, where ENTSO-E changed
+      the stamps (no value at 2024-12-31 22:00 UTC). From January to August 2023 the one-hour
+      move could not be checked against the Energy Statistic; it is assumed.
+    - >-
+      CH: the actual load has stretches far below the forecast, as published: 3,747 MW repeated
+      from 2023-02-16 23:00 to 2023-02-17 08:00 UTC, about 3,000 MW from 2024-12-04 23:00 to
+      2024-12-05 21:00 UTC, about half the forecast on the nights of 2026-11-03, 2026-11-10 and
+      2026-11-14.
+    - "CH: the forecast has no value from 2015-08-30 22:00 to 2015-08-31 21:00 UTC."
+  examples:
+    - question: Average actual load in CH per local day in March 2026?  # draft by Claude
+      sql: |
+        SELECT date_trunc('day', delivery_start AT TIME ZONE 'Europe/Zurich') AS local_day,
+               avg(load) AS avg_load_mw
+        FROM entsoe_load.actual
+        WHERE bidding_zone = 'CH'
+          AND delivery_start >= TIMESTAMPTZ '2026-03-01 00:00:00+01'
+          AND delivery_start <  TIMESTAMPTZ '2026-04-01 00:00:00+02'
+        GROUP BY 1
+        ORDER BY 1
+      # verified_at: set when Renaud has confirmed the result
+    - question: Mean absolute error of the day-ahead load forecast in CH, per year?  # draft by Claude
+      sql: |
+        SELECT year(a.delivery_start AT TIME ZONE 'Europe/Zurich') AS local_year,
+               count(*) AS hours,
+               avg(abs(f.load - a.load)) AS mae_mw,
+               avg(abs(f.load - a.load)) / avg(a.load) AS mae_share_of_load
+        FROM entsoe_load.actual a
+        JOIN entsoe_load.forecast f USING (bidding_zone, delivery_start)
+        WHERE bidding_zone = 'CH'
+        GROUP BY 1
+        ORDER BY 1
+      # verified_at: set when Renaud has confirmed the result
