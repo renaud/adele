@@ -161,8 +161,11 @@ in the merge; switching from a to c now costs only code, because no real dataset
      `fetch.py`), `server/tests/test_entsoe_load_fetch.py`, the measure below, a backfill from
      2015 on the Mac (checks ok). The definitions are drafts by Claude, at Renaud's request;
      Renaud confirmed the unit (MW) and the one-hour move.
-   - To do: Renaud confirms the results of the two examples (`verified_at`), then the backfill
-     and 1-2 days of fetches on steacher1 once WP1 is done.
+   - QA (2026-11-15, instead of Renaud checking the examples): `checks.yaml` with 50 published
+     figures, all reproduced (ENTSO-E Statistical Factsheets 2019-2025, Kazmi & Tao 2022,
+     Tzortzis et al. 2023); the figures left out and why: `qa/published_figures_entsoe_load.md`.
+   - To do: open questions 1 and 2 (they change stored values, so before the backfill on
+     steacher1), then the backfill and 1-2 days of fetches once WP1 is done.
 
 ## How late ENTSO-E corrects the load (2026-11-15)
 
@@ -234,7 +237,19 @@ The list of `SPEC.md` also lacks `none` (D15).
 
 ## Open questions
 
-None.
+Both change the stamps of stored values, so they are decided before the backfill on steacher1
+(evidence: `qa/published_figures_entsoe_load.md`, "the timing of the forecast").
+
+1. Move the forecast back one hour in 2015-2018, as the actual load? Its error is lowest with
+   that move in each of those years; the swissgrid project found it "about 1 h late" in 2015
+   and "not settled" in 2016-2021. Claude's recommendation: no, keep it as served with the
+   warning; the evidence is one criterion (the lowest error), and a forecast may lag for other
+   reasons.
+2. Keep the move of the actual load in January-August 2023? The swissgrid project assumed it
+   (no lag could be measured then); the forecast fits that actual load best one hour earlier,
+   with half the usual error, which fits better if the actual is not moved in those months.
+   Claude's recommendation: keep it for now, as the swissgrid project did, and look at the
+   Energy Statistic of 2023 once more before the backfill.
 
 ## Log
 
@@ -324,3 +339,19 @@ Claude wrote the definitions as drafts (title, description, the description of e
 field, four warnings, two examples) and ran the examples on the backfill of the Mac. The
 warnings come from the measures in `fetch.py` and from the swissgrid project's comparison with
 the Energy Statistic (QA 5 c7). The licence stays a TODO, as in `entsoe_day_ahead_prices`.
+
+### 2026-11-15, QA from published figures
+
+Renaud: "Instead of me checking the two examples, can you forage for publications where there
+are some numbers and use them as QA, like we did in the other ENTSO-E dataset?" A research
+agent found 15 documents; 50 figures went into `checks.yaml`, all reproduced. Found on the way:
+
+- The forecast is a copy of the actual load (as served) from September 2021 to December 2022:
+  a warning in `datapackage.yaml`.
+- The timing of the forecast is not settled (open questions 1 and 2).
+- The ENTSO-E factsheets use the stamps as served; their hours match adele's plus one hour
+  before 2025, which fits the move of `fetch.py`.
+
+Decided by Claude: checks on UTC years (the factsheets give UTC hours); MW to 0.5 and TWh to
+0.05 (their rounding); for Kazmi & Tao, MAE and ME only, with tolerances for their undescribed
+filter, on ENTSO-E's stamps (the alignment they used); the 2023 and 2025 totals left out.

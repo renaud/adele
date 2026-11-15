@@ -1,0 +1,549 @@
+# Published figures that this dataset must reproduce (Renaud 2026-11-13: "the figures ARE the QA").
+# Collected 2026-11-15 by a research agent, compared with adele the same day
+# (qa/tools/published_check_entsoe_load.py; qa/published_figures_entsoe_load.md lists the figures
+# left out and why).
+#
+# ENTSO-E Statistical Factsheets 2019-2025: "based upon data reported to the ENTSO-E Central
+# Transparency Platform"; hourly values are "the average of the hour", "All times are in UTC", and
+# an hour "18:00-19:00" starts at 18:00. They use ENTSO-E's stamps: before 2024-12-31 23:00 UTC
+# adele's stamp of the actual load is one hour earlier (fetch.py), so each hour below is the
+# factsheet's hour minus one hour until 2024. Every hourly value matches at that hour.
+# Tolerance: 0.5 for MW published as whole numbers, 0.05 for TWh published to 0.1.
+# Years are UTC years, as in the factsheets.
+checks:
+  - name: ch_2019_consumption_twh
+    question: "Actual total load of CH in 2019 (UTC year), TWh"
+    sql: |
+      SELECT sum(load * epoch(resolution) / 3600) / 1e6
+      FROM entsoe_load.actual
+      WHERE bidding_zone = 'CH'
+        AND delivery_start >= TIMESTAMPTZ '2019-01-01 00:00:00Z'
+        AND delivery_start <  TIMESTAMPTZ '2020-01-01 00:00:00Z'
+    expected: 63.4
+    tolerance: 0.05
+    source: "ENTSO-E, Statistical Factsheet 2019, ENTSO-E in figures, Consumption, CH (net consumption), https://eepublicdownloads.entsoe.eu/clean-documents/Publications/Statistics/Factsheet/entsoe_sfs2019_web.pdf"
+  - name: ch_2019_max_mw
+    question: "Highest hourly actual load of CH in 2019 (UTC year), MW"
+    sql: |
+      SELECT max(load)
+      FROM entsoe_load.actual
+      WHERE bidding_zone = 'CH'
+        AND delivery_start >= TIMESTAMPTZ '2019-01-01 00:00:00Z'
+        AND delivery_start <  TIMESTAMPTZ '2020-01-01 00:00:00Z'
+    expected: 9924
+    tolerance: 0.5
+    source: "ENTSO-E, Statistical Factsheet 2019, Highest and lowest hourly load values of each country, CH, https://eepublicdownloads.entsoe.eu/clean-documents/Publications/Statistics/Factsheet/entsoe_sfs2019_web.pdf"
+  - name: ch_2019_min_mw
+    question: "Lowest hourly actual load of CH in 2019 (UTC year), MW"
+    sql: |
+      SELECT min(load)
+      FROM entsoe_load.actual
+      WHERE bidding_zone = 'CH'
+        AND delivery_start >= TIMESTAMPTZ '2019-01-01 00:00:00Z'
+        AND delivery_start <  TIMESTAMPTZ '2020-01-01 00:00:00Z'
+    expected: 4333
+    tolerance: 0.5
+    source: "ENTSO-E, Statistical Factsheet 2019, Highest and lowest hourly load values of each country, CH, https://eepublicdownloads.entsoe.eu/clean-documents/Publications/Statistics/Factsheet/entsoe_sfs2019_web.pdf"
+  - name: ch_2019_max_hour_mw
+    question: "Actual load of CH at its highest hour of 2019: 2019-01-24 10:00-11:00 UTC in the factsheet (2019-01-24 09:00 UTC in adele), MW"
+    sql: |
+      SELECT load
+      FROM entsoe_load.actual
+      WHERE bidding_zone = 'CH'
+        AND delivery_start = TIMESTAMPTZ '2019-01-24 09:00:00Z'
+    expected: 9924
+    tolerance: 0.5
+    source: "ENTSO-E, Statistical Factsheet 2019, Highest and lowest hourly load values of each country, CH, https://eepublicdownloads.entsoe.eu/clean-documents/Publications/Statistics/Factsheet/entsoe_sfs2019_web.pdf"
+  - name: ch_2019_min_hour_mw
+    question: "Actual load of CH at its lowest hour of 2019: 2019-08-03 03:00-04:00 UTC in the factsheet (2019-08-03 02:00 UTC in adele), MW"
+    sql: |
+      SELECT load
+      FROM entsoe_load.actual
+      WHERE bidding_zone = 'CH'
+        AND delivery_start = TIMESTAMPTZ '2019-08-03 02:00:00Z'
+    expected: 4333
+    tolerance: 0.5
+    source: "ENTSO-E, Statistical Factsheet 2019, Highest and lowest hourly load values of each country, CH, https://eepublicdownloads.entsoe.eu/clean-documents/Publications/Statistics/Factsheet/entsoe_sfs2019_web.pdf"
+  - name: ch_2019_entsoe_peak_hour_mw
+    question: "Actual load of CH at the hour of ENTSO-E's highest load of 2019: 2019-01-22 18:00-19:00 UTC in the factsheet (2019-01-22 17:00 UTC in adele), MW"
+    sql: |
+      SELECT load
+      FROM entsoe_load.actual
+      WHERE bidding_zone = 'CH'
+        AND delivery_start = TIMESTAMPTZ '2019-01-22 17:00:00Z'
+    expected: 9609
+    tolerance: 0.5
+    source: "ENTSO-E, Statistical Factsheet 2019, Country values on the days of highest and lowest ENTSO-E load values, CH, https://eepublicdownloads.entsoe.eu/clean-documents/Publications/Statistics/Factsheet/entsoe_sfs2019_web.pdf"
+  - name: ch_2019_entsoe_low_hour_mw
+    question: "Actual load of CH at the hour of ENTSO-E's lowest load of 2019: 2019-06-02 05:00-06:00 UTC in the factsheet (2019-06-02 04:00 UTC in adele), MW"
+    sql: |
+      SELECT load
+      FROM entsoe_load.actual
+      WHERE bidding_zone = 'CH'
+        AND delivery_start = TIMESTAMPTZ '2019-06-02 04:00:00Z'
+    expected: 6382
+    tolerance: 0.5
+    source: "ENTSO-E, Statistical Factsheet 2019, Country values on the days of highest and lowest ENTSO-E load values, CH, https://eepublicdownloads.entsoe.eu/clean-documents/Publications/Statistics/Factsheet/entsoe_sfs2019_web.pdf"
+  - name: ch_2020_consumption_twh
+    question: "Actual total load of CH in 2020 (UTC year), TWh"
+    sql: |
+      SELECT sum(load * epoch(resolution) / 3600) / 1e6
+      FROM entsoe_load.actual
+      WHERE bidding_zone = 'CH'
+        AND delivery_start >= TIMESTAMPTZ '2020-01-01 00:00:00Z'
+        AND delivery_start <  TIMESTAMPTZ '2021-01-01 00:00:00Z'
+    expected: 62.4
+    tolerance: 0.05
+    source: "ENTSO-E, Statistical Factsheet 2020, ENTSO-E in figures, Consumption, CH (net consumption), https://eepublicdownloads.entsoe.eu/clean-documents/Publications/Statistics/Factsheet/entsoe_sfs2020_web.pdf"
+  - name: ch_2020_max_mw
+    question: "Highest hourly actual load of CH in 2020 (UTC year), MW"
+    sql: |
+      SELECT max(load)
+      FROM entsoe_load.actual
+      WHERE bidding_zone = 'CH'
+        AND delivery_start >= TIMESTAMPTZ '2020-01-01 00:00:00Z'
+        AND delivery_start <  TIMESTAMPTZ '2021-01-01 00:00:00Z'
+    expected: 9874
+    tolerance: 0.5
+    source: "ENTSO-E, Statistical Factsheet 2020, Highest and lowest hourly load values of each country, CH, https://eepublicdownloads.entsoe.eu/clean-documents/Publications/Statistics/Factsheet/entsoe_sfs2020_web.pdf"
+  - name: ch_2020_min_mw
+    question: "Lowest hourly actual load of CH in 2020 (UTC year), MW"
+    sql: |
+      SELECT min(load)
+      FROM entsoe_load.actual
+      WHERE bidding_zone = 'CH'
+        AND delivery_start >= TIMESTAMPTZ '2020-01-01 00:00:00Z'
+        AND delivery_start <  TIMESTAMPTZ '2021-01-01 00:00:00Z'
+    expected: 4704
+    tolerance: 0.5
+    source: "ENTSO-E, Statistical Factsheet 2020, Highest and lowest hourly load values of each country, CH, https://eepublicdownloads.entsoe.eu/clean-documents/Publications/Statistics/Factsheet/entsoe_sfs2020_web.pdf"
+  - name: ch_2020_max_hour_mw
+    question: "Actual load of CH at its highest hour of 2020: 2020-12-01 11:00-12:00 UTC in the factsheet (2020-12-01 10:00 UTC in adele), MW"
+    sql: |
+      SELECT load
+      FROM entsoe_load.actual
+      WHERE bidding_zone = 'CH'
+        AND delivery_start = TIMESTAMPTZ '2020-12-01 10:00:00Z'
+    expected: 9874
+    tolerance: 0.5
+    source: "ENTSO-E, Statistical Factsheet 2020, Highest and lowest hourly load values of each country, CH, https://eepublicdownloads.entsoe.eu/clean-documents/Publications/Statistics/Factsheet/entsoe_sfs2020_web.pdf"
+  - name: ch_2020_min_hour_mw
+    question: "Actual load of CH at its lowest hour of 2020: 2020-05-09 04:00-05:00 UTC in the factsheet (2020-05-09 03:00 UTC in adele), MW"
+    sql: |
+      SELECT load
+      FROM entsoe_load.actual
+      WHERE bidding_zone = 'CH'
+        AND delivery_start = TIMESTAMPTZ '2020-05-09 03:00:00Z'
+    expected: 4704
+    tolerance: 0.5
+    source: "ENTSO-E, Statistical Factsheet 2020, Highest and lowest hourly load values of each country, CH, https://eepublicdownloads.entsoe.eu/clean-documents/Publications/Statistics/Factsheet/entsoe_sfs2020_web.pdf"
+  - name: ch_2020_entsoe_peak_hour_mw
+    question: "Actual load of CH at the hour of ENTSO-E's highest load of 2020: 2020-01-22 18:00-19:00 UTC in the factsheet (2020-01-22 17:00 UTC in adele), MW"
+    sql: |
+      SELECT load
+      FROM entsoe_load.actual
+      WHERE bidding_zone = 'CH'
+        AND delivery_start = TIMESTAMPTZ '2020-01-22 17:00:00Z'
+    expected: 9404
+    tolerance: 0.5
+    source: "ENTSO-E, Statistical Factsheet 2020, Country values on the days of highest and lowest ENTSO-E load values, CH, https://eepublicdownloads.entsoe.eu/clean-documents/Publications/Statistics/Factsheet/entsoe_sfs2020_web.pdf"
+  - name: ch_2020_entsoe_low_hour_mw
+    question: "Actual load of CH at the hour of ENTSO-E's lowest load of 2020: 2020-05-31 05:00-06:00 UTC in the factsheet (2020-05-31 04:00 UTC in adele), MW"
+    sql: |
+      SELECT load
+      FROM entsoe_load.actual
+      WHERE bidding_zone = 'CH'
+        AND delivery_start = TIMESTAMPTZ '2020-05-31 04:00:00Z'
+    expected: 6418
+    tolerance: 0.5
+    source: "ENTSO-E, Statistical Factsheet 2020, Country values on the days of highest and lowest ENTSO-E load values, CH, https://eepublicdownloads.entsoe.eu/clean-documents/Publications/Statistics/Factsheet/entsoe_sfs2020_web.pdf"
+  - name: ch_2021_consumption_twh
+    question: "Actual total load of CH in 2021 (UTC year), TWh"
+    sql: |
+      SELECT sum(load * epoch(resolution) / 3600) / 1e6
+      FROM entsoe_load.actual
+      WHERE bidding_zone = 'CH'
+        AND delivery_start >= TIMESTAMPTZ '2021-01-01 00:00:00Z'
+        AND delivery_start <  TIMESTAMPTZ '2022-01-01 00:00:00Z'
+    expected: 63.5
+    tolerance: 0.05
+    source: "ENTSO-E, Statistical Factsheet 2021, ENTSO-E in figures, Consumption, CH (net consumption), https://eepublicdownloads.entsoe.eu/clean-documents/Publications/Statistics/Factsheet/entsoe_sfs2021_web.pdf"
+  - name: ch_2021_max_mw
+    question: "Highest hourly actual load of CH in 2021 (UTC year), MW"
+    sql: |
+      SELECT max(load)
+      FROM entsoe_load.actual
+      WHERE bidding_zone = 'CH'
+        AND delivery_start >= TIMESTAMPTZ '2021-01-01 00:00:00Z'
+        AND delivery_start <  TIMESTAMPTZ '2022-01-01 00:00:00Z'
+    expected: 10242
+    tolerance: 0.5
+    source: "ENTSO-E, Statistical Factsheet 2021, Highest and lowest hourly load values of each country, CH, https://eepublicdownloads.entsoe.eu/clean-documents/Publications/Statistics/Factsheet/entsoe_sfs2021_web.pdf"
+  - name: ch_2021_min_mw
+    question: "Lowest hourly actual load of CH in 2021 (UTC year), MW"
+    sql: |
+      SELECT min(load)
+      FROM entsoe_load.actual
+      WHERE bidding_zone = 'CH'
+        AND delivery_start >= TIMESTAMPTZ '2021-01-01 00:00:00Z'
+        AND delivery_start <  TIMESTAMPTZ '2022-01-01 00:00:00Z'
+    expected: 4377
+    tolerance: 0.5
+    source: "ENTSO-E, Statistical Factsheet 2021, Highest and lowest hourly load values of each country, CH, https://eepublicdownloads.entsoe.eu/clean-documents/Publications/Statistics/Factsheet/entsoe_sfs2021_web.pdf"
+  - name: ch_2021_max_hour_mw
+    question: "Actual load of CH at its highest hour of 2021: 2021-12-10 11:00-12:00 UTC in the factsheet (2021-12-10 10:00 UTC in adele), MW"
+    sql: |
+      SELECT load
+      FROM entsoe_load.actual
+      WHERE bidding_zone = 'CH'
+        AND delivery_start = TIMESTAMPTZ '2021-12-10 10:00:00Z'
+    expected: 10242
+    tolerance: 0.5
+    source: "ENTSO-E, Statistical Factsheet 2021, Highest and lowest hourly load values of each country, CH, https://eepublicdownloads.entsoe.eu/clean-documents/Publications/Statistics/Factsheet/entsoe_sfs2021_web.pdf"
+  - name: ch_2021_min_hour_mw
+    question: "Actual load of CH at its lowest hour of 2021: 2021-07-27 03:00-04:00 UTC in the factsheet (2021-07-27 02:00 UTC in adele), MW"
+    sql: |
+      SELECT load
+      FROM entsoe_load.actual
+      WHERE bidding_zone = 'CH'
+        AND delivery_start = TIMESTAMPTZ '2021-07-27 02:00:00Z'
+    expected: 4377
+    tolerance: 0.5
+    source: "ENTSO-E, Statistical Factsheet 2021, Highest and lowest hourly load values of each country, CH, https://eepublicdownloads.entsoe.eu/clean-documents/Publications/Statistics/Factsheet/entsoe_sfs2021_web.pdf"
+  - name: ch_2021_entsoe_peak_hour_mw
+    question: "Actual load of CH at the hour of ENTSO-E's highest load of 2021: 2021-02-11 18:00-19:00 UTC in the factsheet (2021-02-11 17:00 UTC in adele), MW"
+    sql: |
+      SELECT load
+      FROM entsoe_load.actual
+      WHERE bidding_zone = 'CH'
+        AND delivery_start = TIMESTAMPTZ '2021-02-11 17:00:00Z'
+    expected: 9765
+    tolerance: 0.5
+    source: "ENTSO-E, Statistical Factsheet 2021, Country values on the days of highest and lowest ENTSO-E load values, CH, https://eepublicdownloads.entsoe.eu/clean-documents/Publications/Statistics/Factsheet/entsoe_sfs2021_web.pdf"
+  - name: ch_2021_entsoe_low_hour_mw
+    question: "Actual load of CH at the hour of ENTSO-E's lowest load of 2021: 2021-08-08 05:00-06:00 UTC in the factsheet (2021-08-08 04:00 UTC in adele), MW"
+    sql: |
+      SELECT load
+      FROM entsoe_load.actual
+      WHERE bidding_zone = 'CH'
+        AND delivery_start = TIMESTAMPTZ '2021-08-08 04:00:00Z'
+    expected: 5806
+    tolerance: 0.5
+    source: "ENTSO-E, Statistical Factsheet 2021, Country values on the days of highest and lowest ENTSO-E load values, CH, https://eepublicdownloads.entsoe.eu/clean-documents/Publications/Statistics/Factsheet/entsoe_sfs2021_web.pdf"
+  - name: ch_2022_consumption_twh
+    question: "Actual total load of CH in 2022 (UTC year), TWh"
+    sql: |
+      SELECT sum(load * epoch(resolution) / 3600) / 1e6
+      FROM entsoe_load.actual
+      WHERE bidding_zone = 'CH'
+        AND delivery_start >= TIMESTAMPTZ '2022-01-01 00:00:00Z'
+        AND delivery_start <  TIMESTAMPTZ '2023-01-01 00:00:00Z'
+    expected: 64.6
+    tolerance: 0.05
+    source: "ENTSO-E, Statistical Factsheet 2022, ENTSO-E in figures, Consumption, CH (net consumption), https://eepublicdownloads.blob.core.windows.net/public-cdn-container/clean-documents/Publications/Statistics/Factsheet/entsoe_sfs2022_web.pdf"
+  - name: ch_2022_max_mw
+    question: "Highest hourly actual load of CH in 2022 (UTC year), MW"
+    sql: |
+      SELECT max(load)
+      FROM entsoe_load.actual
+      WHERE bidding_zone = 'CH'
+        AND delivery_start >= TIMESTAMPTZ '2022-01-01 00:00:00Z'
+        AND delivery_start <  TIMESTAMPTZ '2023-01-01 00:00:00Z'
+    expected: 10189
+    tolerance: 0.5
+    source: "ENTSO-E, Statistical Factsheet 2022, Highest and lowest hourly load values of each country, CH, https://eepublicdownloads.blob.core.windows.net/public-cdn-container/clean-documents/Publications/Statistics/Factsheet/entsoe_sfs2022_web.pdf"
+  - name: ch_2022_min_mw
+    question: "Lowest hourly actual load of CH in 2022 (UTC year), MW"
+    sql: |
+      SELECT min(load)
+      FROM entsoe_load.actual
+      WHERE bidding_zone = 'CH'
+        AND delivery_start >= TIMESTAMPTZ '2022-01-01 00:00:00Z'
+        AND delivery_start <  TIMESTAMPTZ '2023-01-01 00:00:00Z'
+    expected: 4510
+    tolerance: 0.5
+    source: "ENTSO-E, Statistical Factsheet 2022, Highest and lowest hourly load values of each country, CH, https://eepublicdownloads.blob.core.windows.net/public-cdn-container/clean-documents/Publications/Statistics/Factsheet/entsoe_sfs2022_web.pdf"
+  - name: ch_2022_max_hour_mw
+    question: "Actual load of CH at its highest hour of 2022: 2022-01-21 13:00-14:00 UTC in the factsheet (2022-01-21 12:00 UTC in adele), MW"
+    sql: |
+      SELECT load
+      FROM entsoe_load.actual
+      WHERE bidding_zone = 'CH'
+        AND delivery_start = TIMESTAMPTZ '2022-01-21 12:00:00Z'
+    expected: 10189
+    tolerance: 0.5
+    source: "ENTSO-E, Statistical Factsheet 2022, Highest and lowest hourly load values of each country, CH, https://eepublicdownloads.blob.core.windows.net/public-cdn-container/clean-documents/Publications/Statistics/Factsheet/entsoe_sfs2022_web.pdf"
+  - name: ch_2022_min_hour_mw
+    question: "Actual load of CH at its lowest hour of 2022: 2022-08-01 06:00-07:00 UTC in the factsheet (2022-08-01 05:00 UTC in adele), MW"
+    sql: |
+      SELECT load
+      FROM entsoe_load.actual
+      WHERE bidding_zone = 'CH'
+        AND delivery_start = TIMESTAMPTZ '2022-08-01 05:00:00Z'
+    expected: 4510
+    tolerance: 0.5
+    source: "ENTSO-E, Statistical Factsheet 2022, Highest and lowest hourly load values of each country, CH, https://eepublicdownloads.blob.core.windows.net/public-cdn-container/clean-documents/Publications/Statistics/Factsheet/entsoe_sfs2022_web.pdf"
+  - name: ch_2022_entsoe_peak_hour_mw
+    question: "Actual load of CH at the hour of ENTSO-E's highest load of 2022: 2022-01-26 18:00-19:00 UTC in the factsheet (2022-01-26 17:00 UTC in adele), MW"
+    sql: |
+      SELECT load
+      FROM entsoe_load.actual
+      WHERE bidding_zone = 'CH'
+        AND delivery_start = TIMESTAMPTZ '2022-01-26 17:00:00Z'
+    expected: 9731
+    tolerance: 0.5
+    source: "ENTSO-E, Statistical Factsheet 2022, Country values on the days of highest and lowest ENTSO-E load values, CH, https://eepublicdownloads.blob.core.windows.net/public-cdn-container/clean-documents/Publications/Statistics/Factsheet/entsoe_sfs2022_web.pdf"
+  - name: ch_2022_entsoe_low_hour_mw
+    question: "Actual load of CH at the hour of ENTSO-E's lowest load of 2022: 2022-08-14 05:00-06:00 UTC in the factsheet (2022-08-14 04:00 UTC in adele), MW"
+    sql: |
+      SELECT load
+      FROM entsoe_load.actual
+      WHERE bidding_zone = 'CH'
+        AND delivery_start = TIMESTAMPTZ '2022-08-14 04:00:00Z'
+    expected: 5112
+    tolerance: 0.5
+    source: "ENTSO-E, Statistical Factsheet 2022, Country values on the days of highest and lowest ENTSO-E load values, CH, https://eepublicdownloads.blob.core.windows.net/public-cdn-container/clean-documents/Publications/Statistics/Factsheet/entsoe_sfs2022_web.pdf"
+  - name: ch_2023_max_mw
+    question: "Highest hourly actual load of CH in 2023 (UTC year), MW"
+    sql: |
+      SELECT max(load)
+      FROM entsoe_load.actual
+      WHERE bidding_zone = 'CH'
+        AND delivery_start >= TIMESTAMPTZ '2023-01-01 00:00:00Z'
+        AND delivery_start <  TIMESTAMPTZ '2024-01-01 00:00:00Z'
+    expected: 10013
+    tolerance: 0.5
+    source: "ENTSO-E, Statistical Factsheet 2023, Highest and lowest hourly load values of each country, CH, https://eepublicdownloads.blob.core.windows.net/public-cdn-container/clean-documents/Publications/Statistics/Factsheet/entsoe_sfs2023_web.pdf"
+  - name: ch_2023_min_mw
+    question: "Lowest hourly actual load of CH in 2023 (UTC year), MW"
+    sql: |
+      SELECT min(load)
+      FROM entsoe_load.actual
+      WHERE bidding_zone = 'CH'
+        AND delivery_start >= TIMESTAMPTZ '2023-01-01 00:00:00Z'
+        AND delivery_start <  TIMESTAMPTZ '2024-01-01 00:00:00Z'
+    expected: 3747
+    tolerance: 0.5
+    source: "ENTSO-E, Statistical Factsheet 2023, Highest and lowest hourly load values of each country, CH, https://eepublicdownloads.blob.core.windows.net/public-cdn-container/clean-documents/Publications/Statistics/Factsheet/entsoe_sfs2023_web.pdf"
+  - name: ch_2023_max_hour_mw
+    question: "Actual load of CH at its highest hour of 2023: 2023-02-08 07:00-08:00 UTC in the factsheet (2023-02-08 06:00 UTC in adele), MW"
+    sql: |
+      SELECT load
+      FROM entsoe_load.actual
+      WHERE bidding_zone = 'CH'
+        AND delivery_start = TIMESTAMPTZ '2023-02-08 06:00:00Z'
+    expected: 10013
+    tolerance: 0.5
+    source: "ENTSO-E, Statistical Factsheet 2023, Highest and lowest hourly load values of each country, CH, https://eepublicdownloads.blob.core.windows.net/public-cdn-container/clean-documents/Publications/Statistics/Factsheet/entsoe_sfs2023_web.pdf"
+  - name: ch_2023_min_hour_mw
+    question: "Actual load of CH at its lowest hour of 2023: 2023-02-17 00:00-01:00 UTC in the factsheet (2023-02-16 23:00 UTC in adele), MW"
+    sql: |
+      SELECT load
+      FROM entsoe_load.actual
+      WHERE bidding_zone = 'CH'
+        AND delivery_start = TIMESTAMPTZ '2023-02-16 23:00:00Z'
+    expected: 3747
+    tolerance: 0.5
+    source: "ENTSO-E, Statistical Factsheet 2023, Highest and lowest hourly load values of each country, CH, https://eepublicdownloads.blob.core.windows.net/public-cdn-container/clean-documents/Publications/Statistics/Factsheet/entsoe_sfs2023_web.pdf"
+  - name: ch_2023_entsoe_peak_hour_mw
+    question: "Actual load of CH at the hour of ENTSO-E's highest load of 2023: 2023-12-05 18:00-19:00 UTC in the factsheet (2023-12-05 17:00 UTC in adele), MW"
+    sql: |
+      SELECT load
+      FROM entsoe_load.actual
+      WHERE bidding_zone = 'CH'
+        AND delivery_start = TIMESTAMPTZ '2023-12-05 17:00:00Z'
+    expected: 9039
+    tolerance: 0.5
+    source: "ENTSO-E, Statistical Factsheet 2023, Country values on the days of highest and lowest ENTSO-E load values, CH, https://eepublicdownloads.blob.core.windows.net/public-cdn-container/clean-documents/Publications/Statistics/Factsheet/entsoe_sfs2023_web.pdf"
+  - name: ch_2023_entsoe_low_hour_mw
+    question: "Actual load of CH at the hour of ENTSO-E's lowest load of 2023: 2023-05-28 05:00-06:00 UTC in the factsheet (2023-05-28 04:00 UTC in adele), MW"
+    sql: |
+      SELECT load
+      FROM entsoe_load.actual
+      WHERE bidding_zone = 'CH'
+        AND delivery_start = TIMESTAMPTZ '2023-05-28 04:00:00Z'
+    expected: 6553
+    tolerance: 0.5
+    source: "ENTSO-E, Statistical Factsheet 2023, Country values on the days of highest and lowest ENTSO-E load values, CH, https://eepublicdownloads.blob.core.windows.net/public-cdn-container/clean-documents/Publications/Statistics/Factsheet/entsoe_sfs2023_web.pdf"
+  - name: ch_2024_consumption_twh
+    question: "Actual total load of CH in 2024 (UTC year), TWh"
+    sql: |
+      SELECT sum(load * epoch(resolution) / 3600) / 1e6
+      FROM entsoe_load.actual
+      WHERE bidding_zone = 'CH'
+        AND delivery_start >= TIMESTAMPTZ '2024-01-01 00:00:00Z'
+        AND delivery_start <  TIMESTAMPTZ '2025-01-01 00:00:00Z'
+    expected: 59.6
+    tolerance: 0.05
+    source: "ENTSO-E, Statistical Factsheet 2024, ENTSO-E in figures, Consumption, CH (net consumption), https://eepublicdownloads.blob.core.windows.net/public-cdn-container/clean-documents/Publications/Statistics/Factsheet/entsoe_sfs2024_web.pdf"
+  - name: ch_2024_max_mw
+    question: "Highest hourly actual load of CH in 2024 (UTC year), MW"
+    sql: |
+      SELECT max(load)
+      FROM entsoe_load.actual
+      WHERE bidding_zone = 'CH'
+        AND delivery_start >= TIMESTAMPTZ '2024-01-01 00:00:00Z'
+        AND delivery_start <  TIMESTAMPTZ '2025-01-01 00:00:00Z'
+    expected: 10437
+    tolerance: 0.5
+    source: "ENTSO-E, Statistical Factsheet 2024, Highest and lowest hourly load values of each country, CH, https://eepublicdownloads.blob.core.windows.net/public-cdn-container/clean-documents/Publications/Statistics/Factsheet/entsoe_sfs2024_web.pdf"
+  - name: ch_2024_min_mw
+    question: "Lowest hourly actual load of CH in 2024 (UTC year), MW"
+    sql: |
+      SELECT min(load)
+      FROM entsoe_load.actual
+      WHERE bidding_zone = 'CH'
+        AND delivery_start >= TIMESTAMPTZ '2024-01-01 00:00:00Z'
+        AND delivery_start <  TIMESTAMPTZ '2025-01-01 00:00:00Z'
+    expected: 2743
+    tolerance: 0.5
+    source: "ENTSO-E, Statistical Factsheet 2024, Highest and lowest hourly load values of each country, CH, https://eepublicdownloads.blob.core.windows.net/public-cdn-container/clean-documents/Publications/Statistics/Factsheet/entsoe_sfs2024_web.pdf"
+  - name: ch_2024_max_hour_mw
+    question: "Actual load of CH at its highest hour of 2024: 2024-12-06 08:00-09:00 UTC in the factsheet (2024-12-06 07:00 UTC in adele), MW"
+    sql: |
+      SELECT load
+      FROM entsoe_load.actual
+      WHERE bidding_zone = 'CH'
+        AND delivery_start = TIMESTAMPTZ '2024-12-06 07:00:00Z'
+    expected: 10437
+    tolerance: 0.5
+    source: "ENTSO-E, Statistical Factsheet 2024, Highest and lowest hourly load values of each country, CH, https://eepublicdownloads.blob.core.windows.net/public-cdn-container/clean-documents/Publications/Statistics/Factsheet/entsoe_sfs2024_web.pdf"
+  - name: ch_2024_min_hour_mw
+    question: "Actual load of CH at its lowest hour of 2024: 2024-12-05 22:00-23:00 UTC in the factsheet (2024-12-05 21:00 UTC in adele), MW"
+    sql: |
+      SELECT load
+      FROM entsoe_load.actual
+      WHERE bidding_zone = 'CH'
+        AND delivery_start = TIMESTAMPTZ '2024-12-05 21:00:00Z'
+    expected: 2743
+    tolerance: 0.5
+    source: "ENTSO-E, Statistical Factsheet 2024, Highest and lowest hourly load values of each country, CH, https://eepublicdownloads.blob.core.windows.net/public-cdn-container/clean-documents/Publications/Statistics/Factsheet/entsoe_sfs2024_web.pdf"
+  - name: ch_2024_entsoe_peak_hour_mw
+    question: "Actual load of CH at the hour of ENTSO-E's highest load of 2024: 2024-01-10 18:00-19:00 UTC in the factsheet (2024-01-10 17:00 UTC in adele), MW"
+    sql: |
+      SELECT load
+      FROM entsoe_load.actual
+      WHERE bidding_zone = 'CH'
+        AND delivery_start = TIMESTAMPTZ '2024-01-10 17:00:00Z'
+    expected: 9583
+    tolerance: 0.5
+    source: "ENTSO-E, Statistical Factsheet 2024, Country values on the days of highest and lowest ENTSO-E load values, CH, https://eepublicdownloads.blob.core.windows.net/public-cdn-container/clean-documents/Publications/Statistics/Factsheet/entsoe_sfs2024_web.pdf"
+  - name: ch_2024_entsoe_low_hour_mw
+    question: "Actual load of CH at the hour of ENTSO-E's lowest load of 2024: 2024-05-19 05:00-06:00 UTC in the factsheet (2024-05-19 04:00 UTC in adele), MW"
+    sql: |
+      SELECT load
+      FROM entsoe_load.actual
+      WHERE bidding_zone = 'CH'
+        AND delivery_start = TIMESTAMPTZ '2024-05-19 04:00:00Z'
+    expected: 4736
+    tolerance: 0.5
+    source: "ENTSO-E, Statistical Factsheet 2024, Country values on the days of highest and lowest ENTSO-E load values, CH, https://eepublicdownloads.blob.core.windows.net/public-cdn-container/clean-documents/Publications/Statistics/Factsheet/entsoe_sfs2024_web.pdf"
+  - name: ch_2025_max_mw
+    question: "Highest hourly actual load of CH in 2025 (UTC year), MW"
+    sql: |
+      SELECT max(load)
+      FROM entsoe_load.actual
+      WHERE bidding_zone = 'CH'
+        AND delivery_start >= TIMESTAMPTZ '2025-01-01 00:00:00Z'
+        AND delivery_start <  TIMESTAMPTZ '2026-01-01 00:00:00Z'
+    expected: 10330
+    tolerance: 0.5
+    source: "ENTSO-E, Statistical Factsheet 2025, Highest and lowest hourly load values of each country, CH, https://eepublicdownloads.blob.core.windows.net/public-cdn-container/clean-documents/Publications/Statistics/Factsheet/entsoe_sfs2025_web.pdf"
+  - name: ch_2025_min_mw
+    question: "Lowest hourly actual load of CH in 2025 (UTC year), MW"
+    sql: |
+      SELECT min(load)
+      FROM entsoe_load.actual
+      WHERE bidding_zone = 'CH'
+        AND delivery_start >= TIMESTAMPTZ '2025-01-01 00:00:00Z'
+        AND delivery_start <  TIMESTAMPTZ '2026-01-01 00:00:00Z'
+    expected: 4219
+    tolerance: 0.5
+    source: "ENTSO-E, Statistical Factsheet 2025, Highest and lowest hourly load values of each country, CH, https://eepublicdownloads.blob.core.windows.net/public-cdn-container/clean-documents/Publications/Statistics/Factsheet/entsoe_sfs2025_web.pdf"
+  - name: ch_2025_max_hour_mw
+    question: "Actual load of CH at its highest hour of 2025: 2025-01-14 10:00-11:00 UTC in the factsheet (2025-01-14 10:00 UTC in adele), MW"
+    sql: |
+      SELECT load
+      FROM entsoe_load.actual
+      WHERE bidding_zone = 'CH'
+        AND delivery_start = TIMESTAMPTZ '2025-01-14 10:00:00Z'
+    expected: 10330
+    tolerance: 0.5
+    source: "ENTSO-E, Statistical Factsheet 2025, Highest and lowest hourly load values of each country, CH, https://eepublicdownloads.blob.core.windows.net/public-cdn-container/clean-documents/Publications/Statistics/Factsheet/entsoe_sfs2025_web.pdf"
+  - name: ch_2025_min_hour_mw
+    question: "Actual load of CH at its lowest hour of 2025: 2025-07-20 03:00-04:00 UTC in the factsheet (2025-07-20 03:00 UTC in adele), MW"
+    sql: |
+      SELECT load
+      FROM entsoe_load.actual
+      WHERE bidding_zone = 'CH'
+        AND delivery_start = TIMESTAMPTZ '2025-07-20 03:00:00Z'
+    expected: 4219
+    tolerance: 0.5
+    source: "ENTSO-E, Statistical Factsheet 2025, Highest and lowest hourly load values of each country, CH, https://eepublicdownloads.blob.core.windows.net/public-cdn-container/clean-documents/Publications/Statistics/Factsheet/entsoe_sfs2025_web.pdf"
+  - name: ch_2025_entsoe_peak_hour_mw
+    question: "Actual load of CH at the hour of ENTSO-E's highest load of 2025: 2025-01-14 18:00-19:00 UTC in the factsheet (2025-01-14 18:00 UTC in adele), MW"
+    sql: |
+      SELECT load
+      FROM entsoe_load.actual
+      WHERE bidding_zone = 'CH'
+        AND delivery_start = TIMESTAMPTZ '2025-01-14 18:00:00Z'
+    expected: 9496
+    tolerance: 0.5
+    source: "ENTSO-E, Statistical Factsheet 2025, Country values on the days of highest and lowest ENTSO-E load values, CH, https://eepublicdownloads.blob.core.windows.net/public-cdn-container/clean-documents/Publications/Statistics/Factsheet/entsoe_sfs2025_web.pdf"
+  - name: ch_2025_entsoe_low_hour_mw
+    question: "Actual load of CH at the hour of ENTSO-E's lowest load of 2025: 2025-04-20 05:00-06:00 UTC in the factsheet (2025-04-20 05:00 UTC in adele), MW"
+    sql: |
+      SELECT load
+      FROM entsoe_load.actual
+      WHERE bidding_zone = 'CH'
+        AND delivery_start = TIMESTAMPTZ '2025-04-20 05:00:00Z'
+    expected: 5360
+    tolerance: 0.5
+    source: "ENTSO-E, Statistical Factsheet 2025, Country values on the days of highest and lowest ENTSO-E load values, CH, https://eepublicdownloads.blob.core.windows.net/public-cdn-container/clean-documents/Publications/Statistics/Factsheet/entsoe_sfs2025_web.pdf"
+  # Kazmi & Tao compared ENTSO-E's forecast and actual load as served (ENTSO-E's stamps), 2015-2021,
+  # after filtering "anomalous measurements" with a filter they don't describe: adele gives MAE
+  # 416.6 and ME -69.8 with ENTSO-E's stamps (439.5 and -69.8 with adele's). Tolerances cover their
+  # filter, not rounding. Their R2 (.74; adele .729) and WAPE (5.84; adele 5.87) are left out.
+  - name: ch_2015_2021_forecast_mae_mw
+    question: "Mean absolute error of the day-ahead load forecast of CH against the actual load, 2015-2021, with ENTSO-E's stamps of the actual load, MW"
+    sql: |
+      SELECT avg(abs(a.load - f.load))
+      FROM entsoe_load.forecast f
+      JOIN entsoe_load.actual a
+        ON a.bidding_zone = f.bidding_zone
+       AND a.delivery_start + INTERVAL 1 HOUR = f.delivery_start  -- ENTSO-E's stamps of the actual load
+      WHERE f.bidding_zone = 'CH'
+        AND f.delivery_start >= TIMESTAMPTZ '2015-01-01 00:00:00Z'
+        AND f.delivery_start <  TIMESTAMPTZ '2022-01-01 00:00:00Z'
+    expected: 416
+    tolerance: 5
+    source: "Kazmi & Tao 2022, Applied Energy 323:119565, Table 1, p.13 (preprint), https://lirias.kuleuven.be/retrieve/d4e0320a-92c6-409a-b024-fdd2e8e8e551"
+  - name: ch_2015_2021_forecast_me_mw
+    question: "Mean error (actual - forecast) of the day-ahead load forecast of CH, 2015-2021, with ENTSO-E's stamps of the actual load, MW"
+    sql: |
+      SELECT avg(a.load - f.load)
+      FROM entsoe_load.forecast f
+      JOIN entsoe_load.actual a
+        ON a.bidding_zone = f.bidding_zone
+       AND a.delivery_start + INTERVAL 1 HOUR = f.delivery_start  -- ENTSO-E's stamps of the actual load
+      WHERE f.bidding_zone = 'CH'
+        AND f.delivery_start >= TIMESTAMPTZ '2015-01-01 00:00:00Z'
+        AND f.delivery_start <  TIMESTAMPTZ '2022-01-01 00:00:00Z'
+    expected: -68
+    tolerance: 3
+    source: "Kazmi & Tao 2022, Applied Energy 323:119565, Table 1, p.13 (preprint), https://lirias.kuleuven.be/retrieve/d4e0320a-92c6-409a-b024-fdd2e8e8e551"
+  # Tzortzis et al.: a naive forecast (the same hour a week before), MAPE over 2021 in local time.
+  - name: ch_2021_naive_weekly_mape
+    question: "MAPE (%) of a naive forecast of the actual load of CH by the value 168 hours before, 2021 (local year)"
+    sql: |
+      SELECT 100 * avg(abs(a.load - p.load) / a.load)
+      FROM entsoe_load.actual a
+      JOIN entsoe_load.actual p
+        ON p.bidding_zone = a.bidding_zone
+       AND p.delivery_start = a.delivery_start - INTERVAL 168 HOUR
+      WHERE a.bidding_zone = 'CH'
+        AND a.delivery_start >= TIMESTAMPTZ '2021-01-01 00:00:00+01'
+        AND a.delivery_start <  TIMESTAMPTZ '2022-01-01 00:00:00+01'
+    expected: 6.25
+    tolerance: 0.006
+    source: "Tzortzis et al. 2023, arXiv 2310.15555v1, Table 2, sNaive(168), Switzerland, https://arxiv.org/html/2310.15555"

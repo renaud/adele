@@ -38,6 +38,10 @@ the load"):
   2024-12-05 21:00 UTC; nights of 2026-11-03, 11-10 and 11-14 at 2,816 to 3,900 MW, against
   a forecast of about 7,000.
 - A request of 365 days comes whole (one time series, 8,760 points).
+- The forecast (A01) equals the actual load as served (A16, same served stamp, so one hour
+  later than A16 after the move above) in 100 % of the hours of 2021-09 and of every month of
+  2022 except September (89.7 %), and in 74.6 % of 2021-10 and 90.4 % of 2021-11. Kept as
+  served. 2022 has then the same yearly total, mean, max and min in both tables.
 
 The HTTP requests go through entsoe-py's raw client (its errors for "no data"), with a timeout
 and retries as in `entsoe_day_ahead_prices`; the XML is parsed here, not by entsoe-py.

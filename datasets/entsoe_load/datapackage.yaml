@@ -88,6 +88,18 @@ adele:
       2024-12-05 21:00 UTC, about half the forecast on the nights of 2026-11-03, 2026-11-10 and
       2026-11-14.
     - "CH: the forecast has no value from 2015-08-30 22:00 to 2015-08-31 21:00 UTC."
+    - >-
+      CH: from September 2021 to December 2022 the forecast is a copy of the actual load as
+      ENTSO-E serves it (stamped at the end of the hour): equal in at least 99.9 % of the hours
+      of September 2021 and of every month of 2022 except September (89.7 %), and in 75 % and
+      90 % of October and November 2021. It is not a forecast then: its "error" over those
+      months is the change of the load from one hour to the next.
+    - >-
+      CH: the stamps of the forecast are kept as served, and their timing is not settled. The
+      forecast fits the actual load best one hour earlier in 2015-2018 and in January-August 2023
+      (as if stamped at the end of the hour), at the same hour in 2019-2021 and from October
+      2023. An error of the forecast depends on that choice: 2015-2021, MAE 416.6 MW with
+      ENTSO-E's stamps of the actual load, 439.5 MW with adele's.
   examples:
     - question: Average actual load in CH per local day in March 2026?  # draft by Claude
       sql: |
