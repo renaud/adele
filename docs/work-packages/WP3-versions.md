@@ -345,6 +345,15 @@ field, four warnings, two examples) and ran the examples on the backfill of the 
 warnings come from the measures in `fetch.py` and from the swissgrid project's comparison with
 the Energy Statistic (QA 5 c7). The licence stays a TODO, as in `entsoe_day_ahead_prices`.
 
+### 2026-11-15, which ENTSO-E series are revised
+
+Renaud: "a: do it, b: ok, for the series that a shows to be revised". Every Swiss ENTSO-E series
+that the swissgrid project saved on 2026-10-31 was asked again and compared value by value
+(`qa/revisions_entsoe_ch.md`). Revised: generation per type, physical flows, scheduled
+exchanges, imbalance volume (rarely). Not revised in 15 days: load, the three price series,
+installed capacity; the wind and solar forecasts by a few tenths of a MW only. Next, (b): the
+datasets of the revised series, `append-only`.
+
 ### 2026-11-15, QA from published figures
 
 Renaud: "Instead of me checking the two examples, can you forage for publications where there
