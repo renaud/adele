@@ -224,8 +224,8 @@ Other V0 items:
    I recommend every revision, so that as_of also works locally.
 - ~~`as_of` before adele's first fetch of a dataset is meaningless: backfilled rows all carry the
   backfill date as `fetched_at`. Say so in SPEC.md, Revisions?~~ done in WP3 (D30): an `as_of`
-  before `versions_since` is refused; the sentence for SPEC.md is proposed in
-  `docs/work-packages/WP3-versions.md`.
+  before `versions_since` is refused; Renaud put the sentence into SPEC.md (proposed in
+  `docs/work-packages/WP3-versions.md`).
 - copy by default: beyond a quick look, the skill tells the agent to `pull` and query locally
   (the data is a few GB). Then add it to SPEC.md, Agent access.
 

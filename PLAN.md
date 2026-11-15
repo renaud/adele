@@ -21,18 +21,19 @@ step is in `TODOs.md`, the reasons are in `DECISIONS.md`.
 
 | | state on 2026-11-15 | depends on |
 |---|---|---|
-| WP1 | not started. Units drafted and tested once in a container; the fetch per dataset is built (D27) | Renaud: root on steacher1; IT for the ports 80 and 443 |
+| WP1 | steps 0-5 done: adele runs on steacher1 (`/opt/adele`, commit 32237db), both datasets backfilled (their figures match the Mac), one timer per dataset since 16:11 UTC, memory limits on the fetch units. Running: the week (step 7, from 2026-11-15). Next: HTTPS (step 6), faults on purpose (step 8). `docs/work-packages/WP1-server-on-steacher1.md` | Renaud: the port for HTTPS |
 | WP2 | decided, not built. First the `adele:` block per table | |
-| WP3 | not designed in detail (POC 2) | |
+| WP3 | built and in `main`: `revisions: append-only`, the views `<table>` and `<table>_versions`, `as_of` (D30, storage with `superseded_at`). First dataset `entsoe_load` (CH load, actual and day-ahead), backfilled on the Mac. Measured which ENTSO-E series are revised (`qa/revisions_entsoe_ch.md`). Next: `entsoe_load` on steacher1 for 1-2 days (`TODOs.md`, V1); the datasets of the revised series (generation, flows, schedules, imbalance volume). `docs/work-packages/WP3-versions.md` | WP1 done, for steacher1 |
 | WP4 | decided: two datasets for Swissgrid's TSI. Open: raw answers kept (G4), whole files (G6), who takes over from the poller | WP3 for the Swissgrid files |
 | WP5 | 3 of 30 datasets are in adele | WP1 for the backfill on steacher1 |
-| WP6 | not started | WP2, WP3, WP4 |
-| WP7 | weathernext3 accepted; day-ahead prices open on Renaud's side | each dataset of WP5 and WP6 |
-| WP8 | day-ahead prices: 82 figures as checks | each dataset of WP5 and WP6 |
+| WP6 | started with WP3: `entsoe_load` | WP2, WP3, WP4 |
+| WP7 | weathernext3 accepted; day-ahead prices open on Renaud's side; `entsoe_load` drafted by Claude at Renaud's request (unit and stamps confirmed by him) | each dataset of WP5 and WP6 |
+| WP8 | day-ahead prices: 82 figures as checks; `entsoe_load`: 50 (ENTSO-E's Statistical Factsheets 2019-2025, two papers) | each dataset of WP5 and WP6 |
 | WP9 | client and skill exist as drafts | WP1, and the first datasets on steacher1 |
 
-WP1 and WP5 start now. WP2, WP3 and WP4 are builds in the server and can run next to them. WP7
-and WP8 go with each dataset. WP9 can start as soon as the first datasets answer on steacher1.
+Updated 2026-11-15 evening: WP1 runs its week on steacher1, WP3 is built (it reaches steacher1
+once WP1 is done). WP2 and WP4 are builds in the server and can run next to them. WP7 and WP8
+go with each dataset. WP9 can start as soon as the first datasets answer on steacher1.
 
 ## The datasets
 
@@ -48,6 +49,11 @@ the derived tables are out for now. About 60 are to install:
 | weather observations | 10 | | 6 | |
 | weather forecasts | 5 | | 2 | |
 | context tables | | | 2 | |
+
+Measured 2026-11-15 (`qa/revisions_entsoe_ch.md`): of the ENTSO-E series counted as fitting
+today, the physical flows and the scheduled exchanges are revised after publication, so
+`append-only` would keep what `overwrite` loses; and the CH load, counted as waiting for
+versions, was not revised in 15 days (it is in adele anyway, as `entsoe_load`).
 
 ## Done when
 

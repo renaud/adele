@@ -14,7 +14,11 @@ description: >-
   the power used for energy storage, losses included (Regulation (EU) 543/2013, article 6). For
   CH the data comes from Swissgrid. Every version that adele fetched is kept (revisions:
   append-only).
-# TODO(Renaud): licenses (ENTSO-E Transparency Platform terms)
+# The same platform as entsoe_day_ahead_prices: Renaud's licence entry there, copied by Claude.
+licenses:
+  - name: CC-BY-4.0
+    path: https://creativecommons.org/licenses/by/4.0/
+    title: Creative Commons Attribution 4.0 International License
 resources:
   - name: actual
     description: Actual total load per delivery interval (A65, process type A16).  # draft by Claude
@@ -102,27 +106,11 @@ adele:
       (as if stamped at the end of the hour), at the same hour in 2019-2021 and from October
       2023. An error of the forecast depends on that choice: 2015-2021, MAE 416.6 MW with
       ENTSO-E's stamps of the actual load, 439.5 MW with adele's.
+  # D31: five checks of checks.yaml, one per trap; chosen by Claude (2026-11-15), they replace
+  # two examples that nobody had confirmed (Renaud asked for published figures instead).
   examples:
-    - question: Average actual load in CH per local day in March 2026?  # draft by Claude
-      sql: |
-        SELECT date_trunc('day', delivery_start AT TIME ZONE 'Europe/Zurich') AS local_day,
-               avg(load) AS avg_load_mw
-        FROM entsoe_load.actual
-        WHERE bidding_zone = 'CH'
-          AND delivery_start >= TIMESTAMPTZ '2026-03-01 00:00:00+01'
-          AND delivery_start <  TIMESTAMPTZ '2026-04-01 00:00:00+02'
-        GROUP BY 1
-        ORDER BY 1
-      # verified_at: set when Renaud has confirmed the result
-    - question: Mean absolute error of the day-ahead load forecast in CH, per year?  # draft by Claude
-      sql: |
-        SELECT year(a.delivery_start AT TIME ZONE 'Europe/Zurich') AS local_year,
-               count(*) AS hours,
-               avg(abs(f.load - a.load)) AS mae_mw,
-               avg(abs(f.load - a.load)) / avg(a.load) AS mae_share_of_load
-        FROM entsoe_load.actual a
-        JOIN entsoe_load.forecast f USING (bidding_zone, delivery_start)
-        WHERE bidding_zone = 'CH'
-        GROUP BY 1
-        ORDER BY 1
-      # verified_at: set when Renaud has confirmed the result
+    - check: ch_2019_consumption_twh  # energy from mean power: MW x the duration of each row
+    - check: ch_2019_entsoe_peak_hour_mw  # ENTSO-E's hour 18:00 is adele's 17:00 before 2025
+    - check: ch_2024_min_mw  # the glitch of 2024-12-05 is ENTSO-E's published minimum: kept as served
+    - check: ch_2015_2021_forecast_mae_mw  # a forecast error depends on how the two series' stamps line up
+    - check: ch_2021_naive_weekly_mape  # a local year, and a lag of 168 rows as a join on time
