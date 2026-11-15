@@ -97,6 +97,24 @@ Next, state at the end of 2026-11-15:
   (raw answers G4, whole files G6, who takes over from the poller), and the Swissgrid poller
   keeps every version meanwhile. During WP1's week: WP5 on the Mac (27 datasets that fit
   today, ENTSO-E first), installed on steacher1 after 2026-11-22.
+- The ENTSO-E series that are revised (`qa/revisions_entsoe_ch.md`, measured 2026-11-15):
+  generation per type (A75), physical flows (A11), scheduled exchanges (A09), imbalance volume
+  (A86). Renaud agreed to build their datasets ("b: ok, for the series that a shows to be
+  revised"). Claude's proposal, not decided: all four in WP6 as `append-only`, so flows and
+  schedules leave WP5 (schedules change before delivery: 541 of 1,258 hours ahead changed;
+  flows are corrected up to months later). Until Renaud decides, a session that does WP5
+  leaves A11 and A09 out, so that they aren't built twice with two policies.
+- What WP4 needs before a build (Claude, 2026-11-15, asked "what prevents us from doing WP4
+  first"): nothing is missing in the server (WP3 is in `main`, G5 was built with D27), but no
+  WP4 doc exists. Its design points: where raw answers are kept (G4: place, retention, one copy
+  per sha256, size: the poller kept 1,797 versions of the daily file and 2,160 of the TSI file
+  in three weeks); the year file (G6: a lookback over the whole file; its own dataset or the
+  same table as the daily file, possible now with `append-only`); when adele takes over from
+  the poller and how long both run. Also: the checks run after every fetch, changed rows or not
+  (`server/src/adele_server/ingest.py`, `_settle`): 1,440 runs a day for a dataset fetched every
+  minute. Measures on the poller's files use the copies in `swiss_energy_data` (WP1: nothing
+  runs on steacher1 during the week). Production waits for WP1; the poller keeps every version
+  meanwhile. Proposed way: a WP4 doc with these points, a critic, Renaud's answers, as for WP3.
 - `PLAN.md`, the table "Order and state": updated on 2026-11-15 by Claude at Renaud's request
   (WP1 steps 0-5 done, the week runs until 2026-11-22, step 6 waits for the port; WP3 in
   `main`, then 1-2 days of fetches on steacher1 once WP1 is done, V1 below).

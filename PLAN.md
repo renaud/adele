@@ -23,10 +23,10 @@ step is in `TODOs.md`, the reasons are in `DECISIONS.md`.
 |---|---|---|
 | WP1 | steps 0-5 done: adele runs on steacher1 (`/opt/adele`, commit 32237db), both datasets backfilled (their figures match the Mac), one timer per dataset since 16:11 UTC, memory limits on the fetch units. Running: the week (step 7, from 2026-11-15). Next: HTTPS (step 6), faults on purpose (step 8). `docs/work-packages/WP1-server-on-steacher1.md` | Renaud: the port for HTTPS |
 | WP2 | decided, not built. First the `adele:` block per table | |
-| WP3 | built and in `main`: `revisions: append-only`, the views `<table>` and `<table>_versions`, `as_of` (D30, storage with `superseded_at`). First dataset `entsoe_load` (CH load, actual and day-ahead), backfilled on the Mac. Measured which ENTSO-E series are revised (`qa/revisions_entsoe_ch.md`). Next: `entsoe_load` on steacher1 for 1-2 days (`TODOs.md`, V1); the datasets of the revised series (generation, flows, schedules, imbalance volume). `docs/work-packages/WP3-versions.md` | WP1 done, for steacher1 |
+| WP3 | built and in `main`: `revisions: append-only`, the views `<table>` and `<table>_versions`, `as_of` (D30, storage with `superseded_at`). First dataset `entsoe_load` (CH load, actual and day-ahead), backfilled on the Mac. Measured which ENTSO-E series are revised (`qa/revisions_entsoe_ch.md`). Next: `entsoe_load` on steacher1 for 1-2 days (`TODOs.md`, V1). `docs/work-packages/WP3-versions.md` | WP1 done, for steacher1 |
 | WP4 | decided: two datasets for Swissgrid's TSI. Open: raw answers kept (G4), whole files (G6), who takes over from the poller | WP3 for the Swissgrid files |
 | WP5 | 3 of 30 datasets are in adele | WP1 for the backfill on steacher1 |
-| WP6 | started with WP3: `entsoe_load` | WP2, WP3, WP4 |
+| WP6 | started with WP3: `entsoe_load`. Next (agreed by Renaud): the datasets of the revised ENTSO-E series, generation, flows, schedules, imbalance volume; whether flows and schedules leave WP5 is open (`TODOs.md`) | WP2, WP3, WP4 |
 | WP7 | weathernext3 accepted; day-ahead prices open on Renaud's side; `entsoe_load` drafted by Claude at Renaud's request (unit and stamps confirmed by him) | each dataset of WP5 and WP6 |
 | WP8 | day-ahead prices: 82 figures as checks; `entsoe_load`: 50 (ENTSO-E's Statistical Factsheets 2019-2025, two papers) | each dataset of WP5 and WP6 |
 | WP9 | client and skill exist as drafts | WP1, and the first datasets on steacher1 |
