@@ -1,4 +1,14 @@
-# Adele: *a*gentic *d*ata *l*ayer
+# adele: **a**gentic **d**ata **l**ayer
+
+## Rationale
+
+Agents write most of the code, and also write most of the queries. They are good at SQL. What they still lack is what the data means.
+
+The meaning is rarely in the rows. From a table of day-ahead prices, an agent cannot tell that the delivery day is defined in CET/CEST and not in UTC. An agent that was not told still returns a number, and nothing shows that the number is wrong.
+
+In adele, a dataset is curated by a domain expert. They write down all its tricks and traps so that an agent can use the data unambiguously.
+
+## What adele does
 
 Expose datasets to agents for them to consume data efficiently and clearly: agents know without ambiguity what a dataset is about, its fields & data type, the timeframe of the dataset (since when, till when, ETA for next refresh). It also knows how to fetch the dataset, either remotely (query adele on the fly) or by copying the dataset locally.
 

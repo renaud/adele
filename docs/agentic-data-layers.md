@@ -166,3 +166,37 @@ TODOs.md or `skills/` are only named here.
   2018-10-01) and the delivery day in CET. Prices are almost never revised, so the second
   dataset should be actual load, which exercises `append-only`, `as_of` and the MW trap.
   ENTSO-E needs an API token, requested by email.
+
+## Added 2026-11-14: Tigani's talk "Data Outpost: Episode IV, A New Hope (for Data)"
+
+Source: a MotherDuck Dive of 35 slides by Jordan Tigani,
+<https://motherduck.com/dive-gallery/dives/data-outpost-episode-iv-a-new-hope-for-data-public/>.
+Read by Claude from the TSX source of the Dive, in Renaud's folder of the SQL course
+(`SQL_course_26-27/tmp/data intelligence engineer.html`; `data_outpost_episode_iv.md` next to it
+says how the pptx was made). It is a talk by a vendor: the slides assert, they give no
+measurement.
+
+Ideas that the rationale of adele can use:
+
+1. **The limit moved from SQL to knowledge of the data** (slide 14). Before December 2025: "LLMs
+   wrote bad SQL", "one shot was what you got". After: the models write better SQL, and agents
+   work over several turns, so the first query need not be right.
+2. **A faster loop gives more questions, and more questions give better answers** (slide 16).
+   The chain stakeholder --> analyst --> data engineer is slow, and adding AI to each role "keeps
+   the walls" (slides 11 and 12).
+3. **"Curation >> Context"** (slide 26, notes from MotherDuck's data engineer).
+4. **"For years we wrote docs no one read, they are suddenly as important an asset as the data
+   itself"** (slide 26).
+5. **Data engineering "is an accountability function"** (slide 26). What a person still does:
+   a clean data model, "making things continue to work", evals (slides 27 and 32).
+6. **"Agents need supervision proportional to blast radius"** (slide 26).
+7. **Three tiers: wild west (everyone builds), curated (the best of users' work), core (tightly
+   managed)** (slide 32). adele is the core tier.
+
+Where adele disagrees: slide 14 says "business logic can be figured out" and "it just works".
+adele exists because some traps cannot be found from the rows (the delivery day in CET/CEST), so
+a person declares them.
+
+Used so far: only idea 1, in the "Rationale" section of the README (2026-11-14, Renaud's
+sentences: agents write most of the queries, they are good at SQL, they lack what the data
+means). Renaud rejected the word "context" for it. Ideas 2 to 7 are not in any text yet.

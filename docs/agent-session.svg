@@ -1,0 +1,162 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="933" viewBox="0 0 960 933" role="img" aria-labelledby="title desc">
+  <title id="title">adele: what an agent reads</title>
+  <desc id="desc">Excerpts of the text that adele prints for three commands: adele list (one line per dataset), adele describe (the dataset card: status, freshness, warnings, grain, coverage, resolution, fields, sample rows) and adele query (the rows, then a footer with units, resolution, freshness and warnings). Colour separates what a person wrote in the dataset folder from what the server computed.</desc>
+
+  <!-- Hand-written. The session is real output (2026-11-14), shortened: lines left out, long lines wrapped.
+       Line n of the session has its baseline at y = 132 + 17 n. Notes on the right sit on the line they explain. -->
+  <style>
+    text { font-family: system-ui, -apple-system, "Segoe UI", Helvetica, Arial, sans-serif; font-size: 12.5px; fill: #1f2328 }
+    .mono { font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace; font-size: 12px }
+    .title { font-size: 22px; font-weight: 600 }
+    .sub { font-size: 13.5px }
+    .b { font-weight: 600 }
+    .m { fill: #59636e }
+    .bg { fill: #ffffff }
+    .term { fill: #f6f8fa; stroke: #d0d7de }
+    .tick { stroke: #8c959f }
+    .k { fill: #59636e }                      /* keys and fixed text */
+    .c { fill: #1f2328; font-weight: 600 }    /* the command */
+    .a { fill: #1f2328 }                      /* its arguments */
+    .p { fill: #9a6700 }                      /* written by a person */
+    .s { fill: #0969da }                      /* computed by the server */
+    @media (prefers-color-scheme: dark) {
+      text { fill: #e6edf3 }
+      .m { fill: #9198a1 }
+      .bg { fill: #0d1117 }
+      .term { fill: #161b22; stroke: #30363d }
+      .tick { stroke: #6e7681 }
+      .k { fill: #9198a1 }
+      .c { fill: #e6edf3 }
+      .a { fill: #e6edf3 }
+      .p { fill: #d29922 }
+      .s { fill: #58a6ff }
+    }
+  </style>
+
+  <rect class="bg" width="960" height="933"/>
+
+  <!-- title and legend -->
+  <text x="20" y="38" class="title">What an agent reads</text>
+  <text x="20" y="62" class="m sub">Text that adele prints, here for the day-ahead prices of ENTSO-E on 2026-11-14. Excerpts: lines are left out, long lines are wrapped.</text>
+  <rect class="p" x="20" y="79" width="10" height="10" rx="2"/>
+  <text x="36" y="88.5">written by a person (datapackage.yaml, checks.yaml)</text>
+  <rect class="s" x="372" y="79" width="10" height="10" rx="2"/>
+  <text x="388" y="88.5">computed by the server</text>
+  <rect class="a" x="556" y="79" width="10" height="10" rx="2"/>
+  <text x="572" y="88.5">typed by the agent</text>
+
+  <rect class="term" x="20" y="108" width="684" height="805" rx="8"/>
+
+  <!-- 1 list: lines 0-5 -->
+  <text class="mono k" xml:space="preserve"><tspan x="36" y="132">$ </tspan><tspan class="c">adele list</tspan>
+    <tspan x="36" dy="17">id | title | resolution | coverage (UTC, first and last interval start) | status</tspan>
+    <tspan x="36" dy="17" class="p">entsoe_day_ahead_prices</tspan> | <tspan class="p">Day-ahead prices per bidding zone (ENTSO-E)</tspan> | <tspan class="s">PT15M, PT1H</tspan> |
+    <tspan x="36" dy="17">    </tspan><tspan class="s">2014-12-31 23:00Z .. 2026-11-14 22:45Z</tspan> | <tspan class="s">ok</tspan>
+    <tspan x="36" dy="17" class="p">weathernext3</tspan> | <tspan class="p">WeatherNext 3 forecasts of solar radiation and cloud cover, Switzerland</tspan> |
+    <tspan x="36" dy="17">    </tspan><tspan class="s">PT1H, instants</tspan> | <tspan class="s">init_time 2024-11-12 00:00Z .. 2026-11-12 05:00Z</tspan> | <tspan class="s">ok</tspan>
+  </text>
+
+  <!-- 2 describe: lines 7-30 -->
+  <text class="mono k" xml:space="preserve"><tspan x="36" y="251">$ </tspan><tspan class="c">adele describe</tspan><tspan class="a"> entsoe_day_ahead_prices</tspan>
+    <tspan x="36" dy="17">status: </tspan><tspan class="s">ok</tspan>
+    <tspan x="36" dy="17">freshness:</tspan>
+    <tspan x="36" dy="17">  last_fetched_at: </tspan><tspan class="s">2026-11-13 20:05Z</tspan>
+    <tspan x="36" dy="17">  next_fetch_eta: </tspan><tspan class="s">2026-11-13 21:05Z</tspan>
+    <tspan x="36" dy="17">published_figures: &gt;-</tspan>
+    <tspan x="36" dy="17">  82 figures published by </tspan><tspan class="p">ElCom, SMARD (Bundesnetzagentur), Keles et al. 2020, CRE, RTE</tspan>
+    <tspan x="36" dy="17">  are recomputed from this data after each fetch: </tspan><tspan class="s">all match</tspan>
+    <tspan x="36" dy="17">warnings:</tspan>
+    <tspan x="36" dy="17">- </tspan><tspan class="p">The delivery day is defined in CET/CEST, not UTC.</tspan>
+    <tspan x="36" dy="17">tables:</tspan>
+    <tspan x="36" dy="17">- table: </tspan><tspan class="p">entsoe_day_ahead_prices.prices</tspan>
+    <tspan x="36" dy="17">  grain: one row per (</tspan><tspan class="p">bidding_zone, delivery_start</tspan>)
+    <tspan x="36" dy="17">  coverage: </tspan><tspan class="s">2014-12-31 23:00Z .. 2026-11-14 22:45Z</tspan> (first and last interval start)
+    <tspan x="36" dy="17">  resolution:</tspan>
+    <tspan x="36" dy="17">  - '</tspan><tspan class="s">CH: PT1H 2014-12-31 23:00Z .. 2026-11-03 22:00Z</tspan>'
+    <tspan x="36" dy="17">  - '</tspan><tspan class="s">CH: PT15M 2026-11-03 23:00Z .. 2026-11-14 22:45Z</tspan>'
+    <tspan x="36" dy="17">  fields:</tspan>
+    <tspan x="36" dy="17">  - name: </tspan><tspan class="p">price</tspan>
+    <tspan x="36" dy="17">    type: </tspan><tspan class="p">number</tspan> (<tspan class="s">DOUBLE</tspan>)
+    <tspan x="36" dy="17">    unit: </tspan><tspan class="p">EUR/MWh</tspan>
+    <tspan x="36" dy="17">  sample_rows: |</tspan>
+    <tspan x="36" dy="17">    </tspan><tspan class="s">bidding_zone,delivery_start,resolution,price</tspan>
+    <tspan x="36" dy="17">    </tspan><tspan class="s">CH,2015-05-19 05:00:00Z,PT1H,40.19</tspan>
+  </text>
+
+  <!-- 3 query: lines 32-41 -->
+  <text class="mono k" xml:space="preserve"><tspan x="36" y="676">$ </tspan><tspan class="c">adele query</tspan><tspan class="a"> "SELECT year(delivery_start AT TIME ZONE 'Europe/Zurich') AS year,</tspan>
+    <tspan x="36" dy="17" class="a">    round(avg(price), 2) AS avg_price FROM entsoe_day_ahead_prices.prices</tspan>
+    <tspan x="36" dy="17" class="a">    WHERE bidding_zone = 'CH' AND </tspan>[...]<tspan class="a"> GROUP BY 1 ORDER BY 1"</tspan>
+    <tspan x="36" dy="17" class="s">year,avg_price</tspan>
+    <tspan x="36" dy="17" class="s">2022,281.65</tspan>
+    <tspan x="36" dy="17" class="s">2023,107.47</tspan>
+    <tspan x="36" dy="17" class="s">2024,75.96</tspan>
+    <tspan x="36" dy="17">-- </tspan><tspan class="p">entsoe_day_ahead_prices</tspan>: units: <tspan class="p">price EUR/MWh</tspan>. resolution: <tspan class="s">CH PT1H, PT15M from</tspan>
+    <tspan x="36" dy="17">   </tspan><tspan class="s">2026-11-03 23:00Z</tspan>; [...] status <tspan class="s">ok</tspan>, last fetched <tspan class="s">2026-11-13 20:05Z</tspan>.
+    <tspan x="36" dy="17">-- warning (</tspan><tspan class="p">entsoe_day_ahead_prices</tspan>): <tspan class="p">The delivery day is defined in CET/CEST, not UTC.</tspan>
+  </text>
+
+  <!-- a capped result: lines 43-45 -->
+  <text class="mono k" xml:space="preserve"><tspan x="36" y="863">$ </tspan><tspan class="c">adele query</tspan><tspan class="a"> "SELECT delivery_start, price FROM </tspan>[...]<tspan class="a"> ORDER BY 1"</tspan>
+    <tspan x="36" dy="17">[...]</tspan>
+    <tspan x="36" dy="17">-- showing </tspan><tspan class="s">100</tspan> of <tspan class="s">25,968</tspan> rows. Aggregate, or narrow the filter.
+  </text>
+
+  <!-- notes: a tick at the line, then the text -->
+  <g>
+    <line class="tick" x1="708" y1="128" x2="718" y2="128"/>
+    <text x="724" y="132" class="b">1  list</text>
+    <text x="724" y="149">One line per dataset. Resolution</text>
+    <text x="724" y="165">and coverage are read from the</text>
+    <text x="724" y="181">stored data.</text>
+
+    <line class="tick" x1="708" y1="247" x2="718" y2="247"/>
+    <text x="724" y="251" class="b">2  describe</text>
+    <text x="724" y="268">The dataset card. First: is the</text>
+    <text x="724" y="284">data fresh, and did the checks</text>
+    <text x="724" y="300">pass?</text>
+
+    <line class="tick" x1="708" y1="332" x2="718" y2="332"/>
+    <text x="724" y="336">Figures published by others are</text>
+    <text x="724" y="352">recomputed after each fetch. One</text>
+    <text x="724" y="368">that differs sets failing.</text>
+
+    <line class="tick" x1="708" y1="400" x2="718" y2="400"/>
+    <text x="724" y="404">Traps, in the words of a person</text>
+    <text x="724" y="420">who knows the dataset.</text>
+
+    <line class="tick" x1="708" y1="451" x2="718" y2="451"/>
+    <text x="724" y="455">What one row is. The server</text>
+    <text x="724" y="471">checks that this key is unique.</text>
+
+    <line class="tick" x1="708" y1="502" x2="718" y2="502"/>
+    <text x="724" y="506">Periods per zone, read from the</text>
+    <text x="724" y="522">data: here CH moves from 1 hour</text>
+    <text x="724" y="538">to 15 minutes.</text>
+
+    <line class="tick" x1="708" y1="570" x2="718" y2="570"/>
+    <text x="724" y="574">The declared type and unit, next</text>
+    <text x="724" y="590">to the type that is stored.</text>
+
+    <line class="tick" x1="708" y1="621" x2="718" y2="621"/>
+    <text x="724" y="625">Sample rows show the real</text>
+    <text x="724" y="641">formats of the values.</text>
+
+    <line class="tick" x1="708" y1="672" x2="718" y2="672"/>
+    <text x="724" y="676" class="b">3  query</text>
+    <text x="724" y="693">DuckDB SQL, run on the server:</text>
+    <text x="724" y="709">read-only, capped in rows, time</text>
+    <text x="724" y="725">and memory.</text>
+
+    <line class="tick" x1="708" y1="791" x2="718" y2="791"/>
+    <text x="724" y="795">Every result ends with units,</text>
+    <text x="724" y="811">resolution, freshness and</text>
+    <text x="724" y="827">warnings: an agent that skipped</text>
+    <text x="724" y="843">describe still gets them.</text>
+
+    <line class="tick" x1="708" y1="859" x2="718" y2="859"/>
+    <text x="724" y="863">Results are capped. A capped</text>
+    <text x="724" y="879">result says so, and says what</text>
+    <text x="724" y="895">to do next.</text>
+  </g>
+</svg>
