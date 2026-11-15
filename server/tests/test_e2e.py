@@ -93,3 +93,13 @@ def test_cli(server, capsys):
     assert adele_cli.main(["query", "SELECT count(*) AS n FROM test_prices.prices"]) == 0
     assert capsys.readouterr().out.startswith("n\n96\n")
     assert adele_cli.main(["describe", "nope"]) == 1
+
+
+def test_cli_as_of_reaches_the_server(server, capsys):
+    # test_prices keeps only the latest values: the server refuses as_of (D30), and says why.
+    assert adele_cli.main(["query", "--as-of", "2026-01-02", "SELECT count(*) FROM test_prices.prices"]) == 1
+    assert "as_of applies only to append-only datasets" in capsys.readouterr().err
+    assert adele_cli.main(["query", "--as-of", "soon", "SELECT 1"]) == 1
+    assert "ISO 8601" in capsys.readouterr().err
+    log = (server.log_dir / "queries.jsonl").read_text().splitlines()
+    assert '"as_of": "soon"' in log[-1]

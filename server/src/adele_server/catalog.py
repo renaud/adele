@@ -24,11 +24,15 @@ NAME_RE = re.compile(r"^[a-z][a-z0-9_]*$")
 RESERVED_SCHEMAS = {"main", "temp", "system", "memory", "information_schema", "pg_catalog"}
 DELIVERY_FIELD = "delivery_start"  # UTC start of the interval that a value covers [start, start + resolution)
 INSTANT_FIELD = "valid_at"  # UTC instant that a value refers to (e.g. cloud cover at 12:00); no resolution
+VERSION_FIELD = "fetched_at"  # append-only: when the fetch that first saw a version got it (D30); added by the server
+SUPERSEDED_FIELD = "superseded_at"  # append-only: the fetched_at of the next version, null on the latest; added by the server
+VERSIONS_SUFFIX = "_versions"  # append-only: the view <dataset>.<table>_versions holds every version
 FORMATS = {1}  # adele.format_version: the version of the descriptor format that this server reads
 SECRET_RE = re.compile(r"^[A-Z_][A-Z0-9_]*$")
 # overwrite: the latest fetch wins on the key. none: stored rows never change (forecast runs);
-# the server fetches only the parts of a window that hold no stored rows. append-only: POC 2.
-REVISION_POLICIES = {"overwrite", "none"}
+# the server fetches only the parts of a window that hold no stored rows. append-only: every
+# version of a row is kept, with the time of the fetch that first saw it (D30).
+REVISION_POLICIES = {"overwrite", "none", "append-only"}
 PARTITIONS = {"month", "day"}  # adele.partition: one Parquet file per month or per day of the window column
 REFRESH_KEYS = ("every", "lookback", "horizon", "max_window", "timeout")  # adele.refresh: any other key is refused
 
@@ -76,6 +80,7 @@ class Table:
     fields: list[dict]
     primary_key: list[str]
     description: str | None = None
+    revisions: str = "overwrite"  # the policy of the dataset: the files of an append-only table hold fetched_at
 
     @property
     def sql_name(self) -> str:
@@ -94,8 +99,19 @@ class Table:
     def is_instant(self) -> bool:
         return self.time_field == INSTANT_FIELD
 
+    @property
+    def versioned(self) -> bool:
+        """append-only: the files hold every version of a row, each with fetched_at."""
+        return self.revisions == "append-only"
+
     def storage_types(self) -> dict[str, str]:
+        """The declared columns and their DuckDB types: what fetch returns, what the view of the table shows."""
         return {f["name"]: STORAGE_TYPE[f["type"]] for f in self.fields}
+
+    def stored_types(self) -> dict[str, str]:
+        """The columns of the files: the declared ones, plus fetched_at and superseded_at in an append-only table."""
+        return self.storage_types() | ({VERSION_FIELD: STORAGE_TYPE["datetime"], SUPERSEDED_FIELD: STORAGE_TYPE["datetime"]}
+                                       if self.versioned else {})
 
 
 @dataclass
@@ -268,6 +284,10 @@ def load_dataset(folder: Path, check_folder_name: bool = True) -> Dataset:
         if not pk:
             errors.append(f"{tname}: primaryKey is required (it states the grain)")
         names = [f.get("name") for f in fields]
+        for name in (VERSION_FIELD, SUPERSEDED_FIELD):
+            if name in names:
+                errors.append(f"{tname}: the field name {name!r} is reserved: the server adds it to the "
+                              "tables of an append-only dataset")
         times = [n for n in (DELIVERY_FIELD, INSTANT_FIELD) if n in names]
         if len(times) != 1:
             errors.append(f"{tname}: every table needs one time field: {DELIVERY_FIELD!r} (the start of the "
@@ -277,6 +297,10 @@ def load_dataset(folder: Path, check_folder_name: bool = True) -> Dataset:
         tables[tname] = Table(ds_id, tname, fields, pk, res.get("description"))
     if not tables:
         errors.append("no resources")
+    for tname in tables:
+        base = tname.removesuffix(VERSIONS_SUFFIX)
+        if base != tname and base in tables:
+            errors.append(f"resource name {tname!r} is reserved: it names the view of every version of {base!r}")
 
     adele = descriptor.get("adele") or {}
     refresh = None
@@ -316,7 +340,9 @@ def load_dataset(folder: Path, check_folder_name: bool = True) -> Dataset:
         errors.append("adele.secrets must be a list of environment variable names (e.g. [ENTSO_TOKEN])")
     revisions = adele.get("revisions")
     if revisions not in REVISION_POLICIES:
-        errors.append(f"adele.revisions must be one of {sorted(REVISION_POLICIES)} (append-only: POC 2), got {revisions!r}")
+        errors.append(f"adele.revisions must be one of {sorted(REVISION_POLICIES)}, got {revisions!r}")
+    for t in tables.values():
+        t.revisions = revisions
     if adele.get("partition", "month") not in PARTITIONS:
         errors.append(f"adele.partition must be one of {sorted(PARTITIONS)}, got {adele.get('partition')!r}")
     errors += _adele_errors(adele)

@@ -1,7 +1,16 @@
 # WP3: versions
 
-Draft by Claude, 2026-11-15, not accepted. From `PLAN.md` (WP3), `SPEC.md` (Revisions),
-`TODOs.md` (POC 2, V1) and `docs/datasets-inventory.md` (gap G3).
+Draft by Claude, 2026-11-15. From `PLAN.md` (WP3), `SPEC.md` (Revisions), `TODOs.md` (POC 2, V1)
+and `docs/datasets-inventory.md` (gap G3). Renaud's answers of 2026-11-15 are in: design points
+1, 2, 3 and 5 accepted, the answers a to e after the review (log), point 4: layout c.
+
+## Where WP3 stands (2026-11-15)
+
+- Built in the worktree `wp3` (branch `wp3`, from `880da30`), with tests on synthetic data,
+  layout c included. Decision D30 in `DECISIONS.md`. Not merged into `main`: WP1 runs its week
+  on `main`, and WP3 reaches steacher1 only once WP1 is done.
+- Step 4 (the first real dataset): the measure of the corrections and the descriptor come
+  first, on the Mac; the backfill and 1-2 days of fetches on steacher1 wait for the end of WP1.
 
 ## Goal
 
@@ -16,91 +25,242 @@ the Swissgrid year file for WP4.
   `as_of=<timestamp>` returns what adele knew at that time.
 - `overwrite` and `none` (D15) stay as they are. An `append-only` fetch reads the same window as
   `overwrite`, [last - lookback, now + horizon): the lookback is what catches revisions.
-- A row that the source no longer sends is kept, as with `overwrite`.
+- Design points 1, 2, 3 and 5 below, and the answers a to e: D30.
 - The build runs on the Mac with synthetic data, next to WP1. It goes to steacher1 once WP1 is
   done.
 
 ## Design
 
-Each point has Claude's recommendation. Renaud decides.
-
-1. **When a version is stored.** (a) Only when the key is new or a value differs from the latest
-   stored version of that key. (b) Every fetched row: an hourly fetch with a lookback of 3 days
-   would then store each unchanged value 72 times. Recommended: a. The merge is close to
+1. **When a version is stored.** Decided (a): only when the key is new or a column outside the
+   key differs from the latest stored version of that key, compared exactly, a null equal to a
+   null. Rejected (b): every fetched row (an hourly fetch with a lookback of 3 days would store
+   each unchanged value 72 times). The merge is `storage.merge_versions`, close to
    `merge_append` of D15: there a changed value is an error, here it becomes a new version.
-2. **What `fetched_at` is.** The start of the fetch run, in UTC, the same for every row and every
-   table of that run. The server adds the column: the descriptor doesn't declare it, and the
-   catalog refuses a field of that name. The primary key of the descriptor stays the key of a
-   value; in the files, the key is the primary key plus `fetched_at`.
-3. **How queries see the versions.** The view `<id>.<table>` keeps its meaning (the latest
-   version per key), so a query written for `overwrite` works unchanged. A second view,
-   `<id>.<table>_versions`, holds every version with its `fetched_at`. `as_of` alone is not
-   enough: "the forecast as known the day before delivery" needs a different time for each row,
-   and only the second view can express it (`entsoe_load` is not written yet):
+2. **What `fetched_at` is.** Decided, with answer a: the time at which `fetch.py` returned, in
+   UTC with microseconds, the same for every table of that call. A run in pieces and a backfill
+   have one stamp per window. The server adds the column: the descriptor doesn't declare it,
+   and the catalog refuses a field of that name. The primary key of the descriptor stays the
+   key of a value; in the files, the key is the primary key plus `fetched_at`. A merge whose
+   stamp is not later than the stored versions of a partition (a clock set back) fails.
+3. **How queries see the versions.** Decided: the view `<id>.<table>` keeps its meaning (the
+   latest version per key), so a query written for `overwrite` works unchanged. A second view,
+   `<id>.<table>_versions`, holds every version with its `fetched_at` and `superseded_at`.
+   `as_of` is a field of `POST /query` (`adele query --as-of`): the latest view gives the
+   version that was the latest at that time, the versions view the versions fetched at or
+   before it (point 4 gives the SQL). With answer c, a query with `as_of` that reads a
+   dataset without versions is refused. `as_of` alone is not enough: "the forecast as known the
+   day before delivery" needs a different time for each row, and only the second view can
+   express it (`entsoe_load` and its table `forecast` are not written yet):
    ```sql
-   SELECT * FROM entsoe_load.load_versions
+   SELECT * FROM entsoe_load.forecast_versions
    WHERE fetched_at < delivery_start - INTERVAL 1 DAY
-   QUALIFY row_number() OVER (PARTITION BY zone, delivery_start ORDER BY fetched_at DESC) = 1
+     AND (superseded_at IS NULL OR superseded_at >= delivery_start - INTERVAL 1 DAY)
    ```
-   Recommended: both views, and `as_of` as a field of `POST /query` (`adele query --as-of`). The
-   server builds the views for each query already (`engine.connect`), so with `as_of` it adds
-   `fetched_at <= as_of` to both, and the SQL of the agent stays the same.
-4. **Storage.** (a) One set of files with every version. The latest view picks the last version
-   of each key with a window function, at each query. (b) Two folders: the latest values as
-   today, and the versions next to them. (a) costs time at each query. (b) costs about twice the
-   disk, and two writes per fetch that must agree. Recommended: a, after a measure on synthetic
-   data of the size of the largest planned table (neighbours `ws_forecast`, 22.4 million rows).
-   Then b only if a query on the latest view, filtered on `delivery_start`, is more than 2 times
-   slower than the same query on a table without versions.
-5. **Versions before the first fetch.** Backfilled rows all carry the date of the backfill as
-   `fetched_at`, so an `as_of` before that date says nothing about what the source had published
-   (`TODOs.md`, V1). Recommended: `describe` prints "versions since <first fetch>", and an
-   `as_of` before it is an error. Claude proposes a sentence for `SPEC.md`, Revisions.
+   It returns nothing for rows that were backfilled, nor for a value that is only known after
+   delivery (the actual load).
+4. **Storage.** Decided: c (Renaud, after the measure: "ok, then c is fine"). Three layouts
+   were measured:
+   - (a) One set of files with every version. The latest view picks the last version of each
+     key with a window function, at each query. Built first, then replaced by c.
+   - (b) Two folders: the latest values as today, and the versions (the files of a) next to
+     them. About 2.6 times the disk of a table without versions, and two writes per fetch
+     that must agree.
+   - (c) As a, plus a column `superseded_at`: the merge writes the `fetched_at` of the new
+     version into the version that it replaces (it rewrites the whole partition anyway, D9).
+     Latest = `superseded_at IS NULL`, `as_of` = `fetched_at <= T AND (superseded_at IS NULL
+     OR superseded_at > T)`. One set of files, no window function. Added after the review.
+
+   The criterion of this draft: b only if a query on the latest view, filtered on
+   `delivery_start`, is more than 2 times slower than the same query on a table without
+   versions. The measure (below) gives 2.9 for a on one month of all zones, 1.35 for c.
+
+   Both columns are on every stored row, and they cost little: Parquet stores a timestamp as an
+   8-byte integer whatever its precision, keeps the distinct values of a file once, and
+   compresses the runs of the same value. One fetch stamps all its rows with one value, and
+   most rows have a null `superseded_at`.
+5. **Versions before the first fetch.** Decided, with answer b: `versions_since` is the time at
+   which `last_scheduled_at` is first set (a scheduled run that succeeded, or the end of a
+   backfill that reached the present), written once in `state.json`. An `as_of` before it is
+   refused. `describe` prints it, and so does the footer of every query with `as_of` or on a
+   `_versions` view.
+
+## The measure of point 4 (2026-11-15)
+
+Synthetic table of the size of neighbours `ws_forecast`: 16 zones, 6 series, 15 minutes, from
+2019-05-01 to 2025-12-31: 22,459,392 keys. A second version for 30 % of the keys, a third for
+10 %: 31,443,905 stored rows, 1.4 per key. One file per month, zstd, sorted as adele writes.
+DuckDB 2.0.0 on the Mac (10 cores), with the settings of a query on the server (4 threads,
+2 GB). Files in the cache of the OS; each figure is the median of 5 runs after one warm-up. The
+spread between runs was not measured: differences of a few milliseconds mean nothing. Script:
+`server/bench/wp3_versions_storage.py`.
+
+| | without versions | a | c |
+|---|---|---|---|
+| disk | 93 MB | 153 MB (1.64) | 168 MB (1.80) |
+| one zone, one week | 4 ms | 7 ms (1.5) | 6 ms (1.35) |
+| all zones, one month | 5 ms | 14 ms (2.9) | 6 ms (1.35) |
+| all rows, average per zone | 78 ms | 1,409 ms (18) | 156 ms (2.0) |
+| count, min, max (`describe`) | 9 ms | 491 ms (56) | 40 ms (4.5) |
+| `as_of`, all zones, one month | | 9 ms | 7 ms |
+| merge of a 3-day fetch into a month | 30 ms | 45 ms | 35 ms |
+
+Layout b answers the latest view from the files without versions (first column), with
+93 + 153 = 246 MB on disk. The count of the first column is fast because Parquet stores the
+number of rows of each file. steacher1 has 4 slower cores: the absolute times there will be
+higher, the ratios are what the criterion uses.
+
+The merge of c was timed after c was built, in a second run of the script; c's view there is
+`storage.select_sql`. That run gave the same picture within a few milliseconds (c: 1.44 on
+the month, 2.2 on the whole table, 37 ms for the count).
+
+The disk figures overstate the cost of the two columns: the script stamps each quarter hour
+with its own `fetched_at`, where a real fetch stamps all its rows with one value. With the
+stamps rounded down to the hour (one stamp per hourly fetch), the columns of c take:
+
+| column | one stamp per quarter hour (the script) | one stamp per hourly fetch |
+|---|---|---|
+| `value` | 120.3 MB | 120.3 MB |
+| `fetched_at` | 20.8 MB | 12.8 MB (0.4 bytes per row) |
+| `superseded_at` | 13.9 MB | 8.9 MB |
+| all of c | 167.5 MB | 152.5 MB |
+
+Reading: a fails the criterion on the month query (2.9), and an aggregate over the whole table
+costs 18 times more (1.4 s on the Mac). c stays within 2 times on every query except the
+count (40 ms), with one set of files and one write per fetch. c costs a column and a few lines
+in the merge; switching from a to c now costs only code, because no real dataset is stored yet.
 
 ## Steps
 
-1. **Measure** point 4 on synthetic data. The numbers go into this file.
-2. **Decide.** Renaud answers points 1 to 5. Claude writes the decision at the end of
-   `DECISIONS.md` and the text for `SPEC.md`.
-3. **Build**, with tests on synthetic data:
-   - `catalog.py`: accept `append-only`; refuse a field named `fetched_at`, and a table named
-     `<x>_versions` next to a table `<x>`.
-   - `storage.py`: the merge of point 1; the two views; a check that refuses files whose columns
-     don't match the policy, as `check_layout` refuses files of another partition size.
-   - `ingest.py`: choose the merge (now at line 498); a new version counts as a change
-     (`last_changed_at`).
-   - `engine.py`, `app.py`, the client: the views, `as_of`.
-   - `render.py`: the revisions line of `describe`, the versions view, "versions since".
-   - `skills/adele/SKILL.md`: when to use the versions view and when `as_of`, with the example
-     of point 3.
-   - The checks of published figures run on the latest view.
-4. **First real dataset.** Proposed: ENTSO-E actual load for CH (A65). Its actual load is
-   corrected days later, and it was the dataset of POC 2. Its descriptor and `fetch.py` belong to
-   WP6, done here for this one dataset. Backfill from 2015 on steacher1, then a week of fetches.
+1. **Measure** point 4 on synthetic data. Done (above).
+2. **Decide.** Points 1 to 5 and the answers a to e: D30.
+3. **Build**, with tests on synthetic data. Done in the worktree `wp3`:
+   - `catalog.py`: accepts `append-only`; refuses a field named `fetched_at` or `superseded_at`
+     and a table named `<x>_versions` next to a table `<x>` (in every dataset).
+   - `storage.py`: `merge_versions` (point 1, and `superseded_at` of point 4); `select_sql`
+     gives the latest version, `versions_sql` every version, both with `as_of`;
+     `check_columns` refuses files whose columns don't match the policy; `repartition` keeps
+     both columns.
+   - `ingest.py`: the merge is chosen per policy, an unknown one fails; the stamp after
+     `fetch.py`; `versions_since`; a new version counts as a change (`last_changed_at`).
+   - `engine.py`, `app.py`, the client: the two views, `as_of`, the refusals of point 3 and 5;
+     a view that can't be created fails only the queries that read it.
+   - `checks.py`: the checks run on every stored version, with `fetched_at` in the key, and
+     verify that each `superseded_at` is the `fetched_at` of the next version; the published
+     figures and the examples run on the latest view.
+   - `render.py`: the revisions line of `describe`, `versions_since`, the count of versions;
+     the footer.
+   - `skills/adele/SKILL.md`: when to use the versions view and when `as_of`.
+     `skills/add-dataset/SKILL.md`: an `append-only` `fetch.py` returns no stamp of its own.
+   - Tests: `server/tests/test_versions.py`, and one in `test_e2e.py` for `--as-of` through HTTP.
+4. **First real dataset.** Decided (Renaud, 2026-11-15): ENTSO-E actual load and day-ahead
+   forecast for CH (A65). Its actual load is corrected days later, and it was the dataset of
+   POC 2. Its descriptor and `fetch.py` belong to WP6, done here for this one dataset. Its
+   lookback must cover the corrections: to measure on the data of POC 2 before the descriptor
+   is written. Backfill from 2015 on steacher1, then 1-2 days of fetches (Renaud: "we won't
+   wait a week, just 1-2 days"). Whether a revision happens in that time depends on ENTSO-E.
+
+## Text for `SPEC.md`, Revisions
+
+Proposed to replace the bullet `append-only`; Renaud put it in `SPEC.md` on 2026-11-15:
+
+> - `append-only`: adele keeps every version of a row. A fetch stores a row when its key is new
+>   or one of its values changed, with `fetched_at`, the time at which adele got it.
+>   `<id>.<table>` returns the latest version of each row, `<id>.<table>_versions` every
+>   version. `as_of=<timestamp>` returns what adele held at that time. Versions start with the
+>   first scheduled fetch (`versions_since`): rows backfilled before carry the time of the
+>   backfill, so an earlier `as_of` is refused. `fetched_at` is not the time at which the source
+>   published a value: a value may look later than it was, never earlier.
+
+The list of `SPEC.md` also lacks `none` (D15).
 
 ## Done when
 
 - `validate` accepts `revisions: append-only`. The tests cover: a fetch without changes adds no
-  version, a revised value adds one, the latest view and `as_of` return the right value, an
-  `as_of` before the first fetch is an error.
-- The measure of point 4 is in this file.
-- The first dataset was fetched for a week on steacher1 with at least one revision stored, and a
-  query with an `as_of` before that revision returns the old value.
-- `describe` and the skill explain how to read the versions.
+  version, a revised value adds one, A --> B --> A, a value that becomes null, a row that the
+  source no longer sends, a backfill run twice, a clock set back, `repartition`, the checks with
+  two versions, the latest view and `as_of` return the right value, an `as_of` before
+  `versions_since` and an `as_of` over a dataset without versions are refused. Done.
+- The measure of point 4 is in this file. Done.
+- Point 4 decided, and built if it is not a. Done: c.
+- The first dataset was fetched for 1-2 days on steacher1. If ENTSO-E revised a value in that
+  time, a query with an `as_of` before the revision returns the old value; if not, the tests on
+  synthetic data stand for it.
+- `describe` and the skill explain how to read the versions. Done.
 
 ## Not in WP3
 
-The 7 other datasets that wait for versions (WP6). The Swissgrid files, which also need raw
-answers kept and whole files compared (WP4). The history of a table without a time column
-(D22), which needs WP2 first. `pull` and versions in a local copy (`TODOs.md`, V1).
-`adele.available_after`, the time when the source published a value. Converting a stored
-dataset from `overwrite` to `append-only`.
+- The 7 other datasets that wait for versions (WP6).
+- The Swissgrid files, which also need raw answers kept and whole files compared (WP4).
+- The history of a table without a time column (D22), which needs WP2 first.
+- `pull` and versions in a local copy (`TODOs.md`, V1).
+- `adele.available_after`: a delay declared per dataset (weathernext3: a run is readable about
+  7 h after its start), for `as_of`.
+- Converting a stored dataset from `overwrite` to `append-only`.
+- A change of `fetch.py` (MW --> MWh) or of the schema of a dataset that has versions (answer
+  d: "probably not anytime soon. we first need a V1 running and we'll see then").
+- Rows that the source stops sending: kept for now (answer e, `TODOs.md`, V2).
+- From POC 2: MW --> MWh at ingestion belongs to the descriptor of the load (WP6). A join of the
+  load with the prices works on the server today, but not with `as_of` (answer c).
 
 ## Open questions
 
-1. Design points 1 to 5: the recommendation, or another way?
-2. The first dataset: ENTSO-E actual load for CH?
+None.
 
 ## Log
 
-(empty)
+### 2026-11-15, review by Fable before the build
+
+Ten findings. Claude checked each claim about the code against the source: all hold. The main
+one: step 3 missed the code that reads the files through the declared columns
+(`storage.select_sql`): the checks after a fetch, `repartition`, `describe`, the footer of a
+query. Five findings needed Renaud (his answers):
+
+- a. `fetched_at` = when `fetch.py` returned, not the start of the run: "a ok".
+- b. `versions_since` defined as above, with a line in the footer: "b ok".
+- c. `as_of` over a dataset without versions: "c refuse, try to keep it as simple as possible
+  for now".
+- d. A changed `fetch.py` or schema creates versions of every row: "d yes, not in WP3, and
+  probably not anytime soon".
+- e. Rows that the source stops sending: "e defer this usecase to later, put in TODO.md".
+
+The others were decided by Claude and built: one function per view for every reader; the
+filter of `as_of` before the choice of the latest version; `as_of` parsed by the server into a
+timestamp before it enters SQL; the wording of `describe`; more tests; the wording fixes of
+this file. Option c of point 4 comes from this review.
+
+### 2026-11-15, build (worktree `wp3`)
+
+- Decided by Claude during the build:
+  1. The stamp has microseconds: two fetches in the same second must not get the same stamp.
+  2. The clock check compares with the latest version of each partition that the merge
+     writes, not of each key: simpler, and as strict.
+  3. A query with `as_of` that reads no dataset (`SELECT 1`, or only `read_parquet`) is
+     refused: `as_of` would do nothing.
+  4. The reserved names (`fetched_at`, `<x>_versions`) are refused in every dataset, not only
+     in `append-only` ones: a dataset can't then become `append-only` with a name that clashes.
+  5. A view that can't be created (files that don't match the descriptor) becomes a view with
+     the same columns that fails when read. Before, such a view stopped every query of every
+     dataset; a policy changed by mistake in a descriptor would now cause that.
+  6. The latest view shows the declared columns only, not `fetched_at`: `SELECT *` gives the
+     same columns as with `overwrite`.
+  7. `describe` gives the count of versions next to the count of rows.
+  8. `versions_since` is written only for `append-only` datasets.
+- 22 new tests; 301 pass. `validate` passes on the two real descriptors.
+
+### 2026-11-15, point 4: layout c (303 tests pass)
+
+Renaud asked whether `fetched_at` and `superseded_at` sit on every row, and whether a stamp
+with microseconds is costly. Both are on every stored row; the precision doesn't change the
+size (the measure above, with one stamp per hourly fetch). His answer: "ok, then c is fine".
+Built in the worktree, replacing a. Decided by Claude:
+
+1. `superseded_at` shows in the versions view: with it, an agent can write "the version valid
+   at a time per row" as a filter, without a window function.
+2. With `as_of`, the versions view shows a `superseded_at` later than `as_of` as null: as
+   adele held it then, that version was still the latest.
+3. The checks after a fetch verify that each `superseded_at` is the `fetched_at` of the next
+   version of its key (null on the latest): a broken chain would make the latest view show
+   two rows for a key, or none.
+4. Files written in layout a fail the column check like a changed policy. Only the tests of
+   this worktree wrote such files.
+5. D30 is amended rather than followed by a new entry: it was never committed.

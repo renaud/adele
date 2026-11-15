@@ -17,7 +17,10 @@ UTC = dt.timezone.utc
 # failing_since: the `now` of the first scheduled run that failed since the last one that
 # succeeded. When it is older than the lookback, the scheduled window is [now - lookback, ...)
 # again. `given_up` then holds the stretch that was left out, [start, end) as ISO strings.
-TIME_KEYS = ("last_attempt_at", "last_fetched_at", "last_changed_at", "last_scheduled_at", "failing_since")
+# versions_since (append-only): the first time that `last_scheduled_at` was set, written once; an
+# `as_of` before it is refused (D30).
+TIME_KEYS = ("last_attempt_at", "last_fetched_at", "last_changed_at", "last_scheduled_at", "failing_since",
+             "versions_since")
 
 
 def now() -> dt.datetime:

@@ -16,6 +16,8 @@ def main(argv: list[str] | None = None) -> int:
     d.add_argument("dataset")
     q = sub.add_parser("query", help="run DuckDB SQL on the server; tables are <dataset>.<table>")
     q.add_argument("sql", help="the SQL, or - to read it from stdin")
+    q.add_argument("--as-of", metavar="TIME", help="ISO timestamp, UTC if no offset: the tables of append-only "
+                   "datasets as adele held them at that time")
     args = p.parse_args(argv)
     try:
         if args.cmd == "list":
@@ -23,7 +25,7 @@ def main(argv: list[str] | None = None) -> int:
         elif args.cmd == "describe":
             out = describe(args.dataset)
         else:
-            out = str(query(sys.stdin.read() if args.sql == "-" else args.sql))
+            out = str(query(sys.stdin.read() if args.sql == "-" else args.sql, as_of=args.as_of))
     except AdeleError as e:
         print(f"error: {e}", file=sys.stderr)
         return 1

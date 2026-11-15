@@ -647,6 +647,84 @@ the client mentions it.
 **Limits.** An agent can't see the plan or the run times of a query. A query that is too slow
 gets the message of the time limit, which says to aggregate or to narrow the filter.
 
+## D30 - Revision policy `append-only`: every version, `fetched_at`, two views, `as_of` (2026-11-15)
+
+**Decision.** `revisions: append-only` keeps every version of a row (WP3).
+
+- A version is stored when its key is new, or when a column outside the key differs from the
+  latest stored version of that key: compared exactly, a null equal to a null. A fetch that
+  brings the same values stores nothing.
+- `fetched_at` is the time at which `fetch.py` returned the rows, in UTC with microseconds, the
+  same for every table of that call. A run in pieces and a backfill call `fetch.py` once per
+  window, so they have one stamp per window. The server adds the column; a descriptor can't
+  declare a field of that name. In the files, the key is the primary key plus `fetched_at`.
+- A merge whose stamp is not later than every version stored in a partition that it writes (a
+  clock that was set back) fails and writes nothing.
+- Storage (WP3, design point 4, layout c): one set of files per table, with every version. Each
+  row also carries `superseded_at`: the `fetched_at` of the next version of its key, null on the
+  latest. The merge fills it in on the version that a new one replaces (it rewrites the whole
+  partition anyway, D9); nothing else in a stored row ever changes. The server adds the column,
+  and a descriptor can't declare a field of that name either. The checks after a fetch verify
+  that each `superseded_at` is the `fetched_at` of the next version.
+- `<id>.<table>` is the latest version of each row (`superseded_at IS NULL`), with the declared
+  columns only, so a query written for `overwrite` works unchanged. `<id>.<table>_versions`
+  holds every version with `fetched_at` and `superseded_at`. A table can't be named
+  `<x>_versions` next to a table `<x>`.
+- `as_of` (a field of `POST /query`, `adele query --as-of`): the latest view gives the version
+  that was the latest at that time (`fetched_at <= as_of AND (superseded_at IS NULL OR
+  superseded_at > as_of)`). The versions view keeps the versions fetched at or before it, and
+  shows a `superseded_at` later than `as_of` as null, as adele held it then. A query with
+  `as_of` that reads a dataset that is not `append-only`, or reads no dataset, is refused.
+- `versions_since` (in `state.json`): the time at which `last_scheduled_at` is first set (a
+  scheduled run that succeeded, or the end of a backfill that reached the present), written
+  once. An `as_of` before it, or before it exists, is refused. `describe` shows it, and so does
+  the footer of a query with `as_of` or on a `_versions` view.
+- A row that the source no longer sends is kept, as with `overwrite`.
+- The files of a table must match the policy (`fetched_at` and `superseded_at` present exactly
+  when `append-only`): a fetch and the checks fail otherwise. A view that can't be created
+  fails only the queries that read it, not the whole engine.
+- The checks run on every stored version (key with `fetched_at`); the published figures and
+  the examples run on the latest view.
+
+Built: `server/src/adele_server/` (catalog, storage, ingest, engine, app, checks, render,
+state), the client (`--as-of`), `skills/adele`, `skills/add-dataset`,
+`server/tests/test_versions.py`.
+
+**Why.** Eight datasets wait for versions (WP3). Renaud accepted design points 1, 2, 3 and 5 of
+`docs/work-packages/WP3-versions.md` on 2026-11-15, then, after a review by Fable: "a ok, b ok,
+c refuse, try to keep it as simple as possible for now, d yes, not in WP3, and probably not
+anytime soon. we first need a V1 running and we'll see then, e defer this usecase to later".
+Only changes (point 1): an hourly fetch with a lookback of 3 days would otherwise store each
+value 72 times. The stamp after `fetch.py` (a): the start of the run is earlier than the moment
+adele had a value, so an `as_of` could see a value that the source published during the run.
+Two views (point 3): `as_of` is one time for the whole query; "the forecast as known the day
+before delivery" needs a time per row. `versions_since` (point 5, b): rows that were backfilled
+all carry the time of the backfill, so an earlier `as_of` would answer about nothing that the
+source had published. Layout c (point 4, Renaud on 2026-11-15: "ok, then c is fine"): on a
+synthetic table of 22.4 million keys and 1.4 versions per key, a query of one month of all
+zones on the latest view takes 1.35 times as long as on the same table without versions (a:
+2.9 times), an aggregate over the whole table 2 times (a: 18). Measured with one stamp per
+hourly fetch, `fetched_at` takes 0.4 bytes per row, `superseded_at` less (most rows hold a
+null). The details are in `docs/work-packages/WP3-versions.md`.
+
+**Limits.**
+
+- `fetched_at` is when adele got a value, not when the source published it: a value may look
+  later than it was, never earlier.
+- A change of `fetch.py` (a unit) stores a new version of every row in the lookback; a new
+  column can't be merged with the stored files. Both are out of WP3 (Renaud, d).
+- A withdrawal doesn't show: `as_of` can't tell that the source removed a row (TODOs.md, e).
+- A query that reads the files with `read_parquet` bypasses the views and `as_of`.
+- A stored dataset can't change its policy.
+
+**Rejected.** A version for every fetched row (1b). A descriptor field that leaves a column out
+of the comparison (d: until a dataset needs it). `as_of` over datasets without versions with a
+warning in the footer (c: refused instead, simpler). Storage layout a (every version, the
+latest picked by a window function at each query): more than 2 times slower on a query
+filtered on `delivery_start`, the criterion of WP3. Layout b (the latest values in their own
+files, the versions next to them): 2.6 times the disk of a table without versions, and two
+writes per fetch that must agree.
+
 ## D31 - An example can name a published figure; at most five examples (2026-11-15)
 
 **Decision.** An entry of `adele.examples` is either a question with its SQL (and `verified_at`

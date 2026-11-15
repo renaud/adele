@@ -14,7 +14,7 @@ from pathlib import Path
 import yaml
 
 from . import checks, engine, state, storage
-from .catalog import DELIVERY_FIELD, Dataset, Table, category_values
+from .catalog import DELIVERY_FIELD, VERSION_FIELD, VERSIONS_SUFFIX, Dataset, Table, category_values
 from .config import Config
 from .engine import QueryResult, iso_duration
 from .storage import ident
@@ -25,6 +25,17 @@ CONVENTIONS = ("Timestamps are UTC. delivery_start is the start of the delivery 
 CONVENTIONS_INSTANTS = (" A table with valid_at instead of delivery_start holds values at an instant (e.g. cloud "
                         "cover at 12:00), not over an interval: resolution doesn't apply. To match an hourly "
                         "interval, choose the instant (its start, its end, or the mean of both) and say which.")
+APPEND_ONLY = ("append-only: every version of each row is kept. <table> shows the latest version of each row; "
+               "<table>_versions shows every version, with fetched_at: the time of the first fetch that saw that "
+               "version (a later fetch that got the same values adds nothing), and superseded_at: the fetched_at "
+               "of the next version, null on the latest. `adele query --as-of <time>` shows "
+               "the tables as adele held them at that time.")
+BACKFILLED = "rows fetched before were backfilled: their fetched_at is the time of the backfill, not of the publication"
+
+
+def versions_since_line(st: dict) -> str:
+    since = st.get("versions_since")
+    return f"{ts(since)} ({BACKFILLED})" if since else "not yet: no scheduled run so far, as_of is refused"
 
 
 def ts(v: dt.datetime | None, minutes: bool = True) -> str | None:
@@ -189,7 +200,10 @@ def describe_dict(cfg: Config, ds: Dataset) -> dict:
                    f"{iso_duration(ds.refresh.lookback)}, now + {iso_duration(ds.refresh.horizon)}){pieces}",
     }
     card["revisions"] = {"overwrite": "only the latest value of each row is kept",
-                         "none": "rows never change once stored (each is fetched once)"}.get(ds.revisions, ds.revisions)
+                         "none": "rows never change once stored (each is fetched once)",
+                         "append-only": APPEND_ONLY}.get(ds.revisions, ds.revisions)
+    if ds.revisions == "append-only":
+        card["versions_since"] = versions_since_line(st)
     if ds.checks:
         card["published_figures"] = published_figures_line(ds, st)
     card["conventions"] = CONVENTIONS + (CONVENTIONS_INSTANTS if any(t.is_instant for t in ds.tables.values()) else "")
@@ -202,6 +216,9 @@ def describe_dict(cfg: Config, ds: Dataset) -> dict:
             facts = table_facts(cfg.data_dir, t, ds.resolution)
             entry: dict = {"table": t.sql_name, "grain": f"one row per ({', '.join(t.primary_key)})",
                            "rows": facts.stats.rows}
+            if t.versioned:
+                entry["versions"] = (f"{facts.stats.versions} rows in {t.sql_name}{VERSIONS_SUFFIX}: one per version, "
+                                     f"key ({', '.join(t.primary_key)}, {VERSION_FIELD})")
             if t.description:
                 entry["description"] = t.description.strip()
             what = "first and last valid_at" if t.is_instant else "first and last interval start"
@@ -285,6 +302,8 @@ def merged_descriptor(cfg: Config, ds: Dataset) -> dict:
                                         "run_at": (st.get("published_checks") or {}).get("at")}
     eta = state.next_fetch_eta(st, ds.refresh.every)
     computed["next_fetch_eta"] = ts(eta, False) if eta else None
+    if ds.revisions == "append-only":
+        computed["versions_since"] = ts(st.get("versions_since"), False)
     tables = {}
     for res in d.get("resources", []):
         t = ds.tables[res["name"]]
@@ -294,6 +313,8 @@ def merged_descriptor(cfg: Config, ds: Dataset) -> dict:
         tables[t.name] = {"rows": facts.stats.rows, "coverage": [ts(facts.stats.first, False), ts(facts.stats.last, False)],
                           "resolution_periods": [{**p, "first": ts(p["first"], False) if isinstance(p["first"], dt.datetime)
                                                   else str(p["first"]), "last": ts(p["last"], False)} for p in facts.periods]}
+        if t.versioned:
+            tables[t.name]["versions"] = facts.stats.versions
     computed["tables"] = tables
     d.setdefault("adele", {})["computed"] = computed
     return d
@@ -310,7 +331,10 @@ def to_csv(columns: list[str], rows: list[list]) -> str:
     return buf.getvalue()
 
 
-def query_footer(cfg: Config, catalog: dict[str, Dataset], datasets: list[str]) -> str:
+def query_footer(cfg: Config, catalog: dict[str, Dataset], datasets: list[str], versions: list[str] = (),
+                 as_of: dt.datetime | None = None) -> str:
+    """Per dataset read: units, resolution, status, warnings. A query with as_of, or on a view of
+    every version, also gets the time since when the dataset keeps versions (D30)."""
     lines = []
     for ds_id in datasets:
         ds = catalog[ds_id]
@@ -322,6 +346,9 @@ def query_footer(cfg: Config, catalog: dict[str, Dataset], datasets: list[str]) 
                         for t in ds.tables.values())
         lines.append(f"-- {ds.id}: units: {units}. resolution: {res}. status {st.get('status')}, "
                      f"last fetched {ts(st.get('last_fetched_at')) or 'never'}.")
+        if ds.revisions == "append-only" and (as_of or ds.id in versions):
+            head = f"as of {ts(as_of, False)}: each row as adele held it then. " if as_of else ""
+            lines.append(f"-- {ds.id}: {head}versions since {versions_since_line(st)}.")
         lines += [f"-- warning ({ds.id}): {w}" for w in ds.warnings]
     return "\n".join(lines) + ("\n" if lines else "")
 

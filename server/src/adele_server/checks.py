@@ -8,9 +8,10 @@ from __future__ import annotations
 from pathlib import Path
 
 from . import engine
-from .catalog import Dataset, category_values
+from .catalog import SUPERSEDED_FIELD, VERSION_FIELD, Dataset, category_values
 from .config import QueryLimits
-from .storage import StorageError, check_layout, connect, ident, partitions, select_sql, table_dir, sql_str
+from .storage import (StorageError, check_columns, check_layout, connect, ident, partitions, select_sql, sql_str,
+                      table_dir, versions_sql)
 
 
 def run_checks(catalog: dict[str, Dataset], ds: Dataset, data_dir: Path, limits: QueryLimits) -> list[str]:
@@ -23,24 +24,26 @@ def run_checks(catalog: dict[str, Dataset], ds: Dataset, data_dir: Path, limits:
                 continue
             try:
                 check_layout(data_dir, t, ds.partition)
+                check_columns(con, data_dir, t)
             except StorageError as e:
                 problems.append(str(e))
                 continue
             # schema of the stored files (a descriptor change without a refetch shows up here)
             raw = con.execute(f"DESCRIBE SELECT * FROM read_parquet({sql_str(table_dir(data_dir, t) / '*.parquet')})").fetchall()
             stored = {r[0]: r[1] for r in raw}
-            for name, want in t.storage_types().items():
+            for name, want in t.stored_types().items():
                 if name not in stored:
                     problems.append(f"{t.sql_name}: column {name} is declared but not stored")
                 elif stored[name] != want:
                     problems.append(f"{t.sql_name}: column {name} is stored as {stored[name]}, declared {want}")
-            extra = set(stored) - set(t.field_names)
+            extra = set(stored) - set(t.stored_types())
             if extra:
                 problems.append(f"{t.sql_name}: stored columns not declared: {sorted(extra)}")
             if any(p.startswith(f"{t.sql_name}: column") or "not declared" in p for p in problems):
                 continue
-            src = f"({select_sql(data_dir, t)})"
-            pk = ", ".join(ident(k) for k in t.primary_key)
+            # every stored row: in an append-only table, every version, whose key adds fetched_at (D30)
+            src = f"({versions_sql(data_dir, t) if t.versioned else select_sql(data_dir, t)})"
+            pk = ", ".join(ident(k) for k in t.primary_key + ([VERSION_FIELD] if t.versioned else []))
             nulls = con.execute(
                 f"SELECT count(*) FROM {src} WHERE " + " OR ".join(f"{ident(k)} IS NULL" for k in t.primary_key)
             ).fetchone()[0]
@@ -51,6 +54,16 @@ def run_checks(catalog: dict[str, Dataset], ds: Dataset, data_dir: Path, limits:
             ).fetchall()
             if dups:
                 problems.append(f"{t.sql_name}: primary key ({pk}) not unique, e.g. {dups}")
+            if t.versioned:
+                # superseded_at is the fetched_at of the next version, null on the latest: the views rely on it
+                key = ", ".join(ident(k) for k in t.primary_key)
+                v, s = ident(VERSION_FIELD), ident(SUPERSEDED_FIELD)
+                broken = con.execute(
+                    f"SELECT {key}, {v} FROM (SELECT *, lead({v}) OVER (PARTITION BY {key} ORDER BY {v}) AS nxt "
+                    f"FROM {src}) WHERE {s} IS DISTINCT FROM nxt LIMIT 3").fetchall()
+                if broken:
+                    problems.append(f"{t.sql_name}: {SUPERSEDED_FIELD} is not the {VERSION_FIELD} of the next version, "
+                                    f"e.g. ({pk}) = {broken}")
             for f in t.fields:
                 values = category_values(f)
                 if values is None:

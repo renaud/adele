@@ -215,8 +215,10 @@ Other V0 items:
 - QA: 20 to 40 questions with known answers, rerun when a descriptor or the skill changes.
 -  pull and revisions. Does a local copy hold every revision or only the latest values?
    I recommend every revision, so that as_of also works locally.
-- `as_of` before adele's first fetch of a dataset is meaningless: backfilled rows all carry the
-  backfill date as `fetched_at`. Say so in SPEC.md, Revisions?
+- ~~`as_of` before adele's first fetch of a dataset is meaningless: backfilled rows all carry the
+  backfill date as `fetched_at`. Say so in SPEC.md, Revisions?~~ done in WP3 (D30): an `as_of`
+  before `versions_since` is refused; the sentence for SPEC.md is proposed in
+  `docs/work-packages/WP3-versions.md`.
 - copy by default: beyond a quick look, the skill tells the agent to `pull` and query locally
   (the data is a few GB). Then add it to SPEC.md, Agent access.
 
@@ -227,3 +229,9 @@ Other V0 items:
 
 - token gate on `query` (hash printed by `describe`), only if the QA questions show that agents
   skip `describe`.
+- `append-only`: rows that the source stops sending (deferred from WP3 by Renaud, 2026-11-15).
+  Today they are kept, as with `overwrite` (D30), so `as_of` can't show a withdrawal, and a key
+  that a corrected `fetch.py` no longer produces (A65: "stamped 1 h late before 2025") stays in
+  the latest view. A fix: a deletion mark (a version with a `deleted` flag, or a null row as the
+  earlier project did, `docs/from-swiss-energy-data.md`). Needed anyway for the tables without a
+  time column (D22, WP2).

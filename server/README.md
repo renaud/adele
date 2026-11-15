@@ -73,9 +73,12 @@ named like its dataset). Two datasets with the same id are an error.
   `last_scheduled_at` - lookback (the time before its start is still to fetch), and never
   backwards.
 - `adele.revisions`: `overwrite` (the latest fetch wins on the key; each scheduled run fetches
-  the whole window) or `none` (rows never change once stored: the server calls fetch only on
+  the whole window), `none` (rows never change once stored: the server calls fetch only on
   the parts of the window that hold no stored value of the window column, in every table, and
-  refuses a fetched row that differs from the stored one).
+  refuses a fetched row that differs from the stored one) or `append-only` (D30: every version
+  of a row is kept with `fetched_at`, and `superseded_at`, the `fetched_at` of the next version;
+  `<id>.<table>` is the latest version, `<id>.<table>_versions` every version; `POST /query`
+  takes `as_of`). The policy of a stored dataset can't change.
 - `adele.partition`: `month` (default) or `day` of the window column. After a change, run
   `adele-server repartition <id>` (fetches and checks refuse the old layout).
 - `checks.yaml` (optional): published figures that the data must reproduce. Each entry has

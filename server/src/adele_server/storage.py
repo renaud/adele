@@ -5,6 +5,11 @@ names another column (e.g. init_time for forecasts). `adele.partition` picks mon
 day. Layout: <data_dir>/<dataset>/<table>/<YYYY-MM>.parquet or <YYYY-MM-DD>.parquet. A partition
 is written to a temp file and renamed, so readers never see a half-written partition (SPEC.md,
 Storage).
+
+`revisions: append-only` (D30): the files hold every version of a row, each with `fetched_at`
+and `superseded_at` (the fetched_at of the next version of the same key, null on the latest).
+select_sql() gives the latest version of each row, versions_sql() every version. Every reader
+of the stored data goes through one of the two.
 """
 from __future__ import annotations
 
@@ -17,7 +22,7 @@ from pathlib import Path
 
 import duckdb
 
-from .catalog import DELIVERY_FIELD, Table
+from .catalog import DELIVERY_FIELD, SUPERSEDED_FIELD, VERSION_FIELD, Table
 
 UTC = dt.timezone.utc
 PARTITION_FORMAT = {"month": "%Y-%m", "day": "%Y-%m-%d"}
@@ -52,13 +57,46 @@ def ident(name: str) -> str:
     return '"' + name.replace('"', '""') + '"'
 
 
-def select_sql(data_dir: Path, table: Table) -> str:
-    """SELECT over the stored table, declared columns in declared order. Empty but typed if no data yet."""
-    cols = table.storage_types()
+def ts_literal(v: dt.datetime) -> str:
+    """A timestamp as a SQL literal. Only for a datetime that the server made, never for text from a client."""
+    return f"'{v.astimezone(UTC).isoformat()}'::TIMESTAMPTZ"
+
+
+def _select(data_dir: Path, table: Table, cols: dict[str, str], tail: str = "") -> str:
     if partitions(data_dir, table):
         glob = table_dir(data_dir, table) / "*.parquet"
-        return f"SELECT {', '.join(ident(c) for c in cols)} FROM read_parquet({sql_str(glob)})"
+        return f"SELECT {', '.join(ident(c) for c in cols)} FROM read_parquet({sql_str(glob)}){tail}"
     return "SELECT " + ", ".join(f"NULL::{t} AS {ident(c)}" for c, t in cols.items()) + " WHERE false"
+
+
+def select_sql(data_dir: Path, table: Table, as_of: dt.datetime | None = None) -> str:
+    """SELECT over the stored table, declared columns in declared order. Empty but typed if no data yet.
+
+    An append-only table: the latest version of each row (superseded_at is null). With `as_of`,
+    the version that was the latest at that time: fetched at or before it, and not superseded
+    at or before it. `as_of` doesn't apply to the other tables.
+    """
+    if not table.versioned:
+        return _select(data_dir, table, table.storage_types())
+    v, s = ident(VERSION_FIELD), ident(SUPERSEDED_FIELD)
+    tail = (f" WHERE {v} <= {ts_literal(as_of)} AND ({s} IS NULL OR {s} > {ts_literal(as_of)})" if as_of
+            else f" WHERE {s} IS NULL")
+    return _select(data_dir, table, table.storage_types(), tail)
+
+
+def versions_sql(data_dir: Path, table: Table, as_of: dt.datetime | None = None) -> str:
+    """An append-only table: every version, the declared columns then fetched_at and superseded_at.
+
+    With `as_of`, the versions fetched at or before it, as adele held them then: a superseded_at
+    after `as_of` shows as null, since that version was still the latest.
+    """
+    if not as_of or not partitions(data_dir, table):
+        return _select(data_dir, table, table.stored_types())
+    s, t = ident(SUPERSEDED_FIELD), ts_literal(as_of)
+    glob = table_dir(data_dir, table) / "*.parquet"
+    cols = [ident(c) for c in table.stored_types() if c != SUPERSEDED_FIELD]
+    return (f"SELECT {', '.join(cols)}, CASE WHEN {s} <= {t} THEN {s} END AS {s} "
+            f"FROM read_parquet({sql_str(glob)}) WHERE {ident(VERSION_FIELD)} <= {t}")
 
 
 def partition_bounds(key: str) -> tuple[dt.datetime, dt.datetime]:
@@ -82,9 +120,29 @@ def check_layout(data_dir: Path, table: Table, partition: str) -> None:
                            f"adele.partition {partition!r}: run `adele-server repartition {table.dataset_id}`")
 
 
+def check_columns(con: duckdb.DuckDBPyConnection, data_dir: Path, table: Table) -> None:
+    """Raise if the files lack fetched_at or superseded_at while the dataset is append-only, or
+    hold one of them while it is not: the policy of a stored dataset changed, which adele can't
+    convert (D30). Reads the schema of one file: the merges write every file of a table with the
+    same columns."""
+    files = partitions(data_dir, table)
+    if not files:
+        return
+    cols = {r[0] for r in con.execute(f"DESCRIBE SELECT * FROM read_parquet({sql_str(files[-1])})").fetchall()}
+    want = {VERSION_FIELD, SUPERSEDED_FIELD} if table.versioned else set()
+    held = cols & {VERSION_FIELD, SUPERSEDED_FIELD}
+    if held != want:
+        what = (f"lack the column(s) {', '.join(sorted(want - held))}" if want - held
+                else f"hold the column(s) {', '.join(sorted(held))}")
+        raise StorageError(f"{table.sql_name}: the stored files {what}, but adele.revisions is "
+                           f"{table.revisions!r}: the policy of a stored dataset can't change. Move "
+                           f"{table_dir(data_dir, table).parent} away and backfill")
+
+
 def _order(table: Table, window: str) -> str:
     first = list(dict.fromkeys([window, table.time_field]))
-    return ", ".join(ident(c) for c in first + [k for k in table.primary_key if k not in first])
+    rest = [k for k in table.primary_key if k not in first] + ([VERSION_FIELD] if table.versioned else [])
+    return ", ".join(ident(c) for c in first + rest)
 
 
 def _keys(con, batch: str, window: str, partition: str) -> list[str]:
@@ -186,6 +244,69 @@ def merge_append(con: duckdb.DuckDBPyConnection, data_dir: Path, table: Table, b
     return MergeResult(written, added)
 
 
+def merge_versions(con: duckdb.DuckDBPyConnection, data_dir: Path, table: Table, batch: str,
+                   window: str = DELIVERY_FIELD, partition: str = "month", *, fetched_at: dt.datetime) -> MergeResult:
+    """`revisions: append-only` (D30): add each row of `batch` whose key isn't stored, or that
+    differs from the latest stored version of its key, as a new version stamped `fetched_at`,
+    and set superseded_at of the version that it replaces to `fetched_at`.
+
+    Differs: any column outside the key, compared exactly, a null equal to a null. Stored values
+    never change (only superseded_at, once), and a stored key that the batch lacks stays as it is.
+    The window column is in the key, so every version of a key lies in one partition. A partition
+    that holds a version fetched at or after `fetched_at` means that the clock was set back:
+    StorageError, and nothing is written (checked on every partition first). The batch holds
+    each key once (ingest refuses duplicates), so the join below gives each stored row once.
+    """
+    cols = ", ".join(ident(c) for c in table.field_names)
+    v, s = ident(VERSION_FIELD), ident(SUPERSEDED_FIELD)
+    order = _order(table, window)
+    same_key = " AND ".join(f"n.{ident(k)} = o.{ident(k)}" for k in table.primary_key)
+    differs = " OR ".join(f"n.{ident(c)} IS DISTINCT FROM o.{ident(c)}"
+                          for c in table.field_names if c not in table.primary_key) or "false"
+    out_dir = table_dir(data_dir, table)
+    out_dir.mkdir(parents=True, exist_ok=True)
+    plan = []
+    try:
+        for key in _keys(con, batch, window, partition):
+            start, end = partition_bounds(key)
+            part = f"_part_{len(plan)}"
+            rows = f"(SELECT {cols} FROM {batch} WHERE {ident(window)} >= $s AND {ident(window)} < $e)"
+            path = out_dir / f"{key}.parquet"
+            old = f"(SELECT {cols}, {v}, {s} FROM read_parquet({sql_str(path)}))" if path.exists() else None
+            if old:
+                last = con.execute(f"SELECT max({v}) FROM {old}").fetchone()[0]
+                if last is not None and last >= fetched_at:
+                    raise StorageError(f"{table.sql_name}: partition {key} holds a version fetched at {last}, not "
+                                       f"before this fetch ({fetched_at}): was the clock set back? Nothing written")
+                latest = f"(SELECT * FROM {old} WHERE {s} IS NULL)"
+                con.execute(f"CREATE OR REPLACE TEMP TABLE {part} AS SELECT n.*, $f AS {v}, NULL::TIMESTAMPTZ AS {s} "
+                            f"FROM {rows} n LEFT JOIN {latest} o ON {same_key} WHERE o.{v} IS NULL OR {differs}",
+                            {"s": start, "e": end, "f": fetched_at})
+            else:
+                con.execute(f"CREATE OR REPLACE TEMP TABLE {part} AS SELECT *, $f AS {v}, NULL::TIMESTAMPTZ AS {s} "
+                            f"FROM {rows}", {"s": start, "e": end, "f": fetched_at})
+            plan.append((key, part, old, con.execute(f"SELECT count(*) FROM {part}").fetchone()[0]))
+        written, added = [], 0
+        for key, part, old, new in plan:
+            if not new:
+                continue
+            if old:
+                # the stored rows, with the latest version of each new key superseded; then the new rows
+                o_cols = ", ".join(f"o.{ident(c)}" for c in table.field_names)
+                _write(con, out_dir, key,
+                       f"SELECT {o_cols}, o.{v}, CASE WHEN o.{s} IS NULL AND n.{v} IS NOT NULL THEN n.{v} "
+                       f"ELSE o.{s} END AS {s} FROM {old} o LEFT JOIN {part} n ON {same_key} "
+                       f"UNION ALL SELECT * FROM {part}", order)
+            else:
+                _write(con, out_dir, key, f"SELECT * FROM {part}", order)
+            written.append(key)
+            added += new
+        return MergeResult(written, added)
+    finally:
+        for i in range(len(plan) + 1):
+            con.execute(f"DROP TABLE IF EXISTS _part_{i}")
+
+
 def repartition(con: duckdb.DuckDBPyConnection, data_dir: Path, table: Table, window: str, partition: str) -> int:
     """Rewrite a table's files with another partition size; returns the number of files written.
 
@@ -202,7 +323,7 @@ def repartition(con: duckdb.DuckDBPyConnection, data_dir: Path, table: Table, wi
         if d.exists():
             shutil.rmtree(d)
     new_dir.mkdir()
-    cols = ", ".join(ident(c) for c in table.field_names)
+    cols = ", ".join(ident(c) for c in table.stored_types())  # fetched_at too: every version is kept
     con.execute(f"CREATE OR REPLACE TEMP TABLE _all AS SELECT {cols} FROM read_parquet({sql_str(src / '*.parquet')})")
     before = con.execute("SELECT count(*) FROM _all").fetchone()[0]
     order = _order(table, window)
@@ -229,6 +350,7 @@ class TableStats:
     last: dt.datetime | None
     duckdb_types: dict[str, str]
     files: int
+    versions: int | None = None  # append-only: every version stored (rows counts the latest ones)
 
 
 def table_stats(con: duckdb.DuckDBPyConnection, data_dir: Path, table: Table) -> TableStats:
@@ -236,4 +358,6 @@ def table_stats(con: duckdb.DuckDBPyConnection, data_dir: Path, table: Table) ->
     types = {r[0]: r[1] for r in con.execute(f"DESCRIBE {src}").fetchall()}
     rows, first, last = con.execute(
         f"SELECT count(*), min({ident(table.time_field)}), max({ident(table.time_field)}) FROM ({src})").fetchone()
-    return TableStats(rows, first, last, types, len(partitions(data_dir, table)))
+    versions = con.execute(f"SELECT count(*) FROM ({versions_sql(data_dir, table)})").fetchone()[0] \
+        if table.versioned else None
+    return TableStats(rows, first, last, types, len(partitions(data_dir, table)), versions)

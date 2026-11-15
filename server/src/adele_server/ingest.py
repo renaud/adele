@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import datetime as dt
 import fcntl
+import functools
 import json
 import logging
 import os
@@ -473,8 +474,21 @@ def scheduled_fetch(cfg: Config, catalog: dict[str, Dataset], ds: Dataset, now: 
             st["last_scheduled_at"] = now
             st.pop("failing_since", None)
             st.pop("given_up", None)
+            _note_versions_since(ds, st)
         _settle(cfg, catalog, ds, st, out, old_status, run_checks=True)
     return out
+
+
+def _note_versions_since(ds: Dataset, st: dict) -> None:
+    """append-only: the first time that the scheduled runs take over, written once (D30).
+
+    Called when `last_scheduled_at` is set: after a scheduled run that succeeded, or at the end
+    of a backfill that reached the present. Before that time, the rows were fetched in bulk
+    (a backfill, explicit windows), and their fetched_at says nothing about when the source
+    published them: an `as_of` before it is refused.
+    """
+    if ds.revisions == "append-only":
+        st.setdefault("versions_since", state.now())
 
 
 def _fetch_merge(cfg: Config, ds: Dataset, st: dict, start: dt.datetime, end: dt.datetime) -> Outcome:
@@ -488,14 +502,19 @@ def _fetch_merge(cfg: Config, ds: Dataset, st: dict, start: dt.datetime, end: dt
     try:
         for t in ds.tables.values():
             storage.check_layout(cfg.data_dir, t, ds.partition)
+            storage.check_columns(con, cfg.data_dir, t)
         windows = windows_to_fetch(cfg.data_dir, ds, start, end)
         out.windows_fetched = len(windows)
         if windows:
             fixed = runner_dir(cfg, ds) if ds.script_metadata is not None else None
             batches = _as_tables(ds, call_fetch(ds, windows, time_limit(cfg, ds), Path(workdir.name), fixed))
+            # append-only: the time at which adele had these values, the same for every table of
+            # this call (D30). Not the start of the run: a source may publish a value while it runs.
+            fetched_at = dt.datetime.now(UTC)
             for t in ds.tables.values():
                 out.rows += _stage(con, t, batches[t.name], windows, ds.window)
-            merge = storage.merge_append if ds.revisions == "none" else storage.merge_overwrite
+            merge = {"overwrite": storage.merge_overwrite, "none": storage.merge_append,
+                     "append-only": functools.partial(storage.merge_versions, fetched_at=fetched_at)}[ds.revisions]
             for t in ds.tables.values():
                 m = merge(con, cfg.data_dir, t, f"_batch_{t.name}", ds.window, ds.partition)
                 out.rows_changed += m.rows_changed
@@ -579,6 +598,7 @@ def _recheck(cfg: Config, catalog: dict[str, Dataset], ds: Dataset, backfill: tu
             st["last_scheduled_at"] = now
             st.pop("failing_since", None)
             st.pop("given_up", None)
+            _note_versions_since(ds, st)
         st["last_attempt_at"] = now if moved else attempt_before
         if st["last_attempt_at"] is None:
             del st["last_attempt_at"]

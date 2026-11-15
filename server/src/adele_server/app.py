@@ -4,7 +4,9 @@ GET  /datasets                          list (text)
 GET  /datasets/{id}                     describe card (text, YAML)
 GET  /datasets/{id}/datapackage.json    authored descriptor plus computed fields (JSON)
 POST /query  {"sql": "..."}             JSON (columns, types, rows, total, truncated, footer, text);
-                                        ?format=text returns only the text
+                                        ?format=text returns only the text. Optional "as_of": an ISO
+                                        timestamp (UTC if no offset): the tables of append-only
+                                        datasets as adele held them then (D30)
 """
 from __future__ import annotations
 
@@ -64,11 +66,15 @@ def create_app(cfg: Config, catalog: dict[str, Dataset]) -> FastAPI:
         return render.merged_descriptor(cfg, dataset(ds_id))
 
     @app.post("/query")
-    def query(sql: str = Body(..., embed=True), format: str = "json", who: str = Depends(key_name)):
+    def query(sql: str = Body(..., embed=True), as_of: str | None = Body(None, embed=True), format: str = "json",
+              who: str = Depends(key_name)):
         t0 = time.monotonic()
         entry = {"ts": state.now().isoformat(), "key": who, "sql": sql}
+        if as_of is not None:
+            entry["as_of"] = as_of
         try:
-            res = engine.run(catalog, cfg.data_dir, cfg.query, sql)
+            when = engine.parse_as_of(as_of) if as_of is not None else None
+            res = engine.run(catalog, cfg.data_dir, cfg.query, sql, as_of=when)
         except engine.QueryError as e:
             entry.update(duration_ms=int((time.monotonic() - t0) * 1000), error=str(e).splitlines()[0])
             _log(cfg, entry)
@@ -76,7 +82,7 @@ def create_app(cfg: Config, catalog: dict[str, Dataset]) -> FastAPI:
             if format == "text":
                 return PlainTextResponse(msg, status_code=400)
             return JSONResponse({"error": str(e)}, status_code=400)
-        footer = render.query_footer(cfg, catalog, res.datasets)
+        footer = render.query_footer(cfg, catalog, res.datasets, res.versions, res.as_of)
         text = render.render_query(res, footer)
         entry.update(duration_ms=int((time.monotonic() - t0) * 1000), rows=len(res.rows), total=res.total,
                      datasets=res.datasets)

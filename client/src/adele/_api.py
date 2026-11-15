@@ -67,8 +67,13 @@ class QueryResult:
         return self.text
 
 
-def query(sql: str) -> QueryResult:
-    """Run DuckDB SQL on the server. Tables are named <dataset>.<table>. Results are capped."""
-    payload = json.loads(_request("POST", "/query", {"sql": sql})[1])
+def query(sql: str, as_of: str | None = None) -> QueryResult:
+    """Run DuckDB SQL on the server. Tables are named <dataset>.<table>. Results are capped.
+
+    `as_of`: an ISO timestamp (UTC if it has no offset). The tables of append-only datasets then
+    show what adele held at that time; a query that reads another dataset is refused.
+    """
+    body = {"sql": sql} if as_of is None else {"sql": sql, "as_of": as_of}
+    payload = json.loads(_request("POST", "/query", body)[1])
     return QueryResult(payload["columns"], payload["types"], payload["rows"], payload["total"],
                        payload["truncated"], payload["footer"], payload["text"], payload.get("datasets", []))

@@ -29,7 +29,10 @@ def fields(d):
     (lambda d: fields(d)[3].update(type="money"), "not supported"),
     (lambda d: d["resources"][0]["schema"].update(primaryKey=["nope"]), "frictionless"),
     (lambda d: d["adele"]["refresh"].update(every="P1M"), "ISO 8601"),
-    (lambda d: d["adele"].update(revisions="append-only"), "POC 2"),
+    (lambda d: d["adele"].update(revisions="sometimes"), "must be one of"),
+    (lambda d: fields(d).append({"name": "fetched_at", "type": "datetime"}), "reserved"),
+    (lambda d: fields(d).append({"name": "superseded_at", "type": "datetime"}), "reserved"),
+    (lambda d: d["resources"].append({**d["resources"][0], "name": "prices_versions"}), "reserved"),
 ])
 def test_invalid_descriptors_are_refused(env, fn, message):
     cfg = mutate(env, fn)

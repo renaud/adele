@@ -60,6 +60,11 @@ is wrong, show the evidence from the data and let the analyst decide.
    network call. Split long windows into requests that the source answers whole, and check
    that each response covers what was asked (if not, split again). Write what you measured in
    the docstring of `fetch.py`, with the date: the next person needs the evidence.
+   With `revisions: append-only`, a row that differs from its stored version in any column
+   becomes a new version (D30). So `fetch.py` returns no column that changes at each answer
+   (the source's creation time of the document, a request id): each fetch would store every
+   row again. Get the units and the schema right before the backfill, because adele can't
+   convert stored versions later.
 6. **Example queries.** For each question that the analyst gives, write the SQL, run it, and
    show the result. The analyst confirms the result before the entry gets a `verified_at`.
    A check of `checks.yaml` can be an example too (`- check: <name>`): pick the checks whose

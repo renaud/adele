@@ -40,9 +40,10 @@ from pathlib import Path
 
 import duckdb
 
-from .catalog import Dataset
+from . import state
+from .catalog import VERSIONS_SUFFIX, Dataset, Table
 from .config import QueryLimits
-from .storage import ident, select_sql, table_dir
+from .storage import ident, select_sql, sql_str, table_dir, versions_sql
 
 # Query nodes that read, as json_serialize_sql names them. The others write: COPY_QUERY_NODE,
 # INSERT_QUERY_NODE, UPDATE_QUERY_NODE, DELETE_QUERY_NODE.
@@ -75,9 +76,24 @@ class QueryResult:
     truncated: bool
     datasets: list[str] = field(default_factory=list)  # datasets that the query read
     elapsed_ms: int = 0
+    versions: list[str] = field(default_factory=list)  # datasets whose view of every version the query read
+    as_of: dt.datetime | None = None
 
 
-def connect(catalog: dict[str, Dataset], data_dir: Path, limits: QueryLimits) -> duckdb.DuckDBPyConnection:
+def parse_as_of(text: str) -> dt.datetime:
+    """`as_of` as a client sends it: an ISO 8601 date or timestamp; without an offset, UTC."""
+    try:
+        v = dt.datetime.fromisoformat(str(text).strip())
+    except ValueError:
+        raise QueryError(f"as_of must be an ISO 8601 timestamp such as 2026-11-15T12:00Z, got {text!r}") from None
+    return v.replace(tzinfo=dt.timezone.utc) if v.tzinfo is None else v.astimezone(dt.timezone.utc)
+
+
+def connect(catalog: dict[str, Dataset], data_dir: Path, limits: QueryLimits,
+            as_of: dt.datetime | None = None) -> duckdb.DuckDBPyConnection:
+    """A connection for one query. Each table is the view `<dataset>.<table>`; an append-only table
+    also has `<dataset>.<table>_versions` (D30). With `as_of`, both views of an append-only table
+    show only the versions fetched at or before it."""
     con = duckdb.connect(":memory:", config={
         "threads": limits.threads,
         "memory_limit": limits.memory_limit,
@@ -93,9 +109,24 @@ def connect(catalog: dict[str, Dataset], data_dir: Path, limits: QueryLimits) ->
     for ds in catalog.values():
         con.execute(f"CREATE SCHEMA {ident(ds.id)}")
         for t in ds.tables.values():
-            con.execute(f"CREATE VIEW {ident(ds.id)}.{ident(t.name)} AS {select_sql(data_dir, t)}")
+            _create_view(con, ds.id, t.name, select_sql(data_dir, t, as_of), t.storage_types())
+            if t.versioned:
+                _create_view(con, ds.id, t.name + VERSIONS_SUFFIX, versions_sql(data_dir, t, as_of), t.stored_types())
     con.execute("SET lock_configuration = true")
     return con
+
+
+def _create_view(con: duckdb.DuckDBPyConnection, ds_id: str, name: str, body: str, cols: dict[str, str]) -> None:
+    """A view that can't be created (stored files that don't match the descriptor) becomes one with
+    the same columns that fails when a query reads it: the views of the other datasets still answer."""
+    view = f"{ident(ds_id)}.{ident(name)}"
+    try:
+        con.execute(f"CREATE VIEW {view} AS {body}")
+    except duckdb.Error as e:
+        msg = (f"{ds_id}.{name} can't be read: the stored files don't match its descriptor "
+               f"({str(e).splitlines()[0]}). See the status in `adele describe {ds_id}`")
+        nulls = ", ".join(f"NULL::{tp} AS {ident(c)}" for c, tp in cols.items())
+        con.execute(f"CREATE VIEW {view} AS SELECT {nulls} FROM range(1) WHERE error({sql_str(msg)})")
 
 
 def nodes(tree):
@@ -135,19 +166,54 @@ def read_only_tree(con: duckdb.DuckDBPyConnection, sql: str) -> dict:
     return tree
 
 
-def tables_read(tree: dict, catalog: dict[str, Dataset]) -> list[str]:
-    """Datasets whose tables the query names. Parsed by DuckDB, not by matching text."""
+def versions_of(ds: Dataset, name: str) -> Table | None:
+    """The append-only table whose view of every version is `name`, else None."""
+    base = name.removesuffix(VERSIONS_SUFFIX)
+    t = ds.tables.get(base) if base != name else None
+    return t if t is not None and t.versioned else None
+
+
+def views_read(tree: dict, catalog: dict[str, Dataset]) -> set[tuple[str, str]]:
+    """(dataset, view) for each view of the catalog that the query names: a table, or the view of
+    every version of an append-only table. Parsed by DuckDB, not by matching text."""
     found = set()
     for n in nodes(tree):
         if n.get("type") == "BASE_TABLE":
             ds = catalog.get(n.get("schema_name") or "")
-            if ds and (n.get("table_name") or "") in ds.tables:
-                found.add(ds.id)
-    return sorted(found)
+            name = n.get("table_name") or ""
+            if ds and (name in ds.tables or versions_of(ds, name)):
+                found.add((ds.id, name))
+    return found
 
 
-def read_statement(con: duckdb.DuckDBPyConnection, sql: str, catalog: dict[str, Dataset]) -> tuple[str, list[str]]:
-    """The statement to run and the datasets that it names. QueryError unless `sql` is one statement that only reads."""
+def tables_read(tree: dict, catalog: dict[str, Dataset]) -> list[str]:
+    """Datasets whose tables the query names."""
+    return sorted({d for d, _ in views_read(tree, catalog)})
+
+
+def check_as_of(catalog: dict[str, Dataset], data_dir: Path, datasets: list[str], as_of: dt.datetime) -> None:
+    """QueryError unless every dataset that the query reads keeps versions since `as_of` or earlier (D30)."""
+    if not datasets:
+        raise QueryError("as_of applies to the tables of append-only datasets, and this query reads none of them")
+    plain = [d for d in datasets if catalog[d].revisions != "append-only"]
+    if plain:
+        one = len(plain) == 1
+        raise QueryError(f"as_of applies only to append-only datasets; {', '.join(plain)} keep{'s' if one else ''} only "
+                         f"the latest value of each row. Query {'it' if one else 'them'} separately, without as_of")
+    for d in datasets:
+        since = state.load(data_dir, d).get("versions_since")
+        if since is None:
+            raise QueryError(f"{d} has no versions yet (no scheduled run so far): as_of can't answer")
+        if as_of < since:
+            raise QueryError(f"{d} keeps versions since {since:%Y-%m-%d %H:%M:%S}Z. Its rows fetched before that "
+                             f"were backfilled: their fetched_at is the time of the backfill, not of the "
+                             f"publication. Use an as_of at or after that time")
+
+
+def read_statement(con: duckdb.DuckDBPyConnection, sql: str,
+                   catalog: dict[str, Dataset]) -> tuple[str, set[tuple[str, str]]]:
+    """The statement to run and the views that it names (views_read). QueryError unless `sql` is
+    one statement that only reads."""
     try:
         statements = con.extract_statements(sql)
     except duckdb.Error as e:
@@ -159,16 +225,20 @@ def read_statement(con: duckdb.DuckDBPyConnection, sql: str, catalog: dict[str, 
         hint = " For PIVOT, use conditional aggregation, e.g. avg(x) FILTER (WHERE zone = 'CH')." \
             if st.type == duckdb.StatementType.MULTI else ""
         raise QueryError(f"only SELECT statements are allowed (got {st.type.name}).{hint}")
-    return st.query, tables_read(read_only_tree(con, st.query), catalog)
+    return st.query, views_read(read_only_tree(con, st.query), catalog)
 
 
 def run(catalog: dict[str, Dataset], data_dir: Path, limits: QueryLimits, sql: str,
-        max_rows: int | None = None) -> QueryResult:
+        max_rows: int | None = None, as_of: dt.datetime | None = None) -> QueryResult:
     max_rows = limits.max_rows if max_rows is None else max_rows
     t0 = time.monotonic()
-    con = connect(catalog, data_dir, limits)
+    con = connect(catalog, data_dir, limits, as_of)
     try:
-        query, datasets = read_statement(con, sql, catalog)
+        query, views = read_statement(con, sql, catalog)
+        datasets = sorted({d for d, _ in views})
+        versions = sorted({d for d, name in views if name not in catalog[d].tables})
+        if as_of is not None:
+            check_as_of(catalog, data_dir, datasets, as_of)
         timer = threading.Timer(limits.timeout_s, con.interrupt)
         timer.start()
         try:
@@ -195,7 +265,7 @@ def run(catalog: dict[str, Dataset], data_dir: Path, limits: QueryLimits, sql: s
         finally:
             timer.cancel()
         return QueryResult(columns, types, [[to_json(v) for v in r] for r in rows], total, truncated,
-                           datasets, int((time.monotonic() - t0) * 1000))
+                           datasets, int((time.monotonic() - t0) * 1000), versions, as_of)
     finally:
         con.close()
 
