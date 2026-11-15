@@ -23,7 +23,7 @@ def run_checks(catalog: dict[str, Dataset], ds: Dataset, data_dir: Path, limits:
                 problems.append(f"{t.sql_name}: no data yet")
                 continue
             try:
-                check_layout(data_dir, t, ds.partition)
+                check_layout(data_dir, t)
                 check_columns(con, data_dir, t)
             except StorageError as e:
                 problems.append(str(e))
@@ -64,6 +64,12 @@ def run_checks(catalog: dict[str, Dataset], ds: Dataset, data_dir: Path, limits:
                 if broken:
                     problems.append(f"{t.sql_name}: {SUPERSEDED_FIELD} is not the {VERSION_FIELD} of the next version, "
                                     f"e.g. ({pk}) = {broken}")
+            if t.period in ("month", "year"):  # a month and a year are stored as their first day (D26)
+                c = ident(t.time_field)
+                n = con.execute(f"SELECT count(*) FROM {src} WHERE {c} <> CAST(date_trunc('{t.period}', {c}) AS DATE)"
+                                ).fetchone()[0]
+                if n:
+                    problems.append(f"{t.sql_name}: {n} rows whose {t.time_field} is not the first day of its {t.period}")
             for f in t.fields:
                 values = category_values(f)
                 if values is None:

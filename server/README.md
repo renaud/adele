@@ -25,11 +25,31 @@ entry that holds a `datapackage.yaml` is one dataset (e.g. the checkout of a dat
 repository, whose folder name is free), any other entry is a folder of dataset folders (each
 named like its dataset). Two datasets with the same id are an error.
 
-- `datapackage.yaml`: the descriptor (Data Package v2 plus the `adele:` block). `adele.format_version: 1`
-  is required: the server refuses a missing or unknown version.
-- Every table has one time field: `delivery_start` (the start of the interval that a value covers,
-  with a resolution) or `valid_at` (the instant that a value refers to, e.g. cloud cover at 12:00;
-  no resolution). Coverage uses that field.
+- `datapackage.yaml`: the descriptor (Data Package v2 plus the `adele:` block). `adele.format_version`
+  (1 or 2) is required: the server refuses a missing or unknown version. Version 2 is needed for
+  an `adele:` block per table, a table by calendar period and a table without a time column; a
+  server that reads only version 1 refuses such a descriptor instead of misreading it.
+- A table has one time field, or none: `delivery_start` (the start of the interval that a value
+  covers, with a resolution), `valid_at` (the instant that a value refers to, e.g. cloud cover at
+  12:00; no resolution), `delivery_date`, `delivery_month` or `delivery_year` (a calendar period
+  in the zone of the table, type date; a month and a year are stored as their first day, and
+  the server refuses another day; no resolution, D26), or none (D22). Coverage uses that field.
+  A table without a time column is stored as one file and replaced whole at each fetch: a row
+  that the source drops goes, and a fetch that returns no row for it fails and changes nothing.
+  `list` and `describe` show its row count and the time of its last change. It can't be in an
+  `append-only` dataset yet (adele can't mark a version as withdrawn), and `revisions: none`
+  leaves it out of the parts to fetch.
+- The `adele:` block of a table (format 2) holds `resolution` (a table with `delivery_start`
+  only), `partition`, and `timezone` (required for a table by calendar period, refused for the
+  others: an IANA name that DuckDB knows, or `UTC`; not an abbreviation such as `CET`, to which
+  DuckDB applies summer time). A table that sets no `resolution` or `partition` takes the
+  package-level one; the package-level `resolution` applies to the tables with `delivery_start`
+  only. Any other key is refused.
+- The window column of a table: `adele.window` of the dataset when it declares one (each table
+  with a time column must then have it, as a datetime in its primary key), else the table's own
+  time field, which must be in its primary key. A fetch keeps a calendar period when it overlaps
+  the window [start, end), its start and end taken at midnight in the zone of the table. With
+  `revisions: none`, every table with a time column shares one window column of type datetime.
 - `adele.secrets: [NAME, ...]`: the environment variables (source credentials) that fetch() gets.
   The child process gets nothing else from the server's environment except what uv and Python
   need (`PATH`, `HOME`, locale, certificates, proxies, `UV_*`, `PYTHON*`, `XDG_*`).
@@ -79,8 +99,9 @@ named like its dataset). Two datasets with the same id are an error.
   of a row is kept with `fetched_at`, and `superseded_at`, the `fetched_at` of the next version;
   `<id>.<table>` is the latest version, `<id>.<table>_versions` every version; `POST /query`
   takes `as_of`). The policy of a stored dataset can't change.
-- `adele.partition`: `month` (default) or `day` of the window column. After a change, run
-  `adele-server repartition <id>` (fetches and checks refuse the old layout).
+- `adele.partition`: `month` (default) or `day` of the window column, for the dataset or per
+  table. After a change, run `adele-server repartition <id>` (fetches and checks refuse the old
+  layout).
 - `checks.yaml` (optional): published figures that the data must reproduce. Each entry has
   `name`, `question`, `sql` (one row, one number), `expected`, `tolerance`, `source`. They run
   after each fetch; a figure outside its tolerance sets the status to failing.
@@ -88,8 +109,10 @@ named like its dataset). Two datasets with the same id are an error.
 ## Files
 
 - `<data_dir>/<dataset>/<table>/<YYYY-MM>.parquet` or `<YYYY-MM-DD>.parquet`: one partition per
-  month or day (UTC, `adele.partition`) of the window column: delivery_start, or the column that
-  `adele.window` names (init_time for forecasts).
+  month or day (UTC, `adele.partition`) of the table's window column: the column that
+  `adele.window` names (init_time for forecasts), else its time field (for a table by calendar
+  period, the month or day of its date). `<table>/table.parquet`: the one file of a table
+  without a time column, written only when the table changed.
 - `<data_dir>/<dataset>/state.json`: fetch times, status, problems. `last_scheduled_at` is the
   time of the last scheduled run that succeeded: the next scheduled window starts at that time
   minus the lookback. `failing_since` and `given_up` (the stretch that was left out) exist only

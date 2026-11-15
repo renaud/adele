@@ -201,8 +201,11 @@ def _by_hand(args, cfg, catalog, now) -> int:
         with ingest.dataset_lock(cfg.data_dir, ds.id):
             con = storage.connect()
             for t in ds.tables.values():
-                n = storage.repartition(con, cfg.data_dir, t, ds.window, ds.partition)
-                print(f"{t.sql_name}: {n} files, one per {ds.partition} of {ds.window}")
+                if not t.has_time:
+                    print(f"{t.sql_name}: no time column, one file: nothing to do")
+                    continue
+                n = storage.repartition(con, cfg.data_dir, t)
+                print(f"{t.sql_name}: {n} files, one per {t.partition} of {t.window}")
             con.close()
         return 0
     if args.cmd == "check":

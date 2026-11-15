@@ -755,3 +755,43 @@ command that returns more examples on request (`adele examples <id> --search ...
 follow the steps of the skill and seldom make optional calls, and for this dataset it would
 return near-copies of the same seven queries. To reconsider if a run of the questions of `qa/`
 shows an agent missing a trap that a check would have taught.
+
+## D32 - The shapes of tables: an `adele:` block per table, format version 2 (2026-11-15)
+
+**Decision.** D22 and D26 are built (WP2).
+
+- A table's `adele:` block holds `resolution`, `partition` and `timezone`; any other key is
+  refused. The package-level `resolution` and `partition` are the default of the tables that
+  set none, and the package-level `resolution` applies only to tables with `delivery_start`.
+  `window` stays per dataset; without it, each table's window is its own time field, which must
+  be in its primary key.
+- These shapes (a table block, a date column, a table without a time column) need
+  `adele.format_version: 2`. A descriptor of version 1 loads as before.
+- A zone is `UTC` or a name with a `/` that DuckDB knows; a `timezone` at package level is
+  refused. A fetch keeps a calendar period that overlaps the window, its start and end taken
+  at midnight in the zone of the table. A month or a year not on its first day fails the fetch
+  and is counted by the checks; timestamps returned for a date column are refused, not
+  converted.
+- A table without a time column is stored as `<table>/table.parquet`, written only when it
+  changed, so its time of change is that of the file. In a fetch of several windows, the answer
+  of the last window is the table. It is left out of the gaps of `revisions: none`, and can't
+  be in an `append-only` dataset yet. `revisions: none` needs one window column of type
+  datetime in every table that has a time column.
+- No partition `year`. `repartition` leaves a table without a time column as it is. The merged
+  descriptor keeps `resolution_periods` on every table, empty when there is none.
+
+Built: `server/src/adele_server/` (catalog, ingest, storage, checks, render, cli),
+`server/tests/test_table_shapes.py`, `skills/adele`, `skills/add-dataset`. The 18 choices and
+their reasons: `docs/work-packages/WP2-table-shapes.md`.
+
+**Why.** D22 and D26 left these details open; Claude chose them during the build, and Renaud
+accepted all 18 on 2026-11-15. Version 2: steacher1 runs a server that reads only version 1,
+which refuses such a descriptor instead of loading a table block and ignoring it (a resolution
+lost without an error). The defaults at package level keep the three descriptors valid without
+a change. The time of change from the file: nothing passes between two fetches (D23). A table
+without a time column in an `append-only` dataset needs a mark for a withdrawn version, which
+D30 left out (`TODOs.md`, V2).
+
+**Rejected.** `window` per table (one call of `fetch()` per dataset). A field in `state.json`
+for the time of change of a table (D23). Converting timestamps returned for a date column:
+00:00 UTC and local midnight give different dates.

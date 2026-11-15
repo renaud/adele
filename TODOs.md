@@ -2,6 +2,12 @@
 
 ## Renaud, now
 
+- SPEC.md: paste the three texts of WP2 (Catalog, Adding a dataset, Storage), in
+  `docs/work-packages/WP2-table-shapes.md`, section "Text for `SPEC.md`".
+- PLAN.md, row WP2 (proposal): "built and in `main` (D32): tables by calendar day, month or
+  year in a zone (D26), tables without a time column (D22), an `adele:` block per table, format
+  version 2. Next: the first such dataset in WP6. `docs/work-packages/WP2-table-shapes.md`"
+
 ## V0
 
 POC, planned 2026-11-13: a thin vertical slice. One dataset (ENTSO-E day-ahead prices, zones
@@ -137,6 +143,9 @@ Next for Claude (decided 2026-11-14, not built):
   replaces the one file (an empty fetch is an error), row count and last change in `list` and
   `describe`, tests. The text for SPEC.md (Time conventions, Storage) comes with the one for
   the date column, once its details are settled (docs/datasets-inventory.md, section 6).
+  Built 2026-11-15 (WP2, D32), with the date column below. Time conventions in SPEC.md already
+  has the text; the proposals for Catalog, Adding a dataset and Storage are in
+  `docs/work-packages/WP2-table-shapes.md` (Renaud, now).
 
 Found on 2026-11-14 by subagents (docs/datasets-inventory.md, sections 4 and 5), not fixed:
 
@@ -158,8 +167,11 @@ Found on 2026-11-14 by subagents (docs/datasets-inventory.md, sections 4 and 5),
   `windows_to_fetch` (TypeError on a date); `ts()` in `render.py` (fails on a date, so `list`
   and `describe` fail); the hint when `fetch.py` returns timestamps for a date column
   (`pd.to_datetime` gives TIMESTAMP); `describe` prints the zone and the join expression.
-- `skills/adele/SKILL.md:38` weights by `epoch(resolution)`: 720 hours for any month. Fix when
-  the first table by month comes.
+  Built 2026-11-15 with D22 (WP2), in `main`: the 18 choices made during the build, accepted by
+  Renaud, are D32 (`docs/work-packages/WP2-table-shapes.md`). Not on steacher1, no real dataset
+  uses it yet (WP6).
+- ~~`skills/adele/SKILL.md:38` weights by `epoch(resolution)`: 720 hours for any month~~ done in
+  `wp2`: a rule says that a table by calendar period has no resolution.
 - ~~Queries could read the query log and write a file inside the folder of a table~~ fixed
   2026-11-14 (D24, `engine.py`). Since 2026-11-15 a query is one SELECT and nothing else: no
   EXPLAIN at all (D29, which supersedes D28). Also refused: the table functions `query`,

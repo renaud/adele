@@ -54,6 +54,17 @@ is wrong, show the evidence from the data and let the analyst decide.
    that a column removes is better than a trap that a sentence explains.
 4. **Definitions.** Collect the analyst's text for each item of the list above. Place it in
    `datapackage.yaml` following the rule "Keys or prose" of SPEC.md.
+   The time column of each table gives its shape (SPEC.md, Time conventions; D17, D22, D26):
+   `delivery_start` (an interval of fixed length, UTC), `valid_at` (an instant, UTC),
+   `delivery_date`, `delivery_month` or `delivery_year` (a calendar period, type date, a month
+   or a year stored as its first day), or none (a list of stations, a register: each fetch
+   replaces the table whole, and must return it whole). A table by calendar period declares its
+   zone in its own `adele:` block (`timezone: Europe/Zurich`, an IANA name or `UTC`, never
+   `CET`). When the source does not state the zone of its days, ask the analyst for the most
+   likely zone, and the description of the column says that it is assumed. A day of UTC is a
+   fixed length: it keeps `delivery_start` with `P1D`. The `adele:` block of a table holds
+   `resolution`, `partition` and `timezone`; the package-level `resolution` and `partition`
+   apply to the tables that set none. These shapes need `adele.format_version: 2`.
 5. **fetch.py.** Write `fetch(start, end)`. Apply the conventions of SPEC.md: UTC, timestamp
    at the start of the interval, half-open intervals, one unit per field, a `resolution`
    column when the resolution differs between series or over time. Put a timeout on every
@@ -65,6 +76,9 @@ is wrong, show the evidence from the data and let the analyst decide.
    (the source's creation time of the document, a request id): each fetch would store every
    row again. Get the units and the schema right before the backfill, because adele can't
    convert stored versions later.
+   A calendar period is returned as `datetime.date` values (pandas: `.dt.date`), not as
+   timestamps. A table without a time column is returned whole at every call, also when the
+   window is short: an empty answer is an error.
 6. **Example queries.** For each question that the analyst gives, write the SQL, run it, and
    show the result. The analyst confirms the result before the entry gets a `verified_at`.
    A check of `checks.yaml` can be an example too (`- check: <name>`): pick the checks whose

@@ -11,6 +11,7 @@ from __future__ import annotations
 import ast
 import copy
 import datetime as dt
+import functools
 import importlib.util
 import re
 import tomllib
@@ -27,7 +28,14 @@ INSTANT_FIELD = "valid_at"  # UTC instant that a value refers to (e.g. cloud cov
 VERSION_FIELD = "fetched_at"  # append-only: when the fetch that first saw a version got it (D30); added by the server
 SUPERSEDED_FIELD = "superseded_at"  # append-only: the fetched_at of the next version, null on the latest; added by the server
 VERSIONS_SUFFIX = "_versions"  # append-only: the view <dataset>.<table>_versions holds every version
-FORMATS = {1}  # adele.format_version: the version of the descriptor format that this server reads
+# A calendar period in the zone of its table (D26), stored as a date: a month and a year as their first day.
+DATE_FIELDS = {"delivery_date": "day", "delivery_month": "month", "delivery_year": "year"}
+TIME_FIELDS = (DELIVERY_FIELD, INSTANT_FIELD, *DATE_FIELDS)  # a table has one of them, or none (D22)
+# adele.format_version: the versions of the descriptor format that this server reads. Version 2 adds
+# the `adele:` block per table, the date columns (D26) and the tables without a time column (D22);
+# a server that reads only version 1 refuses such a descriptor instead of misreading it.
+FORMATS = {1, 2}
+TABLE_KEYS = ("resolution", "partition", "timezone")  # the `adele:` block of a table: any other key is refused
 SECRET_RE = re.compile(r"^[A-Z_][A-Z0-9_]*$")
 # overwrite: the latest fetch wins on the key. none: stored rows never change (forecast runs);
 # the server fetches only the parts of a window that hold no stored rows. append-only: every
@@ -81,6 +89,12 @@ class Table:
     primary_key: list[str]
     description: str | None = None
     revisions: str = "overwrite"  # the policy of the dataset: the files of an append-only table hold fetched_at
+    # The column of the fetch window, of the [start, end) filter and of the partitions: adele.window
+    # of the dataset, else the table's own time column. None for a table without a time column.
+    window: str | None = None
+    partition: str = "month"  # one file per month or per day of the window column (D16)
+    resolution: list[dict] = field(default_factory=list)  # declared periods; only for a table with delivery_start
+    timezone: str | None = None  # the zone of the calendar periods of a table by day, month or year (D26)
 
     @property
     def sql_name(self) -> str:
@@ -91,13 +105,29 @@ class Table:
         return [f["name"] for f in self.fields]
 
     @property
-    def time_field(self) -> str:
-        """delivery_start (values over intervals) or valid_at (values at instants)."""
-        return DELIVERY_FIELD if DELIVERY_FIELD in self.field_names else INSTANT_FIELD
+    def time_field(self) -> str | None:
+        """delivery_start (intervals), valid_at (instants), delivery_date, delivery_month or
+        delivery_year (calendar periods), or None (a table without a time column)."""
+        return next((n for n in TIME_FIELDS if n in self.field_names), None)
 
     @property
     def is_instant(self) -> bool:
         return self.time_field == INSTANT_FIELD
+
+    @property
+    def period(self) -> str | None:
+        """day, month or year for a table by calendar period (D26), else None."""
+        return DATE_FIELDS.get(self.time_field)
+
+    @property
+    def has_time(self) -> bool:
+        """False for a table without a time column (D22): stored as one file, replaced whole at each fetch."""
+        return self.time_field is not None
+
+    @property
+    def window_is_date(self) -> bool:
+        """The window is the table's date column: a fetch keeps a period that overlaps the window (D26)."""
+        return self.window in DATE_FIELDS
 
     @property
     def versioned(self) -> bool:
@@ -132,8 +162,14 @@ class Dataset:
 
     @property
     def window(self) -> str:
-        """The time column of the fetch window, of the [start, end) filter and of the month partitions."""
+        """adele.window as declared, else delivery_start. Each table has its own (Table.window): a
+        table uses its own time column when the dataset declares no window."""
         return self.adele.get("window", DELIVERY_FIELD)
+
+    @property
+    def windows(self) -> list[str]:
+        """The window columns of the tables, each once, in the order of the tables."""
+        return list(dict.fromkeys(t.window for t in self.tables.values() if t.window))
 
     @property
     def secrets(self) -> list[str]:
@@ -142,7 +178,7 @@ class Dataset:
 
     @property
     def partition(self) -> str:
-        """One Parquet file per `month` (default) or per `day` (UTC) of the window column."""
+        """adele.partition of the dataset, month by default: the partition of a table that sets none."""
         return self.adele.get("partition", "month")
 
     @property
@@ -268,6 +304,8 @@ def load_dataset(folder: Path, check_folder_name: bool = True) -> Dataset:
         res.setdefault("path", f"datasets/{ds_id}/tables/{res.get('name')}")
     errors += _frictionless_errors(descriptor)
 
+    adele = descriptor.get("adele") or {}
+    v2 = adele.get("format_version") == 2
     tables: dict[str, Table] = {}
     for res in descriptor.get("resources", []):
         tname = res.get("name")
@@ -288,13 +326,22 @@ def load_dataset(folder: Path, check_folder_name: bool = True) -> Dataset:
             if name in names:
                 errors.append(f"{tname}: the field name {name!r} is reserved: the server adds it to the "
                               "tables of an append-only dataset")
-        times = [n for n in (DELIVERY_FIELD, INSTANT_FIELD) if n in names]
-        if len(times) != 1:
+        times = [n for n in TIME_FIELDS if n in names]
+        if len(times) > 1:
+            errors.append(f"{tname}: a table has at most one time field, got {times}")
+        elif not times and not v2:
             errors.append(f"{tname}: every table needs one time field: {DELIVERY_FIELD!r} (the start of the "
-                          f"interval that a value covers) or {INSTANT_FIELD!r} (the instant that a value refers to)")
-        elif next(f for f in fields if f.get("name") == times[0]).get("type") != "datetime":
-            errors.append(f"{tname}: {times[0]!r} must have type datetime")
-        tables[tname] = Table(ds_id, tname, fields, pk, res.get("description"))
+                          f"interval that a value covers) or {INSTANT_FIELD!r} (the instant that a value refers "
+                          "to). A table by calendar period or without a time column needs adele.format_version: 2")
+        elif times:
+            want = "date" if times[0] in DATE_FIELDS else "datetime"
+            if next(f for f in fields if f.get("name") == times[0]).get("type") != want:
+                errors.append(f"{tname}: {times[0]!r} must have type {want}")
+            if times[0] in DATE_FIELDS and not v2:
+                errors.append(f"{tname}: a table by calendar period ({times[0]!r}) needs adele.format_version: 2")
+        t = Table(ds_id, tname, fields, pk, res.get("description"))
+        errors += [f"{tname}: {e}" for e in _table_adele_errors(t, res.get("adele"), adele, v2)]
+        tables[tname] = t
     if not tables:
         errors.append("no resources")
     for tname in tables:
@@ -302,7 +349,6 @@ def load_dataset(folder: Path, check_folder_name: bool = True) -> Dataset:
         if base != tname and base in tables:
             errors.append(f"resource name {tname!r} is reserved: it names the view of every version of {base!r}")
 
-    adele = descriptor.get("adele") or {}
     refresh = None
     r = adele.get("refresh")
     try:
@@ -346,12 +392,31 @@ def load_dataset(folder: Path, check_folder_name: bool = True) -> Dataset:
     if adele.get("partition", "month") not in PARTITIONS:
         errors.append(f"adele.partition must be one of {sorted(PARTITIONS)}, got {adele.get('partition')!r}")
     errors += _adele_errors(adele)
+    if "timezone" in adele:
+        errors.append("adele.timezone: the zone goes in the `adele:` block of the table whose calendar periods it "
+                      "states (one zone per table, D26)")
 
-    window = adele.get("window", DELIVERY_FIELD)
+    declared = adele.get("window")
     for t in tables.values():
-        wf = next((f for f in t.fields if f.get("name") == window), None)
-        if wf is None or wf.get("type") != "datetime" or window not in t.primary_key:
-            errors.append(f"{t.name}: adele.window {window!r} must be a datetime field in the primaryKey")
+        if not t.has_time:  # no window, no partitions: the table is replaced whole (D22)
+            continue
+        t.window = col = declared or t.time_field
+        f = next((f for f in t.fields if f.get("name") == col), None)
+        typed = f is not None and (f.get("type") == "datetime" or (col == t.time_field and col in DATE_FIELDS))
+        if not typed or col not in t.primary_key:
+            errors.append(f"{t.name}: adele.window {col!r} must be a datetime field in the primaryKey" if declared else
+                          f"{t.name}: its time field {col!r} must be in the primaryKey: it is the column of the "
+                          "fetch window and of the partitions")
+    if revisions == "none":
+        ws = set(filter(None, (t.window for t in tables.values())))
+        if len(ws) > 1 or ws & set(DATE_FIELDS):
+            errors.append("revisions: none needs one window column of type datetime in every table that has a "
+                          f"time column (got {sorted(ws)}): set adele.window, e.g. init_time")
+    if revisions == "append-only":
+        for t in tables.values():
+            if not t.has_time:
+                errors.append(f"{t.name}: a table without a time column can't be append-only yet: a row that the "
+                              "source drops must go (D22), and adele can't mark a version as withdrawn (TODOs.md, V2)")
 
     fetch, meta = None, None
     fetch_path = folder / "fetch.py"
@@ -478,10 +543,12 @@ def category_values(field: dict) -> list | None:
     return [c["value"] for c in cats] if isinstance(cats[0], dict) else list(cats)
 
 
-def _adele_errors(adele: dict) -> list[str]:
+def _resolution_errors(periods: Any) -> list[str]:
+    if not isinstance(periods, list):
+        return ["adele.resolution must be a list of periods {from, value}"]
     errors = []
     prev = None
-    for i, r in enumerate(adele.get("resolution", []) or []):
+    for i, r in enumerate(periods):
         try:
             frm = dt.date.fromisoformat(str(r["from"]))
             parse_duration(r["value"])
@@ -491,6 +558,80 @@ def _adele_errors(adele: dict) -> list[str]:
         if prev and frm <= prev:
             errors.append("adele.resolution: periods must be in increasing order of `from`")
         prev = frm
+    return errors
+
+
+def _table_adele_errors(t: Table, block: Any, adele: dict, v2: bool) -> list[str]:
+    """The `adele:` block of one table (format 2): resolution, partition, timezone. Sets them on
+    `t`, a key that the table doesn't set taken from the dataset's block. A package-level
+    resolution applies only to the tables with delivery_start (D26: the name of a date column
+    gives its period; an instant has none)."""
+    if block is not None and not v2:
+        return ["an `adele:` block per table needs adele.format_version: 2"]
+    if block is not None and not isinstance(block, dict):
+        return ["its `adele:` block must be a mapping"]
+    block = block or {}
+    errors = []
+    unknown = sorted(str(k) for k in set(block) - set(TABLE_KEYS))
+    if unknown:
+        errors.append(f"adele: unknown key{'s' if len(unknown) > 1 else ''} {', '.join(unknown)} "
+                      f"(allowed in the block of a table: {', '.join(TABLE_KEYS)})")
+    if "resolution" in block:
+        if t.time_field != DELIVERY_FIELD:
+            errors.append(f"adele.resolution: only a table with {DELIVERY_FIELD} has a resolution "
+                          f"({t.time_field or 'a table without a time column'} has none)")
+        else:
+            errors += _resolution_errors(block["resolution"])
+            t.resolution = list(block["resolution"] or [])
+    elif t.time_field == DELIVERY_FIELD:
+        t.resolution = list(adele.get("resolution") or [])  # checked by _adele_errors
+    if "partition" in block:
+        if not t.has_time:
+            errors.append("adele.partition: a table without a time column is stored as one file")
+        elif block["partition"] not in PARTITIONS:
+            errors.append(f"adele.partition must be one of {sorted(PARTITIONS)}, got {block['partition']!r}")
+        else:
+            t.partition = block["partition"]
+    elif adele.get("partition", "month") in PARTITIONS:
+        t.partition = adele.get("partition", "month")
+    tz = block.get("timezone")
+    if t.period and tz is None:
+        errors.append(f"adele.timezone is required: the zone of the calendar {t.period}s of {t.time_field} "
+                      "(an IANA name such as Europe/Zurich, or UTC)")
+    elif t.period:
+        e = _timezone_error(tz)
+        errors += [e] if e else []
+        t.timezone = None if e else tz
+    elif tz is not None:
+        errors.append("adele.timezone: only a table by calendar day, month or year (delivery_date, delivery_month, "
+                      f"delivery_year) has a zone; {t.time_field or 'a table without a time column'} has none")
+    return errors
+
+
+def _timezone_error(tz: Any) -> str | None:
+    """An IANA name that DuckDB knows (Europe/Zurich), or UTC. Not an abbreviation: DuckDB applies
+    summer time to CET, so CET would not mean UTC+1 all year (D26)."""
+    if not isinstance(tz, str) or (tz != "UTC" and "/" not in tz):
+        return (f"adele.timezone {tz!r}: an IANA name such as Europe/Zurich, or UTC. An abbreviation such as CET "
+                "is refused: DuckDB applies summer time to it")
+    if tz not in _known_zones():
+        return f"adele.timezone {tz!r}: not a zone that DuckDB knows"
+    return None
+
+
+@functools.cache
+def _known_zones() -> frozenset[str]:
+    import duckdb
+
+    con = duckdb.connect(":memory:")
+    try:
+        return frozenset(r[0] for r in con.execute("SELECT name FROM pg_timezone_names()").fetchall())
+    finally:
+        con.close()
+
+
+def _adele_errors(adele: dict) -> list[str]:
+    errors = _resolution_errors(adele.get("resolution", []) or [])
     warnings = adele.get("warnings", [])
     if not isinstance(warnings, list) or not all(isinstance(w, str) for w in warnings):
         errors.append("adele.warnings must be a list of sentences")

@@ -25,7 +25,7 @@ from pathlib import Path
 import duckdb
 
 from . import checks, state, storage
-from .catalog import DELIVERY_FIELD, Dataset, Table, category_values
+from .catalog import Dataset, Table, category_values
 from .config import Config
 from .storage import ident
 
@@ -80,6 +80,8 @@ def windows_to_fetch(data_dir: Path, ds: Dataset, start: dt.datetime, end: dt.da
     end) that hold no stored value of the window column: the gaps between the distinct stored
     values, each value excluded. A value counts as stored when every table has rows for it.
     A gap may hold no data at all (between two hourly runs); fetch() then returns no rows.
+    A table without a time column is left out: each fetch replaces it whole (D22). The catalog
+    makes every other table of a `none` dataset share one window column of type datetime.
     """
     if ds.revisions != "none":
         return [(start, end)]
@@ -87,12 +89,14 @@ def windows_to_fetch(data_dir: Path, ds: Dataset, start: dt.datetime, end: dt.da
     con = storage.connect()
     try:
         for t in ds.tables.values():
+            if not t.has_time:
+                continue
             if not storage.partitions(data_dir, t):
                 stored = set()
                 break
             vals = {r[0] for r in con.execute(
-                f"SELECT DISTINCT {ident(ds.window)} FROM ({storage.select_sql(data_dir, t)}) "
-                f"WHERE {ident(ds.window)} >= $s AND {ident(ds.window)} < $e", {"s": start, "e": end}).fetchall()}
+                f"SELECT DISTINCT {ident(t.window)} FROM ({storage.select_sql(data_dir, t)}) "
+                f"WHERE {ident(t.window)} >= $s AND {ident(t.window)} < $e", {"s": start, "e": end}).fetchall()}
             stored = vals if stored is None else stored & vals
     finally:
         con.close()
@@ -429,7 +433,7 @@ def scheduled_fetch(cfg: Config, catalog: dict[str, Dataset], ds: Dataset, now: 
         if _gives_up(ds, st, now) and "given_up" not in st and last and last < now:
             left = (last - ds.refresh.lookback, start)
             st["given_up"] = [left[0].isoformat(), left[1].isoformat()]
-            _alert(cfg, f"{ds.id}: gave up on {ds.window} [{left[0]:%Y-%m-%d %H:%M}, {left[1]:%Y-%m-%d %H:%M}) UTC: "
+            _alert(cfg, f"{ds.id}: gave up on {', '.join(ds.windows) or 'the window'} [{left[0]:%Y-%m-%d %H:%M}, {left[1]:%Y-%m-%d %H:%M}) UTC: "
                         f"the scheduled runs have failed since {st['failing_since']:%Y-%m-%d %H:%M} UTC, longer than "
                         f"the lookback. The window is [now - lookback, now + horizon) again")
             state.save(cfg.data_dir, ds.id, st)  # written once, also if this run is cut short
@@ -501,7 +505,7 @@ def _fetch_merge(cfg: Config, ds: Dataset, st: dict, start: dt.datetime, end: dt
     workdir = tempfile.TemporaryDirectory(prefix=f"adele-{ds.id}-")
     try:
         for t in ds.tables.values():
-            storage.check_layout(cfg.data_dir, t, ds.partition)
+            storage.check_layout(cfg.data_dir, t)
             storage.check_columns(con, cfg.data_dir, t)
         windows = windows_to_fetch(cfg.data_dir, ds, start, end)
         out.windows_fetched = len(windows)
@@ -512,11 +516,12 @@ def _fetch_merge(cfg: Config, ds: Dataset, st: dict, start: dt.datetime, end: dt
             # this call (D30). Not the start of the run: a source may publish a value while it runs.
             fetched_at = dt.datetime.now(UTC)
             for t in ds.tables.values():
-                out.rows += _stage(con, t, batches[t.name], windows, ds.window)
+                out.rows += _stage(con, t, batches[t.name], windows)
             merge = {"overwrite": storage.merge_overwrite, "none": storage.merge_append,
                      "append-only": functools.partial(storage.merge_versions, fetched_at=fetched_at)}[ds.revisions]
             for t in ds.tables.values():
-                m = merge(con, cfg.data_dir, t, f"_batch_{t.name}", ds.window, ds.partition)
+                m = (merge(con, cfg.data_dir, t, f"_batch_{t.name}") if t.has_time
+                     else storage.merge_replace(con, cfg.data_dir, t, f"_batch_{t.name}"))
                 out.rows_changed += m.rows_changed
                 out.partitions_written += len(m.partitions_written)
         st["last_fetched_at"] = st["last_attempt_at"]
@@ -651,13 +656,31 @@ def _as_tables(ds: Dataset, files: dict[str, list[Path]]) -> dict[str, list[Path
     return files
 
 
-def _stage(con: duckdb.DuckDBPyConnection, t: Table, files: list[Path], windows: list[tuple],
-           window: str = DELIVERY_FIELD) -> int:
+def _window_filter(t: Table, s: dt.datetime, e: dt.datetime) -> str:
+    """The rows of `t` that belong to the window [s, e): a source may ignore the window, the server filters.
+
+    A timestamp window column: its value lies in [s, e). A date column of a table by calendar
+    period (D26): the period overlaps [s, e), its start and end taken at midnight in the zone of
+    the table. With "first instant inside", a table by month fetched with a lookback of 3 days
+    kept no row.
+    """
+    w = ident(t.window)
+    lo, hi = storage.ts_literal(s), storage.ts_literal(e)
+    if not t.window_is_date:
+        return f"{w} >= {lo} AND {w} < {hi}"
+    tz = storage.sql_str(t.timezone)
+    return (f"timezone({tz}, CAST({w} AS TIMESTAMP)) < {hi} AND "
+            f"timezone({tz}, CAST({w} + INTERVAL 1 {t.period.upper()} AS TIMESTAMP)) > {lo}")
+
+
+def _stage(con: duckdb.DuckDBPyConnection, t: Table, files: list[Path], windows: list[tuple]) -> int:
     """Check one fetched table against its schema; keep the rows of its windows in a temp table.
 
     `files`: the Parquet files that the child wrote for this table, `<table>.<i>.parquet` for
-    windows[i]. Each file keeps only the rows of its own window [start, end), on the column
-    `window` (adele.window): a source may ignore the window, the server filters.
+    windows[i]. Each file keeps only the rows of its own window, on the table's window column
+    (_window_filter). A table without a time column (D22) has no window: each call of fetch()
+    returns the whole table, so the file of the last window is the table, and it must hold at
+    least one row (an empty answer would delete the stored table).
     """
     raw = f"_raw_{t.name}"
     paths = "[" + ", ".join(storage.sql_str(f) for f in files) + "]"
@@ -670,21 +693,39 @@ def _stage(con: duckdb.DuckDBPyConnection, t: Table, files: list[Path], windows:
         errors.append(f"columns differ from the descriptor: missing {missing}, not declared {extra}")
     for name, ftype in declared.items():
         if name in got and got[name] not in ACCEPTED[ftype] and got[name] != '"NULL"':
-            hint = " (timestamps must be timezone-aware)" if got[name] == "TIMESTAMP" else ""
+            hint = ""
+            if ftype == "date" and got[name].startswith("TIMESTAMP"):
+                hint = (" (a calendar period is a date: return datetime.date values, e.g. with pandas "
+                        "`.dt.date`, not timestamps)")
+            elif got[name] == "TIMESTAMP":
+                hint = " (timestamps must be timezone-aware)"
             errors.append(f"{name}: got {got[name]}, declared {ftype}{hint}")
     if errors:
         raise FetchError(f"{t.sql_name}: schema check failed: " + "; ".join(errors))
     types = t.storage_types()
     cols = ", ".join(f"CAST({ident(c)} AS {types[c]}) AS {ident(c)}" for c in t.field_names)
     batch = f"_batch_{t.name}"
-    parts = []
-    for f in files:
-        s, e = windows[int(f.name.split(".")[1])]
-        parts.append(f"SELECT * FROM read_parquet({storage.sql_str(f)}) WHERE {ident(window)} >= "
-                     f"'{s.isoformat()}'::TIMESTAMPTZ AND {ident(window)} < '{e.isoformat()}'::TIMESTAMPTZ")
+    if not t.has_time:
+        last = max(files, key=lambda f: int(f.name.split(".")[1]))
+        parts = [f"SELECT * FROM read_parquet({storage.sql_str(last)})"]
+    else:
+        parts = []
+        for f in files:
+            s, e = windows[int(f.name.split(".")[1])]
+            parts.append(f"SELECT * FROM read_parquet({storage.sql_str(f)}) WHERE {_window_filter(t, s, e)}")
     con.execute(f"CREATE OR REPLACE TEMP TABLE {batch} AS SELECT {cols} FROM ("
                 + " UNION ALL BY NAME ".join(parts) + ")")
     con.execute(f"DROP VIEW {raw}")
+    if not t.has_time and not con.execute(f"SELECT count(*) FROM {batch}").fetchone()[0]:
+        raise FetchError(f"{t.sql_name}: fetch returned no row for this table without a time column: each fetch "
+                         "replaces it whole, so an empty answer is an error and the stored table stays (D22)")
+    if t.period in ("month", "year"):  # stored as their first day (D26)
+        c = ident(t.time_field)
+        bad = con.execute(f"SELECT DISTINCT {c} FROM {batch} WHERE {c} <> CAST(date_trunc('{t.period}', {c}) AS DATE) "
+                          f"ORDER BY 1 LIMIT 3").fetchall()
+        if bad:
+            raise FetchError(f"{t.sql_name}: {t.time_field} must be the first day of its {t.period}, got "
+                             f"{[str(b[0]) for b in bad]}")
     pk = ", ".join(ident(k) for k in t.primary_key)
     nulls = con.execute(f"SELECT count(*) FROM {batch} WHERE "
                         + " OR ".join(f"{ident(k)} IS NULL" for k in t.primary_key)).fetchone()[0]

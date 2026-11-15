@@ -120,7 +120,7 @@ def test_a_table_needs_exactly_one_time_field(env, fields, message):
 
 # --- adele.format_version ----------------------------------------------------------------------
 
-@pytest.mark.parametrize("line, message", [("", "adele.format_version is missing"), ("  format_version: 2\n", "adele.format_version 2 is unknown")])
+@pytest.mark.parametrize("line, message", [("", "adele.format_version is missing"), ("  format_version: 3\n", "adele.format_version 3 is unknown")])
 def test_format_is_required_and_known(env, line, message):
     cfg, _, _ = env
     desc = FORECAST.replace("  format_version: 1\n", line)

@@ -1,10 +1,12 @@
 """Storage: each table is Parquet, one file per month or per day (UTC), written by DuckDB (D9).
 
-The month or day is that of the dataset's window column: delivery_start, unless `adele.window`
-names another column (e.g. init_time for forecasts). `adele.partition` picks month (default) or
-day. Layout: <data_dir>/<dataset>/<table>/<YYYY-MM>.parquet or <YYYY-MM-DD>.parquet. A partition
-is written to a temp file and renamed, so readers never see a half-written partition (SPEC.md,
-Storage).
+The month or day is that of the table's window column (Table.window): `adele.window` of the
+dataset (e.g. init_time for forecasts), else the table's own time column (delivery_start,
+valid_at, or the date of a table by calendar period, D26). `adele.partition` picks month
+(default) or day. Layout: <data_dir>/<dataset>/<table>/<YYYY-MM>.parquet or <YYYY-MM-DD>.parquet.
+A table without a time column (D22) is one file, <table>/table.parquet, replaced whole at each
+fetch. A file is written to a temp file and renamed, so readers never see a half-written
+partition (SPEC.md, Storage).
 
 `revisions: append-only` (D30): the files hold every version of a row, each with `fetched_at`
 and `superseded_at` (the fetched_at of the next version of the same key, null on the latest).
@@ -22,11 +24,13 @@ from pathlib import Path
 
 import duckdb
 
-from .catalog import DELIVERY_FIELD, SUPERSEDED_FIELD, VERSION_FIELD, Table
+from .catalog import SUPERSEDED_FIELD, VERSION_FIELD, Table
 
 UTC = dt.timezone.utc
 PARTITION_FORMAT = {"month": "%Y-%m", "day": "%Y-%m-%d"}
 PARTITION_FILE = {"month": re.compile(r"^\d{4}-\d{2}\.parquet$"), "day": re.compile(r"^\d{4}-\d{2}-\d{2}\.parquet$")}
+WHOLE = "table"  # the file of a table without a time column: <table>/table.parquet (D22)
+WHOLE_FILE = re.compile(rf"^{WHOLE}\.parquet$")
 
 
 class StorageError(Exception):
@@ -112,8 +116,16 @@ def partition_bounds(key: str) -> tuple[dt.datetime, dt.datetime]:
 month_bounds = partition_bounds  # older name
 
 
-def check_layout(data_dir: Path, table: Table, partition: str) -> None:
-    """Raise if files of another partition size sit in the table's folder (they would be read twice)."""
+def check_layout(data_dir: Path, table: Table, partition: str | None = None) -> None:
+    """Raise if files of another partition size sit in the table's folder (they would be read twice).
+    `partition`: the table's own by default. A table without a time column holds table.parquet only."""
+    if not table.has_time:
+        bad = [p.name for p in partitions(data_dir, table) if not WHOLE_FILE.match(p.name)]
+        if bad:
+            raise StorageError(f"{table.sql_name}: files {bad[:3]}{' ...' if len(bad) > 3 else ''} next to "
+                               f"{WHOLE}.parquet: a table without a time column is one file. Move them away")
+        return
+    partition = partition or table.partition
     bad = [p.name for p in partitions(data_dir, table) if not PARTITION_FILE[partition].match(p.name)]
     if bad:
         raise StorageError(f"{table.sql_name}: files {bad[:3]}{' ...' if len(bad) > 3 else ''} don't match "
@@ -139,8 +151,8 @@ def check_columns(con: duckdb.DuckDBPyConnection, data_dir: Path, table: Table) 
                            f"{table_dir(data_dir, table).parent} away and backfill")
 
 
-def _order(table: Table, window: str) -> str:
-    first = list(dict.fromkeys([window, table.time_field]))
+def _order(table: Table, window: str | None) -> str:
+    first = [c for c in dict.fromkeys([window, table.time_field]) if c]
     rest = [k for k in table.primary_key if k not in first] + ([VERSION_FIELD] if table.versioned else [])
     return ", ".join(ident(c) for c in first + rest)
 
@@ -164,12 +176,13 @@ class MergeResult:
 
 
 def merge_overwrite(con: duckdb.DuckDBPyConnection, data_dir: Path, table: Table, batch: str,
-                    window: str = DELIVERY_FIELD, partition: str = "month") -> MergeResult:
+                    window: str | None = None, partition: str | None = None) -> MergeResult:
     """Merge the rows of the temp table `batch` into the partitions; the batch wins on the key.
 
     Stored rows of the window that the batch doesn't contain are kept (a source that stops
     sending a row doesn't delete it).
     """
+    window, partition = window or table.window, partition or table.partition
     cols = ", ".join(ident(c) for c in table.field_names)
     order = _order(table, window)
     pk = ", ".join(ident(k) for k in table.primary_key)
@@ -199,12 +212,13 @@ def merge_overwrite(con: duckdb.DuckDBPyConnection, data_dir: Path, table: Table
 
 
 def merge_append(con: duckdb.DuckDBPyConnection, data_dir: Path, table: Table, batch: str,
-                 window: str = DELIVERY_FIELD, partition: str = "month") -> MergeResult:
+                 window: str | None = None, partition: str | None = None) -> MergeResult:
     """`revisions: none`: add the rows of `batch` whose key isn't stored; stored rows never change.
 
     A batch row whose key is stored with other values means that the source revised data that
     it declared final: StorageError, and nothing is written (checked on every partition first).
     """
+    window, partition = window or table.window, partition or table.partition
     cols = ", ".join(ident(c) for c in table.field_names)
     order = _order(table, window)
     pk = ", ".join(ident(k) for k in table.primary_key)
@@ -245,7 +259,7 @@ def merge_append(con: duckdb.DuckDBPyConnection, data_dir: Path, table: Table, b
 
 
 def merge_versions(con: duckdb.DuckDBPyConnection, data_dir: Path, table: Table, batch: str,
-                   window: str = DELIVERY_FIELD, partition: str = "month", *, fetched_at: dt.datetime) -> MergeResult:
+                   window: str | None = None, partition: str | None = None, *, fetched_at: dt.datetime) -> MergeResult:
     """`revisions: append-only` (D30): add each row of `batch` whose key isn't stored, or that
     differs from the latest stored version of its key, as a new version stamped `fetched_at`,
     and set superseded_at of the version that it replaces to `fetched_at`.
@@ -257,6 +271,7 @@ def merge_versions(con: duckdb.DuckDBPyConnection, data_dir: Path, table: Table,
     StorageError, and nothing is written (checked on every partition first). The batch holds
     each key once (ingest refuses duplicates), so the join below gives each stored row once.
     """
+    window, partition = window or table.window, partition or table.partition
     cols = ", ".join(ident(c) for c in table.field_names)
     v, s = ident(VERSION_FIELD), ident(SUPERSEDED_FIELD)
     order = _order(table, window)
@@ -307,15 +322,44 @@ def merge_versions(con: duckdb.DuckDBPyConnection, data_dir: Path, table: Table,
             con.execute(f"DROP TABLE IF EXISTS _part_{i}")
 
 
-def repartition(con: duckdb.DuckDBPyConnection, data_dir: Path, table: Table, window: str, partition: str) -> int:
+def merge_replace(con: duckdb.DuckDBPyConnection, data_dir: Path, table: Table, batch: str) -> MergeResult:
+    """A table without a time column (D22): the rows of `batch` replace the stored table whole.
+
+    A stored row that the batch lacks goes. Changed rows: the batch rows that are new or differ,
+    plus the stored keys that the batch lacks. The file is written only when one of them exists,
+    so its time of change is that of the last change of the table. An empty batch never reaches
+    this function (ingest refuses it).
+    """
+    cols = ", ".join(ident(c) for c in table.field_names)
+    pk = ", ".join(ident(k) for k in table.primary_key)
+    out_dir = table_dir(data_dir, table)
+    out_dir.mkdir(parents=True, exist_ok=True)
+    path = out_dir / f"{WHOLE}.parquet"
+    if path.exists():
+        old = f"(SELECT {cols} FROM read_parquet({sql_str(path)}))"
+        changed = con.execute(
+            f"SELECT (SELECT count(*) FROM (SELECT {cols} FROM {batch} EXCEPT SELECT * FROM {old})) "
+            f"+ (SELECT count(*) FROM (SELECT * FROM {old} ANTI JOIN {batch} USING ({pk})))").fetchone()[0]
+    else:
+        changed = con.execute(f"SELECT count(*) FROM {batch}").fetchone()[0]
+    if not changed:
+        return MergeResult([], 0)
+    _write(con, out_dir, WHOLE, f"SELECT {cols} FROM {batch}", _order(table, None))
+    return MergeResult([WHOLE], changed)
+
+
+def repartition(con: duckdb.DuckDBPyConnection, data_dir: Path, table: Table, window: str | None = None,
+                partition: str | None = None) -> int:
     """Rewrite a table's files with another partition size; returns the number of files written.
+    `window` and `partition`: the table's own by default. A table without a time column: 0.
 
     The new files are written to a sibling folder, which then replaces the table's folder (two
     renames: a query in between may see an empty table, never duplicated rows).
     """
+    window, partition = window or table.window, partition or table.partition
     src = table_dir(data_dir, table)
     files = partitions(data_dir, table)
-    if not files:
+    if not files or not table.has_time:
         return 0
     new_dir = src.with_name(src.name + ".repartition")
     old_dir = src.with_name(src.name + ".old")
@@ -346,18 +390,26 @@ def repartition(con: duckdb.DuckDBPyConnection, data_dir: Path, table: Table, wi
 @dataclass
 class TableStats:
     rows: int
-    first: dt.datetime | None  # first value of the time field: interval start, or instant (valid_at)
-    last: dt.datetime | None
+    # first and last value of the time field: interval start, instant (valid_at), or date of a
+    # calendar period (a date); None for a table without a time column
+    first: dt.datetime | dt.date | None
+    last: dt.datetime | dt.date | None
     duckdb_types: dict[str, str]
     files: int
     versions: int | None = None  # append-only: every version stored (rows counts the latest ones)
+    changed_at: dt.datetime | None = None  # a table without a time column: when its file was last written
 
 
 def table_stats(con: duckdb.DuckDBPyConnection, data_dir: Path, table: Table) -> TableStats:
     src = select_sql(data_dir, table)
     types = {r[0]: r[1] for r in con.execute(f"DESCRIBE {src}").fetchall()}
+    files = partitions(data_dir, table)
+    if not table.has_time:
+        rows = con.execute(f"SELECT count(*) FROM ({src})").fetchone()[0]
+        changed = dt.datetime.fromtimestamp(max(p.stat().st_mtime for p in files), UTC) if files else None
+        return TableStats(rows, None, None, types, len(files), changed_at=changed)
     rows, first, last = con.execute(
         f"SELECT count(*), min({ident(table.time_field)}), max({ident(table.time_field)}) FROM ({src})").fetchone()
     versions = con.execute(f"SELECT count(*) FROM ({versions_sql(data_dir, table)})").fetchone()[0] \
         if table.versioned else None
-    return TableStats(rows, first, last, types, len(partitions(data_dir, table)), versions)
+    return TableStats(rows, first, last, types, len(files), versions)

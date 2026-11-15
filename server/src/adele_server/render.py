@@ -31,6 +31,12 @@ APPEND_ONLY = ("append-only: every version of each row is kept. <table> shows th
                "of the next version, null on the latest. `adele query --as-of <time>` shows "
                "the tables as adele held them at that time.")
 BACKFILLED = "rows fetched before were backfilled: their fetched_at is the time of the backfill, not of the publication"
+CONVENTIONS_PERIODS = (" A table with delivery_date, delivery_month or delivery_year holds values over a calendar day, "
+                       "month or year in the zone that its card names (timezone), not in UTC; a month and a year are "
+                       "stored as their first day. It has no resolution: a local day lasts 23 to 25 hours. To join it "
+                       "with a table in UTC, use the expression under `join` of its table.")
+CONVENTIONS_WHOLE = (" A table without a time column (e.g. a list of stations) holds what the source delivers now: "
+                     "each fetch replaces it whole, and a row that the source drops goes.")
 
 
 def versions_since_line(st: dict) -> str:
@@ -38,11 +44,37 @@ def versions_since_line(st: dict) -> str:
     return f"{ts(since)} ({BACKFILLED})" if since else "not yet: no scheduled run so far, as_of is refused"
 
 
-def ts(v: dt.datetime | None, minutes: bool = True) -> str | None:
+def ts(v: dt.datetime | dt.date | None, minutes: bool = True) -> str | None:
     if v is None:
         return None
+    if not isinstance(v, dt.datetime):  # the date of a calendar period (D26)
+        return v.isoformat()
     v = v.astimezone(dt.timezone.utc)
     return v.strftime("%Y-%m-%d %H:%MZ" if minutes else "%Y-%m-%d %H:%M:%SZ")
+
+
+def period_str(v: dt.date | None, period: str) -> str | None:
+    """A calendar period as people write it: 2026-03-29, 2026-03 or 2026."""
+    return v.strftime({"day": "%Y-%m-%d", "month": "%Y-%m", "year": "%Y"}[period]) if v is not None else None
+
+
+_JOIN_EXAMPLE = {  # a period, and the plain filter on u that covers it padded by a day
+    "day": ("2026-03-29", "u >= '2026-03-28' AND u < '2026-03-31'"),
+    "month": ("March 2026", "u >= '2026-02-28' AND u < '2026-04-02'"),
+    "year": ("2026", "u >= '2025-12-31' AND u < '2027-01-02'"),
+}
+
+
+def join_text(t: Table) -> str:
+    """How to match a UTC timestamp to a row of a table by calendar period (D26)."""
+    z, c, p = t.timezone, t.time_field, t.period
+    period, plain = _JOIN_EXAMPLE[p]
+    text = (f"To match a UTC timestamp u of another table (its delivery_start or valid_at) to a row: "
+            f"date_trunc('{p}', u AT TIME ZONE '{z}') = {c}. Add a plain filter on u, the period padded by a day "
+            f"(for {period}: {plain}), so that DuckDB skips the files outside it.")
+    if z != "UTC":
+        text += f" Without AT TIME ZONE, the hours between midnight UTC and midnight in {z} go to the wrong {p}."
+    return text
 
 
 # --- computed facts per table, cached until a partition file changes -------------------------
@@ -56,7 +88,7 @@ class TableFacts:
 _cache: dict[tuple, TableFacts] = {}
 
 
-def table_facts(data_dir: Path, t: Table, declared_resolution: list[dict]) -> TableFacts:
+def table_facts(data_dir: Path, t: Table) -> TableFacts:
     files = storage.partitions(data_dir, t)
     key = (t.sql_name, tuple((p.name, p.stat().st_mtime_ns) for p in files))
     if key in _cache:
@@ -64,13 +96,13 @@ def table_facts(data_dir: Path, t: Table, declared_resolution: list[dict]) -> Ta
     con = storage.connect()
     try:
         stats = storage.table_stats(con, data_dir, t)
-        if t.is_instant:
-            periods = []  # values at instants: no resolution
+        if t.time_field != DELIVERY_FIELD:
+            periods = []  # instants, calendar periods, no time column: no resolution
         elif "resolution" in t.field_names and stats.rows:
             periods = resolution_periods(con, data_dir, t)
         else:
             periods = [{"series": None, "resolution": r["value"], "first": r["from"], "last": None}
-                       for r in declared_resolution]
+                       for r in t.resolution]
     finally:
         con.close()
     if len(_cache) > 256:
@@ -145,16 +177,31 @@ def render_list(cfg: Config, catalog: dict[str, Dataset]) -> str:
     lines = ["id | title | resolution | coverage (UTC, first and last interval start) | status"]
     for ds in catalog.values():
         st = state.load(cfg.data_dir, ds.id)
-        res, cov = set(), []
+        res, cov, whole_rows = set(), {}, 0
         for t in ds.tables.values():
-            f = table_facts(cfg.data_dir, t, ds.resolution)
-            res |= {p["resolution"] for p in f.periods if p["resolution"]} | ({"instants"} if t.is_instant else set())
-            if f.stats.first:
-                cov.append(window_range(cfg.data_dir, t, ds.window)[:2] if ds.window != DELIVERY_FIELD
-                           else (f.stats.first, f.stats.last))
-        coverage = f"{ts(min(c[0] for c in cov))} .. {ts(max(c[1] for c in cov))}" if cov else "no data"
-        if cov and ds.window != DELIVERY_FIELD:
-            coverage = f"{ds.window} {coverage}"
+            f = table_facts(cfg.data_dir, t)
+            if t.is_instant:
+                res.add("instants")
+            elif t.period:
+                res.add(f"calendar {t.period} ({t.timezone})")
+            elif not t.has_time:
+                res.add("no time column")
+            else:
+                res |= {p["resolution"] for p in f.periods if p["resolution"]}
+            if not t.has_time:
+                whole_rows += f.stats.rows
+            elif f.stats.first is not None:  # one coverage per window column (and zone, for a date)
+                rng = (window_range(cfg.data_dir, t, t.window)[:2] if t.window != t.time_field
+                       else (f.stats.first, f.stats.last))
+                cov.setdefault((t.window, t.period if t.window_is_date else None, t.timezone), []).append(rng)
+        parts = []
+        for (col, period, tz), rs in cov.items():
+            lo, hi = min(r[0] for r in rs), max(r[1] for r in rs)
+            parts.append(f"{col} {period_str(lo, period)} .. {period_str(hi, period)} ({tz})" if period else
+                         ("" if col == DELIVERY_FIELD else f"{col} ") + f"{ts(lo)} .. {ts(hi)}")
+        if not parts and whole_rows:
+            parts.append(f"no time column, {whole_rows:,} rows")
+        coverage = "; ".join(parts) or "no data"
         lines.append(f"{ds.id} | {ds.title} | {', '.join(sorted(res)) or '?'} | {coverage} | {st.get('status')}")
     return "\n".join(lines) + "\n"
 
@@ -192,12 +239,14 @@ def describe_dict(cfg: Config, ds: Dataset) -> dict:
         card["problems"] = st["problems"]
     eta = state.next_fetch_eta(st, ds.refresh.every)
     pieces = f", in pieces of {iso_duration(ds.refresh.max_window)}" if ds.refresh.max_window else ""
+    every = f"every {iso_duration(ds.refresh.every)}"
     card["freshness"] = {
         "last_fetched_at": ts(st.get("last_fetched_at")),
         "last_changed_at": ts(st.get("last_changed_at")),
         "next_fetch_eta": ts(eta) if eta else "on the next scheduled run",
-        "refresh": f"every {iso_duration(ds.refresh.every)}, window on {ds.window} [last scheduled run - "
-                   f"{iso_duration(ds.refresh.lookback)}, now + {iso_duration(ds.refresh.horizon)}){pieces}",
+        "refresh": (f"{every}, window on {', '.join(ds.windows)} [last scheduled run - "
+                    f"{iso_duration(ds.refresh.lookback)}, now + {iso_duration(ds.refresh.horizon)}){pieces}"
+                    if ds.windows else f"{every}, each fetch replaces every table whole"),
     }
     card["revisions"] = {"overwrite": "only the latest value of each row is kept",
                          "none": "rows never change once stored (each is fetched once)",
@@ -206,14 +255,17 @@ def describe_dict(cfg: Config, ds: Dataset) -> dict:
         card["versions_since"] = versions_since_line(st)
     if ds.checks:
         card["published_figures"] = published_figures_line(ds, st)
-    card["conventions"] = CONVENTIONS + (CONVENTIONS_INSTANTS if any(t.is_instant for t in ds.tables.values()) else "")
+    shapes = ds.tables.values()
+    card["conventions"] = (CONVENTIONS + (CONVENTIONS_INSTANTS if any(t.is_instant for t in shapes) else "")
+                           + (CONVENTIONS_PERIODS if any(t.period for t in shapes) else "")
+                           + (CONVENTIONS_WHOLE if any(not t.has_time for t in shapes) else ""))
     if ds.warnings:
         card["warnings"] = ds.warnings
     tables = []
     con = storage.connect()
     try:
         for t in ds.tables.values():
-            facts = table_facts(cfg.data_dir, t, ds.resolution)
+            facts = table_facts(cfg.data_dir, t)
             entry: dict = {"table": t.sql_name, "grain": f"one row per ({', '.join(t.primary_key)})",
                            "rows": facts.stats.rows}
             if t.versioned:
@@ -221,16 +273,33 @@ def describe_dict(cfg: Config, ds: Dataset) -> dict:
                                      f"key ({', '.join(t.primary_key)}, {VERSION_FIELD})")
             if t.description:
                 entry["description"] = t.description.strip()
-            what = "first and last valid_at" if t.is_instant else "first and last interval start"
-            entry["coverage"] = (f"{ts(facts.stats.first)} .. {ts(facts.stats.last)} ({what})"
-                                 if facts.stats.first else "no data")
-            if ds.window != DELIVERY_FIELD and facts.stats.rows:
-                lo, hi, n = window_range(cfg.data_dir, t, ds.window)
-                entry[f"{ds.window} coverage"] = f"{ts(lo)} .. {ts(hi)} ({n} distinct values)"
-            entry["resolution"] = "none: values at instants (valid_at)" if t.is_instant else [
-                (f"{p['series']}: " if p["series"] else "") + f"{p['resolution']} "
-                + (f"{ts(p['first'])} .. {ts(p['last'])}" if isinstance(p["first"], dt.datetime) else f"from {p['first']}")
-                for p in facts.periods] or "not declared"
+            if not t.has_time:  # D22: the row count and the time of the last change, in place of a coverage
+                entry["coverage"] = (f"no time column: the whole table as the source delivers it; last changed "
+                                     f"{ts(facts.stats.changed_at)}" if facts.stats.changed_at else "no data")
+            elif t.period:
+                entry["coverage"] = (f"{period_str(facts.stats.first, t.period)} .. {period_str(facts.stats.last, t.period)}"
+                                     f" (first and last {t.time_field}, in {t.timezone})"
+                                     if facts.stats.first else "no data")
+            else:
+                what = "first and last valid_at" if t.is_instant else "first and last interval start"
+                entry["coverage"] = (f"{ts(facts.stats.first)} .. {ts(facts.stats.last)} ({what})"
+                                     if facts.stats.first else "no data")
+            if t.window and t.window != t.time_field and facts.stats.rows:
+                lo, hi, n = window_range(cfg.data_dir, t, t.window)
+                entry[f"{t.window} coverage"] = f"{ts(lo)} .. {ts(hi)} ({n} distinct values)"
+            if t.is_instant:
+                entry["resolution"] = "none: values at instants (valid_at)"
+            elif t.period:
+                entry["resolution"] = (f"none: one row per calendar {t.period} in {t.timezone} ({t.time_field}"
+                                       + (", stored as its first day)" if t.period != "day" else ")"))
+                entry["timezone"] = t.timezone
+                entry["join"] = join_text(t)
+            elif t.has_time:
+                entry["resolution"] = [
+                    (f"{p['series']}: " if p["series"] else "") + f"{p['resolution']} "
+                    + (f"{ts(p['first'])} .. {ts(p['last'])}" if isinstance(p["first"], dt.datetime)
+                       else f"from {p['first']}")
+                    for p in facts.periods] or "not declared"
             fields = []
             for f in t.fields:
                 fe: dict = {"name": f["name"],
@@ -246,8 +315,9 @@ def describe_dict(cfg: Config, ds: Dataset) -> dict:
                 fields.append(fe)
             entry["fields"] = fields
             if facts.stats.rows:
+                order = ", ".join(ident(c) for c in ([t.time_field] if t.has_time else t.primary_key))
                 cur = con.execute(f"SELECT * FROM ({storage.select_sql(cfg.data_dir, t)}) "
-                                  f"USING SAMPLE reservoir(5 ROWS) REPEATABLE (42) ORDER BY {ident(t.time_field)}")
+                                  f"USING SAMPLE reservoir(5 ROWS) REPEATABLE (42) ORDER BY {order}")
                 cols = [d[0] for d in cur.description]
                 entry["sample_rows"] = to_csv(cols, [[engine.to_json(v) for v in r] for r in cur.fetchall()])
             tables.append(entry)
@@ -307,12 +377,17 @@ def merged_descriptor(cfg: Config, ds: Dataset) -> dict:
     tables = {}
     for res in d.get("resources", []):
         t = ds.tables[res["name"]]
-        facts = table_facts(cfg.data_dir, t, ds.resolution)
+        facts = table_facts(cfg.data_dir, t)
         for f in res["schema"]["fields"]:
             f["duckdb_type"] = facts.stats.duckdb_types.get(f["name"])
-        tables[t.name] = {"rows": facts.stats.rows, "coverage": [ts(facts.stats.first, False), ts(facts.stats.last, False)],
-                          "resolution_periods": [{**p, "first": ts(p["first"], False) if isinstance(p["first"], dt.datetime)
-                                                  else str(p["first"]), "last": ts(p["last"], False)} for p in facts.periods]}
+        tables[t.name] = {"rows": facts.stats.rows}
+        if t.has_time:
+            tables[t.name]["coverage"] = [ts(facts.stats.first, False), ts(facts.stats.last, False)]
+        else:
+            tables[t.name]["last_changed_at"] = ts(facts.stats.changed_at, False)
+        tables[t.name]["resolution_periods"] = [  # empty for instants, calendar periods, no time column
+            {**p, "first": ts(p["first"], False) if isinstance(p["first"], dt.datetime) else str(p["first"]),
+             "last": ts(p["last"], False)} for p in facts.periods]
         if t.versioned:
             tables[t.name]["versions"] = facts.stats.versions
     computed["tables"] = tables
@@ -341,9 +416,7 @@ def query_footer(cfg: Config, catalog: dict[str, Dataset], datasets: list[str], 
         st = state.load(cfg.data_dir, ds.id)
         units = ", ".join(dict.fromkeys(f"{k.split('.', 1)[1]} {v}" for k, v in ds.units().items())) or "none declared"
         many = len(ds.tables) > 1
-        res = "; ".join((f"{t.name} " if many else "") + ("instants (valid_at)" if t.is_instant else
-                        resolution_summary(table_facts(cfg.data_dir, t, ds.resolution).periods))
-                        for t in ds.tables.values())
+        res = "; ".join((f"{t.name} " if many else "") + table_resolution(cfg.data_dir, t) for t in ds.tables.values())
         lines.append(f"-- {ds.id}: units: {units}. resolution: {res}. status {st.get('status')}, "
                      f"last fetched {ts(st.get('last_fetched_at')) or 'never'}.")
         if ds.revisions == "append-only" and (as_of or ds.id in versions):
@@ -351,6 +424,17 @@ def query_footer(cfg: Config, catalog: dict[str, Dataset], datasets: list[str], 
             lines.append(f"-- {ds.id}: {head}versions since {versions_since_line(st)}.")
         lines += [f"-- warning ({ds.id}): {w}" for w in ds.warnings]
     return "\n".join(lines) + ("\n" if lines else "")
+
+
+def table_resolution(data_dir: Path, t: Table) -> str:
+    """The resolution of a table in the footer: periods, instants, a calendar period, or no time column."""
+    if t.is_instant:
+        return "instants (valid_at)"
+    if t.period:
+        return f"calendar {t.period} in {t.timezone} ({t.time_field})"
+    if not t.has_time:
+        return "no time column"
+    return resolution_summary(table_facts(data_dir, t).periods)
 
 
 def render_query(result: QueryResult, footer: str) -> str:

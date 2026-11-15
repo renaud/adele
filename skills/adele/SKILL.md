@@ -39,6 +39,13 @@ and the server checks what the card states (key, codes, types, example queries) 
   different resolutions fall into one aggregate, a plain `avg` gives the shorter intervals more
   weight. Decide whether to weight by duration (`epoch(resolution)`), and tell the user which
   you chose.
+- A table with `delivery_date`, `delivery_month` or `delivery_year` holds calendar days, months
+  or years in the zone that its card names, not in UTC. It has no resolution: a local day lasts
+  23 to 25 hours, a month 28 to 31 days, so `epoch(resolution)` doesn't apply. To join it with
+  a table in UTC, copy the `join` expression of its card; without the zone, hours fall into the
+  wrong day.
+- A table without a time column (a list of stations, a register) holds what the source
+  delivers now: a row that the source dropped is gone.
 - Results are capped (the result says "showing N of M rows"). Aggregate in SQL instead of
   reading rows.
 - If the status is not `ok`, tell the user and quote the problems: the data may be incomplete.
