@@ -97,12 +97,12 @@ Next, state at the end of 2026-11-15:
   (raw answers G4, whole files G6, who takes over from the poller), and the Swissgrid poller
   keeps every version meanwhile. During WP1's week: WP5 on the Mac (27 datasets that fit
   today, ENTSO-E first), installed on steacher1 after 2026-11-22.
-- `PLAN.md`, the table "Order and state" is out of date (Renaud edits it): WP1 steps 0-5
-  done, the week runs until 2026-11-22, step 6 waits for the port; WP3 built on the branch
-  `wp3` (D30), lands after WP1's week, then 1-2 days of fetches on steacher1.
-- `main` holds code that steacher1 doesn't run since 72f2b1a (D31). A WP1 fix now comes from
-  a branch made at 32237db (`WP1-server-on-steacher1.md`). `wp3` will conflict with `main` in
-  `DECISIONS.md` (D30 and D31 both at the end): keep both, D30 first.
+- `PLAN.md`, the table "Order and state": updated on 2026-11-15 by Claude at Renaud's request
+  (WP1 steps 0-5 done, the week runs until 2026-11-22, step 6 waits for the port; WP3 in
+  `main`, then 1-2 days of fetches on steacher1 once WP1 is done, V1 below).
+- `main` holds code that steacher1 doesn't run since 72f2b1a (D31), and WP3 (D30) since its
+  landing on 2026-11-15 (Renaud relaxed "after the week"). A WP1 fix now comes from a branch
+  made at 32237db (`WP1-server-on-steacher1.md`).
 
 Next for Claude (decided 2026-11-14, not built):
 
