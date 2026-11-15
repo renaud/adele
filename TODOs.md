@@ -210,6 +210,13 @@ Other V0 items:
 
 ## V1
 
+- WP3 on steacher1, once WP1 is done (WP3 lands in `main` on 2026-11-15: Renaud relaxed the
+  rule "after the week" of the WP1 doc): pull the code onto steacher1 (`/opt/adele`), install
+  `datasets/entsoe_load` with its timer, backfill it from 2015, let it fetch for 1-2 days
+  (Renaud: "we won't wait a week, just 1-2 days"), then check `describe` (`versions_since`, the
+  count of versions), the 50 checks, and a query with `--as-of` before the last fetch. If
+  ENTSO-E revised a value in those days, the old value must come back with that `--as-of`
+  (`docs/work-packages/WP3-versions.md`, step 4).
 - `describe`: distinct values of categorical columns (column profiles), and `adele search`
   to resolve names to codes (zones, production types). See docs/agentic-data-layers.md.
 - QA: 20 to 40 questions with known answers, rerun when a descriptor or the skill changes.

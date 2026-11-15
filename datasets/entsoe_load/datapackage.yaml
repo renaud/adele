@@ -80,8 +80,10 @@ adele:
       hour by hour by up to 1 GW. Where the level matters, use the Energy Statistic.
     - >-
       CH: the actual load jumps by about +350 MW on average at 2025-01-01, where ENTSO-E changed
-      the stamps (no value at 2024-12-31 22:00 UTC). From January to August 2023 the one-hour
-      move could not be checked against the Energy Statistic; it is assumed.
+      the stamps (no value at 2024-12-31 22:00 UTC). From January to August 2023 the actual load
+      follows the Energy Statistic at no offset (correlation of hourly changes 0.25 or less,
+      monthly median gap 380 to 590 MW): it is not the measured load then, and the one-hour move
+      of those months is assumed, as for the rest of the time before 2025.
     - >-
       CH: the actual load has stretches far below the forecast, as published: 3,747 MW repeated
       from 2023-02-16 23:00 to 2023-02-17 08:00 UTC, about 3,000 MW from 2024-12-04 23:00 to

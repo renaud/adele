@@ -7,10 +7,12 @@ and `docs/datasets-inventory.md` (gap G3). Renaud's answers of 2026-11-15 are in
 ## Where WP3 stands (2026-11-15)
 
 - Built in the worktree `wp3` (branch `wp3`, from `880da30`), with tests on synthetic data,
-  layout c included. Decision D30 in `DECISIONS.md`. Not merged into `main`: WP1 runs its week
-  on `main`, and WP3 reaches steacher1 only once WP1 is done.
-- Step 4 (the first real dataset): the measure of the corrections and the descriptor come
-  first, on the Mac; the backfill and 1-2 days of fetches on steacher1 wait for the end of WP1.
+  layout c included. Decision D30 in `DECISIONS.md`. Lands in `main` on 2026-11-15, during
+  WP1's week (Renaud relaxed the rule of the WP1 doc); WP3 reaches steacher1 only once WP1 is
+  done.
+- Step 4 (the first real dataset): `datasets/entsoe_load`, measured, backfilled on the Mac,
+  50 published figures as checks. The backfill and 1-2 days of fetches on steacher1 wait for
+  the end of WP1 (`TODOs.md`, V1).
 
 ## Goal
 
@@ -164,8 +166,9 @@ in the merge; switching from a to c now costs only code, because no real dataset
    - QA (2026-11-15, instead of Renaud checking the examples): `checks.yaml` with 50 published
      figures, all reproduced (ENTSO-E Statistical Factsheets 2019-2025, Kazmi & Tao 2022,
      Tzortzis et al. 2023); the figures left out and why: `qa/published_figures_entsoe_load.md`.
-   - To do: open questions 1 and 2 (they change stored values, so before the backfill on
-     steacher1), then the backfill and 1-2 days of fetches once WP1 is done.
+   - To do once WP1 is done: the backfill and 1-2 days of fetches on steacher1 (`TODOs.md`, V1).
+   - Landing in `main`: Renaud relaxed the rule of the WP1 doc ("WP3 lands in `main` after the
+     week") on 2026-11-15; WP3 still reaches steacher1 only once WP1 is done.
 
 ## How late ENTSO-E corrects the load (2026-11-15)
 
@@ -237,19 +240,21 @@ The list of `SPEC.md` also lacks `none` (D15).
 
 ## Open questions
 
-Both change the stamps of stored values, so they are decided before the backfill on steacher1
-(evidence: `qa/published_figures_entsoe_load.md`, "the timing of the forecast").
+None. The two questions on the stamps of `entsoe_load` were decided on 2026-11-15 (Renaud:
+"Okay with your defaults but compare first"; evidence in `qa/published_figures_entsoe_load.md`,
+"the timing of the forecast"):
 
-1. Move the forecast back one hour in 2015-2018, as the actual load? Its error is lowest with
-   that move in each of those years; the swissgrid project found it "about 1 h late" in 2015
-   and "not settled" in 2016-2021. Claude's recommendation: no, keep it as served with the
-   warning; the evidence is one criterion (the lowest error), and a forecast may lag for other
-   reasons.
-2. Keep the move of the actual load in January-August 2023? The swissgrid project assumed it
-   (no lag could be measured then); the forecast fits that actual load best one hour earlier,
-   with half the usual error, which fits better if the actual is not moved in those months.
-   Claude's recommendation: keep it for now, as the swissgrid project did, and look at the
-   Energy Statistic of 2023 once more before the backfill.
+1. The forecast is not moved in 2015-2018, although its error is lowest with a move of one
+   hour in those years: one criterion, and a forecast may lag for other reasons. A warning says
+   so.
+2. The actual load keeps the move of one hour in January-August 2023, one rule for the whole
+   time before 2025. The comparison with Swissgrid's Energy Statistic (hourly changes, by
+   month) can't decide it: the actual load matches the statistic one hour later in July-December
+   2022 and January-March 2024 (correlation 0.99 to 1.00, levels within 31 MW) and in
+   September-December 2023 (0.82 to 0.94), but at no offset in January-August 2023
+   (correlation 0.25 or less, levels 380 to 590 MW apart): it is not the measured load then.
+   The forecast never matches the statistic well (0.12 to 0.32 from 2023), so it can't decide
+   either.
 
 ## Log
 
