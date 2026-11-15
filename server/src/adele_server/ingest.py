@@ -19,13 +19,13 @@ import subprocess
 import sys
 import tempfile
 from contextlib import contextmanager
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 
 import duckdb
 
-from . import checks, state, storage
-from .catalog import Dataset, Table, category_values
+from . import checks, raw, state, storage
+from .catalog import VERSION_FIELD, Dataset, Table, category_values
 from .config import Config
 from .storage import ident
 
@@ -68,6 +68,8 @@ class Outcome:
     problems: list[str] | None = None
     error: str | None = None
     pieces: int = 1  # a scheduled window longer than adele.refresh.max_window is fetched in pieces
+    answers: int = 0  # adele.raw: keep: the answers that download() yielded
+    answers_kept: int = 0  # of those, the ones that differ from the last kept answer of their name
 
 
 EPSILON = dt.timedelta(microseconds=1)  # DuckDB's timestamp resolution: (a, b) = [a + EPSILON, b)
@@ -126,7 +128,7 @@ def fetch_env(ds: Dataset) -> dict[str, str]:
 
 
 def call_fetch(ds: Dataset, windows: list[tuple], timeout_s: float, workdir: Path,
-               runner_dir: Path | None = None) -> dict[str, list[Path]]:
+               runner_dir: Path | None = None, raw_dir: Path | None = None) -> dict[str, list[Path]]:
     """Run fetch(start, end) on each window in one child process, and stop it at the time limit.
 
     A hung source (e.g. an HTTP request without a timeout) would otherwise hold the dataset's
@@ -139,10 +141,38 @@ def call_fetch(ds: Dataset, windows: list[tuple], timeout_s: float, workdir: Pat
     {table: [paths]}, "_" for a fetch that returns one table.
 
     `runner_dir`: where the runner of a script is written (see runner_dir()); None: in `workdir`.
+    `raw_dir`: for a dataset with adele.raw: keep, the child calls download(start, end) and
+    writes each answer there as soon as it comes (raw.ANSWERS lists them), then parse(answers).
     """
+    windows_json = json.dumps([[s.isoformat(), e.isoformat()] for s, e in windows])
+    mode = ["download", str(raw_dir)] if raw_dir is not None else ["fetch"]
+    return _call_runner(ds, [windows_json, *mode], timeout_s, workdir, runner_dir)
+
+
+def call_parse(ds: Dataset, groups: list[list[raw.Answer]], timeout_s: float, workdir: Path,
+               runner_dir: Path | None = None) -> tuple[dict[str, list[Path]], dict[int, str]]:
+    """Run parse(answers) on each group of kept answers in one child process (import_answers):
+    the tables of group i come back as `<table>.<i>.parquet`, as for the windows of call_fetch.
+    A group whose parse failed comes back in the second dict, group --> error; its files, if
+    any, are to be ignored."""
+    spec = workdir / "groups.json"
+    spec.write_text(json.dumps([[{"name": a.name, "url": a.url, "received_at": a.received_at.isoformat(),
+                                  "path": str(a.path.resolve())} for a in g] for g in groups]))
+    files = _call_runner(ds, [str(spec), "parse"], timeout_s, workdir, runner_dir)
+    errors_path = workdir / "out" / "errors.jsonl"
+    errors = {}
+    if errors_path.exists():
+        for line in errors_path.read_text().splitlines():
+            e = json.loads(line)
+            errors[e["group"]] = e["error"]
+    return files, errors
+
+
+def _call_runner(ds: Dataset, rest: list[str], timeout_s: float, workdir: Path,
+                 runner_dir: Path | None) -> dict[str, list[Path]]:
     out = workdir / "out"
     out.mkdir()
-    args = [str(ds.folder / "fetch.py"), json.dumps([[s.isoformat(), e.isoformat()] for s, e in windows]), str(out)]
+    args = [str(ds.folder / "fetch.py"), rest[0], str(out), *rest[1:]]
     if ds.script_metadata is not None:
         uv = shutil.which("uv")
         if uv is None:
@@ -161,10 +191,18 @@ def call_fetch(ds: Dataset, windows: list[tuple], timeout_s: float, workdir: Pat
 
 # The runner calls fetch(start, end) on each window and writes each table with DuckDB, which
 # keeps the types (timezone-aware timestamps, durations as INTERVAL) without pyarrow.
+# Arguments: fetch.py, the windows (JSON), the output folder, then the mode:
+# - fetch (or none): fetch(start, end) per window.
+# - download <raw folder>: per window, download(start, end), each answer written to the raw
+#   folder as it comes (the body, then its line in answers.jsonl), then parse(answers) (D33).
+# - parse: the second argument is a JSON file of groups of kept answers; parse(answers) per group.
 _RUNNER_BODY = """
 import datetime as dt
+import gzip
 import importlib.util
 import json
+import os
+import re
 import sys
 
 import duckdb
@@ -172,19 +210,64 @@ import duckdb
 spec = importlib.util.spec_from_file_location("adele_fetch", sys.argv[1])
 module = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(module)
-windows = [tuple(dt.datetime.fromisoformat(x) for x in w) for w in json.loads(sys.argv[2])]
 out = sys.argv[3]
+mode = sys.argv[4] if len(sys.argv) > 4 else "fetch"
 con = duckdb.connect()
 con.execute("SET TimeZone = 'UTC'")
-for i, (start, end) in enumerate(windows):
-    result = module.fetch(start, end)
+NAME = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,199}$")
+
+
+def write(i, result, nothing):
     if result is None:
-        raise RuntimeError(f"fetch returned nothing for [{start}, {end})")
+        raise RuntimeError(nothing)
     tables = result if isinstance(result, dict) else {"_": result}
     for name, frame in tables.items():
         con.register("frame", frame)
         con.execute(f"COPY frame TO '{out}/{name}.{i}.parquet' (FORMAT parquet)")
         con.unregister("frame")
+
+
+def download(i, start, end, folder):
+    answers = []
+    for k, a in enumerate(module.download(start, end)):
+        if not isinstance(a, dict) or not isinstance(a.get("body"), (bytes, bytearray)) \\
+                or not isinstance(a.get("name"), str) or not NAME.fullmatch(a["name"]):
+            raise RuntimeError("download must yield dicts with name (a file name), body (bytes) and url")
+        received = dt.datetime.now(dt.timezone.utc)
+        body = bytes(a["body"])
+        file = f"{i}.{k}.body"
+        with open(os.path.join(folder, file), "wb") as fh:
+            fh.write(body)
+        line = {"name": a["name"], "url": a.get("url"), "received_at": received.isoformat(), "file": file}
+        with open(os.path.join(folder, "answers.jsonl"), "a") as fh:
+            fh.write(json.dumps(line) + "\\n")
+        answers.append({"name": a["name"], "url": a.get("url"), "body": body, "received_at": received})
+    return answers
+
+
+if mode == "parse":
+    with open(sys.argv[2]) as fh:
+        groups = json.load(fh)
+    for i, group in enumerate(groups):  # a group that fails goes to errors.jsonl, and the next one is parsed
+        try:
+            answers = []
+            for a in group:
+                with open(a["path"], "rb") as fh:
+                    body = fh.read()
+                answers.append({"name": a["name"], "url": a["url"],
+                                "received_at": dt.datetime.fromisoformat(a["received_at"]),
+                                "body": gzip.decompress(body) if a["path"].endswith(".gz") else body})
+            write(i, module.parse(answers), "parse returned nothing")
+        except Exception as e:
+            with open(os.path.join(out, "errors.jsonl"), "a") as fh:
+                fh.write(json.dumps({"group": i, "error": f"{type(e).__name__}: {e}"}) + "\\n")
+else:
+    windows = [tuple(dt.datetime.fromisoformat(x) for x in w) for w in json.loads(sys.argv[2])]
+    for i, (start, end) in enumerate(windows):
+        if mode == "download":
+            write(i, module.parse(download(i, start, end, sys.argv[5])), f"parse returned nothing for [{start}, {end})")
+        else:
+            write(i, module.fetch(start, end), f"fetch returned nothing for [{start}, {end})")
 """
 RUNNER_DEPS = ("pandas>=2.2", "duckdb>=2.0")
 
@@ -448,6 +531,8 @@ def scheduled_fetch(cfg: Config, catalog: dict[str, Dataset], ds: Dataset, now: 
             out.rows_changed += o.rows_changed
             out.partitions_written += o.partitions_written
             out.windows_fetched += o.windows_fetched
+            out.answers += o.answers
+            out.answers_kept += o.answers_kept
             if len(todo) > 1:
                 log.info("scheduled %s piece %d of %d [%s, %s): ok=%s rows=%s changed=%s %s", ds.id, i + 1,
                          len(todo), s, e, o.ok, o.rows, o.rows_changed, o.error or "")
@@ -511,7 +596,7 @@ def _fetch_merge(cfg: Config, ds: Dataset, st: dict, start: dt.datetime, end: dt
         out.windows_fetched = len(windows)
         if windows:
             fixed = runner_dir(cfg, ds) if ds.script_metadata is not None else None
-            batches = _as_tables(ds, call_fetch(ds, windows, time_limit(cfg, ds), Path(workdir.name), fixed))
+            batches = _as_tables(ds, _call_keeping_raw(cfg, ds, windows, Path(workdir.name), fixed, out))
             # append-only: the time at which adele had these values, the same for every table of
             # this call (D30). Not the start of the run: a source may publish a value while it runs.
             fetched_at = dt.datetime.now(UTC)
@@ -656,6 +741,36 @@ def _as_tables(ds: Dataset, files: dict[str, list[Path]]) -> dict[str, list[Path
     return files
 
 
+def _call_keeping_raw(cfg: Config, ds: Dataset, windows: list[tuple], workdir: Path, fixed: Path | None,
+                      out: Outcome) -> dict[str, list[Path]]:
+    """call_fetch; with adele.raw: keep, the answers that download() yielded then go to the archive
+    (raw.py), also when the child failed: a parse that raised, the time limit, a signal (D33).
+
+    A failure to keep them fails the fetch, with the error of the child first if there was one.
+    Except after a signal: the fetch is then recorded as interrupted, and the failure is logged."""
+    if not ds.keeps_raw:
+        return call_fetch(ds, windows, time_limit(cfg, ds), workdir, fixed)
+    folder = workdir / "raw"
+    folder.mkdir()
+    failure: BaseException | None = None
+    try:
+        return call_fetch(ds, windows, time_limit(cfg, ds), workdir, fixed, raw_dir=folder)
+    except BaseException as e:
+        failure = e
+        raise
+    finally:
+        try:
+            out.answers, out.answers_kept = raw.keep_work_answers(cfg.data_dir, ds.id, folder)
+        except Exception as e:  # noqa: BLE001 - not keeping an answer is a failure of the fetch
+            log.exception("%s: the raw answers were not kept", ds.id)
+            why = f"the raw answers were not kept: {type(e).__name__}: {e}"
+            if failure is None:
+                raise FetchError(why) from e  # noqa: B012 - replaces the result on purpose
+            # a signal (Interrupted) or Ctrl-C / exit (not an Exception) keeps its meaning: only logged
+            if isinstance(failure, Exception) and not isinstance(failure, Interrupted):
+                raise FetchError(f"{failure}; and {why}") from e  # noqa: B012
+
+
 def _window_filter(t: Table, s: dt.datetime, e: dt.datetime) -> str:
     """The rows of `t` that belong to the window [s, e): a source may ignore the window, the server filters.
 
@@ -783,3 +898,129 @@ def backfill(cfg: Config, catalog: dict[str, Dataset], ds: Dataset, start: dt.da
         reached = end >= now and len(failed) < len(outcomes)
         _recheck(cfg, catalog, ds, backfill=(start, now, reached, attempt_before))
     return outcomes
+
+
+@dataclass
+class Imported:
+    answers: int = 0  # found in the folder
+    skipped: int = 0  # older than the newest stored version: imported before
+    groups: int = 0  # merged: the answers received at the same time are parsed together
+    kept: int = 0  # added to the raw archive
+    rows: int = 0
+    rows_changed: int = 0
+    first: dt.datetime | None = None
+    last: dt.datetime | None = None
+    failed: list[tuple[dt.datetime, list[Path], str]] = field(default_factory=list)  # (received_at, files, error)
+    problems: list[str] | None = None
+
+
+def import_answers(cfg: Config, catalog: dict[str, Dataset], ds: Dataset, folder: Path) -> Imported:
+    """Parse answers that another program kept (the Swissgrid poller), or an archive of adele, as
+    if adele had fetched each one at the time it was received (WP4, point 8; D33).
+
+    In time order, each group of answers received at the same time is parsed by the dataset's
+    parse(), kept in the raw archive, and merged as a version stamped with that time. Each group
+    keeps the rows of the window that a scheduled run at that time would have had:
+    [received - every - lookback, received + horizon). A group whose parse or schema check fails
+    is kept in the archive, listed in `failed`, and not merged; the next groups go on.
+
+    The dataset must keep raw answers and be `append-only`. Refused once a scheduled run has
+    happened, and when the dataset holds versions that adele fetched (a backfill, a fetch with
+    --start or --end): the stamps of an import must come before adele's own. An import that
+    stopped can be run again: `imported` in state.json, written before each group is merged,
+    holds the first and last time imported. The answers older than the newest stored version are
+    skipped; the group of that version is merged again, since a hard stop may have left it in
+    part (merge_versions with `resume`). `versions_since` becomes the time of the first group
+    merged (unless set).
+    """
+    if not ds.keeps_raw:
+        raise FetchError(f"{ds.id}: an import needs adele.raw: keep (the answers are read by its parse())")
+    if ds.revisions != "append-only":
+        raise FetchError(f"{ds.id}: an import needs revisions: append-only (each answer becomes a version)")
+    folder = Path(folder).resolve()
+    res = Imported()
+    with dataset_lock(cfg.data_dir, ds.id):
+        st = state.load(cfg.data_dir, ds.id)
+        if st.get("last_scheduled_at"):
+            raise FetchError(f"{ds.id}: scheduled runs have started (last_scheduled_at {st['last_scheduled_at']}): "
+                             "an import comes before the first one")
+        newest = _newest_version(cfg, ds)
+        done = dt.datetime.fromisoformat(st["imported"][1]) if st.get("imported") else None
+        if newest is not None and (done is None or newest > done):
+            raise FetchError(f"{ds.id}: the dataset holds versions that adele fetched (the newest at "
+                             f"{newest:%Y-%m-%d %H:%M:%S} UTC): an import goes into a dataset without stored "
+                             "rows, or goes on with an import that stopped")
+        answers = raw.find_answers(folder)
+        res.answers = len(answers)
+        todo = [a for a in answers if newest is None or a.received_at >= newest]
+        res.skipped = len(answers) - len(todo)
+        groups: list[list[raw.Answer]] = []
+        for a in todo:
+            if groups and groups[-1][0].received_at == a.received_at:
+                groups[-1].append(a)
+            else:
+                groups.append([a])
+        windows = [(g[0].received_at - ds.refresh.every - ds.refresh.lookback, g[0].received_at + ds.refresh.horizon)
+                   for g in groups]
+        if groups:
+            con = storage.connect()
+            workdir = tempfile.TemporaryDirectory(prefix=f"adele-import-{ds.id}-")
+            try:
+                for t in ds.tables.values():
+                    storage.check_layout(cfg.data_dir, t)
+                    storage.check_columns(con, cfg.data_dir, t)
+                fixed = runner_dir(cfg, ds) if ds.script_metadata is not None else None
+                parsed, errors = call_parse(ds, groups, cfg.fetch_timeout_s, Path(workdir.name), fixed)
+                files = _as_tables(ds, parsed) if parsed else {name: [] for name in ds.tables}
+                by_group = {name: {int(p.name.split(".")[1]): p for p in paths} for name, paths in files.items()}
+                arch, last = raw.archive_dir(cfg.data_dir, ds.id), {}
+                for i, g in enumerate(groups):
+                    if stopped():
+                        raise Interrupted(f"interrupted by {stopped()} after {res.groups} of {len(groups)} groups")
+                    at = g[0].received_at
+                    for a in g:
+                        res.kept += raw.keep(arch, a.name, a.url, raw.read_body(a), at, last)
+                    missing = [t.name for t in ds.tables.values() if i not in by_group[t.name]]
+                    error = errors.get(i) or (f"parse returned no table {missing}" if missing else None)
+                    if error is None:
+                        try:
+                            n = sum(_stage(con, t, [by_group[t.name][i]], windows) for t in ds.tables.values())
+                        except FetchError as e:  # the schema check of the parsed rows
+                            error = str(e)
+                    if error is not None:
+                        res.failed.append((at, [a.path for a in g], error))
+                        log.warning("import %s: answers received at %s not merged: %s", ds.id, at.isoformat(), error)
+                        continue
+                    st = state.load(cfg.data_dir, ds.id)  # written before the merge: a hard stop leaves it right
+                    st.setdefault("versions_since", at)
+                    st["imported"] = [(st.get("imported") or [at.isoformat()])[0], at.isoformat()]
+                    state.save(cfg.data_dir, ds.id, st)
+                    for t in ds.tables.values():
+                        m = storage.merge_versions(con, cfg.data_dir, t, f"_batch_{t.name}",
+                                                   fetched_at=at, resume=newest is not None and at == newest)
+                        res.rows_changed += m.rows_changed
+                    res.rows += n
+                    res.groups += 1
+                    res.first = res.first or at
+                    res.last = at
+            finally:
+                con.close()
+                workdir.cleanup()
+        res.problems = _recheck(cfg, catalog, ds)
+    return res
+
+
+def _newest_version(cfg: Config, ds: Dataset) -> dt.datetime | None:
+    """The latest fetched_at of the stored versions of an append-only dataset, or None."""
+    newest = None
+    con = storage.connect()
+    try:
+        for t in ds.tables.values():
+            if storage.partitions(cfg.data_dir, t):
+                v = con.execute(f"SELECT max({ident(VERSION_FIELD)}) FROM ({storage.versions_sql(cfg.data_dir, t)})"
+                                ).fetchone()[0]
+                if v is not None and (newest is None or v > newest):
+                    newest = v
+    finally:
+        con.close()
+    return newest

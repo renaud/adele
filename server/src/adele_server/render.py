@@ -13,7 +13,7 @@ from pathlib import Path
 
 import yaml
 
-from . import checks, engine, state, storage
+from . import checks, engine, raw, state, storage
 from .catalog import DELIVERY_FIELD, VERSION_FIELD, VERSIONS_SUFFIX, Dataset, Table, category_values
 from .config import Config
 from .engine import QueryResult, iso_duration
@@ -253,6 +253,14 @@ def describe_dict(cfg: Config, ds: Dataset) -> dict:
                          "append-only": APPEND_ONLY}.get(ds.revisions, ds.revisions)
     if ds.revisions == "append-only":
         card["versions_since"] = versions_since_line(st)
+        if st.get("imported"):
+            first, last = (dt.datetime.fromisoformat(x) for x in st["imported"])
+            card["imported"] = (f"the versions fetched from {ts(first)} to {ts(last)} were received by another "
+                                "program and imported with their time of reception")
+    if ds.keeps_raw:
+        s = raw.summary(cfg.data_dir, ds.id)
+        card["raw_answers"] = ("each answer of the source is kept as received, on the server only"
+                               + (f": from {s['first_day']} to {s['last_day']}" if s else ": none yet"))
     if ds.checks:
         card["published_figures"] = published_figures_line(ds, st)
     shapes = ds.tables.values()

@@ -1,0 +1,88 @@
+# Definitions (titles, descriptions, warnings) are Renaud's (skills/add-dataset). Every
+# definition below is a draft by Claude (WP4, 2026-11-15) until he changes or confirms it; the
+# signs, the unit of the prices and the meaning of the columns come from SED
+# (sources/ch_swissgrid/README.md, source.yaml). Structure (keys, types, refresh) by Claude, from
+# WP4 points 4 to 6 (accepted by Renaud on 2026-11-15). The prices are converted from ct/kWh to
+# EUR/MWh at ingestion: to confirm before the backfill on steacher1.
+name: swissgrid_balance
+title: Balance of the Swiss control area per quarter-hour since November 2024 (Swissgrid)  # draft by Claude
+# draft by Claude
+description: >-
+  Balance of the Swiss control area per quarter-hour from 2024-11-01 (local), from Swissgrid's
+  year files control-area-balance-<year>.csv: the Total System Imbalance (TSI), the balancing
+  energy activated (aFRR, mFRR, RR), the imbalance netting (NRV), the frequency restoration
+  control error (FRCE) and the imbalance prices. Swissgrid revises the files in place; every
+  version that adele saw is kept. The year file reaches to about two hours before its daily
+  update (about 23:20 UTC): the last day is in swissgrid_balance_daily.
+resources:
+  - name: balance
+    description: One row per quarter-hour.  # draft by Claude
+    schema:
+      primaryKey: [delivery_start]
+      fields:
+        - name: delivery_start
+          type: datetime
+          # draft by Claude
+          description: >-
+            Start of the quarter-hour, UTC. The files of 2024 and 2025 give local wall time
+            without a zone; adele converts it (the repeated hour in October: the first copy is
+            summer time).
+        - {name: afrr_up, type: number, unit: MW, description: "aFRR+ activated in CH (Abgedeckte Bedarf der aFRR+), >= 0."}  # draft by Claude
+        - {name: afrr_dn, type: number, unit: MW, description: "aFRR- activated in CH, <= 0."}  # draft by Claude
+        - {name: sa_mfrr_up, type: number, unit: MW, description: "Scheduled-activation mFRR+ (SA mFRR+), >= 0."}  # draft by Claude
+        - {name: sa_mfrr_dn, type: number, unit: MW, description: "Scheduled-activation mFRR-, <= 0."}  # draft by Claude
+        - {name: da_mfrr_up, type: number, unit: MW, description: "Direct-activation mFRR+ (DA mFRR+), >= 0. 0 in every quarter-hour so far (SED)."}  # draft by Claude
+        - {name: da_mfrr_dn, type: number, unit: MW, description: "Direct-activation mFRR-, <= 0. 0 in every quarter-hour so far (SED)."}  # draft by Claude
+        - {name: rr_up, type: number, unit: MW, description: "Replacement reserve (TERRE) RR+, >= 0. Null from 2026 (no column in the file of 2026)."}  # draft by Claude
+        - {name: rr_dn, type: number, unit: MW, description: "Replacement reserve RR-, <= 0. Null from 2026."}  # draft by Claude
+        - {name: nrv_import, type: number, unit: MW, description: "Imbalance netting (IGCC), import, >= 0."}  # draft by Claude
+        - {name: nrv_export, type: number, unit: MW, description: "Imbalance netting (IGCC), export, <= 0."}  # draft by Claude
+        - {name: frce_import, type: number, unit: MW, description: "Frequency restoration control error (the part left uncorrected), import, >= 0."}  # draft by Claude
+        - {name: frce_export, type: number, unit: MW, description: "Frequency restoration control error, export, <= 0."}  # draft by Claude
+        - name: tsi
+          type: number
+          unit: MW
+          # draft by Claude
+          description: >-
+            Total System Imbalance, before any balancing action: TSI = -(the sum of the twelve
+            columns before it, a null counted as 0). > 0 = the control area is long, < 0 = short.
+        - {name: price_long, type: number, unit: EUR/MWh, description: "Dual imbalance price for a long balance group (AE-Preis long), until 2025-12-31 local; null from 2026."}  # draft by Claude
+        - {name: price_short, type: number, unit: EUR/MWh, description: "Dual imbalance price for a short balance group (AE-Preis short), until 2025-12-31 local; null from 2026."}  # draft by Claude
+        - name: price_single
+          type: number
+          unit: EUR/MWh
+          # draft by Claude
+          description: >-
+            Single imbalance price (AE-Preis), from 2026-01-01 local; null before. Provisional:
+            the final price is in Swissgrid's monthly price files. > 0 = a short balance group
+            pays, a long one receives.
+        - name: price_single_shadow
+          type: number
+          unit: EUR/MWh
+          # draft by Claude
+          description: >-
+            2025 only (AE-Preis per 2026): read by SED as 2025 recomputed with the single-price
+            formula of 2026, so not a price that anyone paid (not confirmed by a Swissgrid text).
+adele:
+  format_version: 1
+  refresh:
+    # The file of the year changes once a day at about 23:20 UTC, sometimes 01:20 or 03:20:
+    # the periods of PT6H start at 00, 06, 12 and 18 UTC.
+    every: PT6H
+    # WP4 point 5: the files of 2024 and 2025 were changed on 2026-03-24; 800 days reach back
+    # to the file of the year before last (three files, about 8 MB, per run).
+    lookback: P800D
+    horizon: PT0S
+    timeout: PT10M
+  revisions: append-only
+  resolution:
+    - {from: "2024-10-31", value: PT15M}
+  # drafts by Claude
+  warnings:
+    - >-
+      Prices change after delivery: in the poller's archive by up to 230 EUR/MWh within 3.5
+      days, and by up to 1.5 EUR/MWh 4 to 7 weeks later. A recent row may be a placeholder with
+      only tsi (the other columns blank), filled a few days later.
+    - >-
+      The dual price (price_long, price_short) ends on 2025-12-31 local; the single price
+      (price_single) starts on 2026-01-01 local. A series over both needs one of each regime.

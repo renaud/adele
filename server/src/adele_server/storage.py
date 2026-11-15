@@ -259,7 +259,8 @@ def merge_append(con: duckdb.DuckDBPyConnection, data_dir: Path, table: Table, b
 
 
 def merge_versions(con: duckdb.DuckDBPyConnection, data_dir: Path, table: Table, batch: str,
-                   window: str | None = None, partition: str | None = None, *, fetched_at: dt.datetime) -> MergeResult:
+                   window: str | None = None, partition: str | None = None, *, fetched_at: dt.datetime,
+                   resume: bool = False) -> MergeResult:
     """`revisions: append-only` (D30): add each row of `batch` whose key isn't stored, or that
     differs from the latest stored version of its key, as a new version stamped `fetched_at`,
     and set superseded_at of the version that it replaces to `fetched_at`.
@@ -270,6 +271,10 @@ def merge_versions(con: duckdb.DuckDBPyConnection, data_dir: Path, table: Table,
     that holds a version fetched at or after `fetched_at` means that the clock was set back:
     StorageError, and nothing is written (checked on every partition first). The batch holds
     each key once (ingest refuses duplicates), so the join below gives each stored row once.
+
+    `resume` (an import that goes on after a hard stop, D33): a partition whose latest version
+    has exactly this `fetched_at` got this merge before the stop (each partition is written
+    whole, then renamed): it is left as it is, and the other partitions are merged.
     """
     window, partition = window or table.window, partition or table.partition
     cols = ", ".join(ident(c) for c in table.field_names)
@@ -290,6 +295,8 @@ def merge_versions(con: duckdb.DuckDBPyConnection, data_dir: Path, table: Table,
             old = f"(SELECT {cols}, {v}, {s} FROM read_parquet({sql_str(path)}))" if path.exists() else None
             if old:
                 last = con.execute(f"SELECT max({v}) FROM {old}").fetchone()[0]
+                if resume and last == fetched_at:
+                    continue
                 if last is not None and last >= fetched_at:
                     raise StorageError(f"{table.sql_name}: partition {key} holds a version fetched at {last}, not "
                                        f"before this fetch ({fetched_at}): was the clock set back? Nothing written")

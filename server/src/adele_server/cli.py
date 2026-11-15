@@ -1,4 +1,4 @@
-"""adele-server: validate | serve | fetch | backfill | check | repartition.
+"""adele-server: validate | serve | fetch | backfill | check | repartition | import.
 
 This module imports only what `fetch <id> --if-due` needs to answer "not due": a timer runs
 that command every minute for each dataset. The catalog and the ingestion (yaml, duckdb,
@@ -75,6 +75,11 @@ def main(argv: list[str] | None = None) -> int:
     c.add_argument("dataset")
     rp = sub.add_parser("repartition", help="rewrite the stored files after a change of adele.partition")
     rp.add_argument("dataset")
+    im = sub.add_parser("import", help="parse answers that another program kept (the Swissgrid poller) as versions "
+                        "stamped with their time of reception, before the first scheduled run (adele.raw: keep)")
+    im.add_argument("dataset")
+    im.add_argument("folder", help="a folder of kept answers: <stem>/<YYYY-MM-DD>/<YYYYMMDDTHHMMSSZ>.<ext>.gz as the "
+                    "poller writes them, or an archive of adele (<id>/_raw)")
     args = p.parse_args(argv)
     if args.cmd == "fetch" and args.if_due and (args.dataset is None or args.start or args.end):
         f.error("--if-due needs a dataset, and neither --start nor --end")
@@ -151,7 +156,8 @@ def main(argv: list[str] | None = None) -> int:
                       f"{'ok' if o.ok else 'FAILED'}, {o.rows} rows, {o.rows_changed} new or changed, "
                       f"{o.partitions_written} partitions written"
                       f"{f' ({o.windows_fetched} windows fetched)' if ds.revisions == 'none' else ''}"
-                      f"{f' (in {o.pieces} pieces)' if o.pieces > 1 else ''}; "
+                      f"{f' (in {o.pieces} pieces)' if o.pieces > 1 else ''}"
+                      f"{f', {o.answers_kept} of {o.answers} answers kept' if ds.keeps_raw else ''}; "
                       f"status {'failing' if o.problems else 'ok'}")
                 for pr in o.problems or []:
                     print(f"  problem: {pr}")
@@ -172,7 +178,7 @@ def main(argv: list[str] | None = None) -> int:
 
 
 def _by_hand(args, cfg, catalog, now) -> int:
-    """backfill, repartition, check: each holds the lock of the dataset from start to end."""
+    """backfill, repartition, check, import: each holds the lock of the dataset from start to end."""
     from . import ingest
 
     if args.cmd == "backfill":
@@ -212,6 +218,34 @@ def _by_hand(args, cfg, catalog, now) -> int:
         problems = ingest.recheck(cfg, catalog, catalog[args.dataset])
         print("ok" if not problems else "\n".join(f"problem: {x}" for x in problems))
         return 1 if problems else 0
+    if args.cmd == "import":
+        from pathlib import Path
+
+        from . import raw, storage
+        folder = Path(args.folder).resolve()
+        if not folder.is_dir():
+            print(f"error: {folder} is not a folder", file=sys.stderr)
+            return 2
+        with ingest.stop_on_signals():
+            try:
+                r = ingest.import_answers(cfg, catalog, catalog[args.dataset], folder)
+            except ingest.Interrupted as e:
+                print(f"error: {e}; run the same command again to go on", file=sys.stderr)
+                return _signal_code()
+            except (raw.RawError, storage.StorageError) as e:
+                print(f"error: {e}", file=sys.stderr)
+                return 1
+        span = f", received {r.first:%Y-%m-%d %H:%M:%S} to {r.last:%Y-%m-%d %H:%M:%S} UTC" if r.groups else ""
+        print(f"{args.dataset}: {r.answers} answers found, {r.skipped} older than the stored versions; "
+              f"{r.groups} merged{span}: {r.rows} rows, {r.rows_changed} new or changed; "
+              f"{r.kept} added to the raw archive; {len(r.failed)} not merged")
+        for at, files, error in r.failed[:20]:
+            print(f"  not merged, received {at:%Y-%m-%d %H:%M:%S} UTC: {', '.join(map(str, files))}: {error}")
+        if len(r.failed) > 20:
+            print(f"  ... and {len(r.failed) - 20} more (the log has each one)")
+        for pr in r.problems or []:
+            print(f"  problem: {pr}")
+        return 1 if r.problems or r.failed else 0
     return 2
 
 

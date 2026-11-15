@@ -13,6 +13,7 @@ import copy
 import datetime as dt
 import functools
 import importlib.util
+import inspect
 import re
 import tomllib
 from dataclasses import dataclass, field
@@ -43,6 +44,9 @@ SECRET_RE = re.compile(r"^[A-Z_][A-Z0-9_]*$")
 REVISION_POLICIES = {"overwrite", "none", "append-only"}
 PARTITIONS = {"month", "day"}  # adele.partition: one Parquet file per month or per day of the window column
 REFRESH_KEYS = ("every", "lookback", "horizon", "max_window", "timeout")  # adele.refresh: any other key is refused
+# adele.raw: keep = each answer of the source is kept as received (G4, D33). fetch.py then defines
+# download(start, end) and parse(answers) instead of fetch(start, end).
+RAW_POLICIES = {"keep"}
 
 # Table Schema type --> the DuckDB type in which the server stores the column.
 STORAGE_TYPE = {
@@ -180,6 +184,11 @@ class Dataset:
     def partition(self) -> str:
         """adele.partition of the dataset, month by default: the partition of a table that sets none."""
         return self.adele.get("partition", "month")
+
+    @property
+    def keeps_raw(self) -> bool:
+        """adele.raw: keep: each answer is kept as received; fetch.py has download() and parse() (D33)."""
+        return self.adele.get("raw") == "keep"
 
     @property
     def title(self) -> str:
@@ -391,6 +400,9 @@ def load_dataset(folder: Path, check_folder_name: bool = True) -> Dataset:
         t.revisions = revisions
     if adele.get("partition", "month") not in PARTITIONS:
         errors.append(f"adele.partition must be one of {sorted(PARTITIONS)}, got {adele.get('partition')!r}")
+    raw = adele.get("raw")
+    if raw is not None and raw not in RAW_POLICIES:
+        errors.append(f"adele.raw must be one of {sorted(RAW_POLICIES)} or absent, got {raw!r}")
     errors += _adele_errors(adele)
     if "timezone" in adele:
         errors.append("adele.timezone: the zone goes in the `adele:` block of the table whose calendar periods it "
@@ -426,9 +438,9 @@ def load_dataset(folder: Path, check_folder_name: bool = True) -> Dataset:
         try:
             meta = script_metadata(fetch_path)
             if meta is None:
-                fetch = _load_fetch(ds_id, fetch_path)
+                fetch = _load_fetch(ds_id, fetch_path, raw == "keep")
             else:  # its dependencies are not installed in the server: check it without importing it
-                _check_fetch_source(fetch_path)
+                _check_fetch_source(fetch_path, raw == "keep")
         except Exception as e:  # noqa: BLE001 - any import error makes the dataset invalid
             errors.append(f"fetch.py: {type(e).__name__}: {e}")
     checks, check_errors = load_checks(folder / "checks.yaml")
@@ -669,18 +681,52 @@ def script_metadata(path: Path) -> dict | None:
     return meta
 
 
-def _check_fetch_source(path: Path) -> None:
+# The functions of fetch.py: fetch(start, end), or with adele.raw: keep download(start, end) and
+# parse(answers) (D33). A dataset with the key and a fetch() is refused (a fetch that nothing
+# calls), and so is one without the key and without fetch() that defines download and parse
+# (the key forgotten). A helper named parse next to fetch() is fine.
+_SHAPES = {False: {"fetch": 2}, True: {"download": 2, "parse": 1}}
+
+
+def _shape_error(found: dict[str, int], raw: bool) -> str | None:
+    """`found`: function name --> number of positional parameters, for the names of both shapes."""
+    has = {n: found.get(n, -1) >= k for shape in _SHAPES.values() for n, k in shape.items()}
+    if raw:
+        if has["download"] and has["parse"] and "fetch" not in found:
+            return None
+        return "with adele.raw: keep, fetch.py must define download(start, end) and parse(answers), not fetch"
+    if has["fetch"]:
+        return None
+    if has["download"] and has["parse"]:
+        return "fetch.py defines download and parse but no fetch: that shape needs adele.raw: keep"
+    return "fetch.py must define fetch(start, end)"
+
+
+def _check_fetch_source(path: Path, raw: bool = False) -> None:
     tree = ast.parse(path.read_text(), filename=str(path))
-    fn = next((n for n in tree.body if isinstance(n, ast.FunctionDef) and n.name == "fetch"), None)
-    if fn is None or len(fn.args.args) < 2:
-        raise CatalogError("fetch.py must define fetch(start, end)")
+    names = {n for shape in _SHAPES.values() for n in shape}
+    found = {n.name: len(n.args.args) for n in tree.body if isinstance(n, ast.FunctionDef) and n.name in names}
+    err = _shape_error(found, raw)
+    if err:
+        raise CatalogError(err)
 
 
-def _load_fetch(ds_id: str, path: Path) -> Callable:
+def _load_fetch(ds_id: str, path: Path, raw: bool = False) -> Callable:
+    """Import fetch.py; return fetch(), or download() for a dataset that keeps raw answers."""
     spec = importlib.util.spec_from_file_location(f"adele_datasets.{ds_id}", path)
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
-    fn = getattr(module, "fetch", None)
-    if not callable(fn):
-        raise CatalogError("fetch.py must define fetch(start, end)")
-    return fn
+    names = {n for shape in _SHAPES.values() for n in shape}
+    found = {}
+    for n in names:
+        fn = getattr(module, n, None)
+        if callable(fn):
+            try:
+                found[n] = len([p for p in inspect.signature(fn).parameters.values()
+                                if p.kind in (p.POSITIONAL_ONLY, p.POSITIONAL_OR_KEYWORD)])
+            except (TypeError, ValueError):
+                found[n] = 99
+    err = _shape_error(found, raw)
+    if err:
+        raise CatalogError(err)
+    return getattr(module, "download" if raw else "fetch")

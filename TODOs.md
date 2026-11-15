@@ -7,6 +7,33 @@
 - PLAN.md, row WP2 (proposal): "built and in `main` (D32): tables by calendar day, month or
   year in a zone (D26), tables without a time column (D22), an `adele:` block per table, format
   version 2. Next: the first such dataset in WP6. `docs/work-packages/WP2-table-shapes.md`"
+- SPEC.md: paste the three texts of WP4 (Adding a dataset, Storage, Revisions), in
+  `docs/work-packages/WP4-files-overwritten-or-revised.md`, section "Text for `SPEC.md`". Then
+  confirm the three points of its section "To confirm before steacher1".
+- PLAN.md, row WP4 (proposal): "built and in `main` (D33): raw answers (`adele.raw: keep`),
+  `adele-server import`, `swissgrid_tsi`, `swissgrid_balance_daily`, `swissgrid_balance`; tried
+  on the Mac. Next: Renaud confirms units, stamps, ids; step 6 (import and 7 days side by side
+  on steacher1) after WP1. `docs/work-packages/WP4-files-overwritten-or-revised.md`"
+
+## For other sessions: WP4 landed after WP2 (2026-11-15)
+
+A branch made before this landing may break on these points when it rebases:
+
+- `ingest.py`: the runner (`_RUNNER_BODY`) has three modes (`fetch`, `download`, `parse`) and
+  more arguments; `call_fetch` goes through `_call_runner` and takes `raw_dir`;
+  `_fetch_merge` calls `_call_keeping_raw` instead of `call_fetch`. A change to the runner or to
+  `call_fetch` will conflict: keep both.
+- `_stage(con, t, files, windows)` and `storage.merge_versions(..., window=None, partition=None,
+  fetched_at=..., resume=False)` take the window and partition of the table (D32), not of the
+  dataset. Code that still passes `ds.window` or `ds.partition` runs, but is wrong for a dataset
+  whose tables differ.
+- `catalog.py`: `fetch.py` is checked for its shape. With `adele.raw: keep` it must define
+  `download(start, end)` and `parse(answers)` and no `fetch`; without the key it must define
+  `fetch(start, end)` (a helper named `parse` beside it is fine).
+- A dataset's data folder may hold `_raw/` (raw answers, D33) next to its table folders and
+  `state.json`. Code that lists `<data_dir>/<id>/*` as tables must skip names that start with
+  `_`. `state.json` may hold `imported`.
+- Decisions: D32 is WP2, D33 is WP4; the next is D34.
 
 ## V0
 
@@ -131,6 +158,13 @@ Next, state at the end of 2026-11-15:
   minute. Measures on the poller's files use the copies in `swiss_energy_data` (WP1: nothing
   runs on steacher1 during the week). Production waits for WP1; the poller keeps every version
   meanwhile. Proposed way: a WP4 doc with these points, a critic, Renaud's answers, as for WP3.
+- WP4 (2026-11-15): the doc `docs/work-packages/WP4-files-overwritten-or-revised.md`, Renaud's
+  "all points 1-8 ok", built in the worktree `wp4` (D33): `adele.raw: keep` with
+  `download`/`parse`, the archive `_raw/`, `adele-server import`, the datasets `swissgrid_tsi`,
+  `swissgrid_balance_daily`, `swissgrid_balance`; tried on the Mac. Before steacher1, Renaud
+  confirms the prices in EUR/MWh, the 5-minute stamps as starts, the three ids (the doc, "To
+  confirm before steacher1"). Then step 6 of the doc after WP1: copy of the poller's archive,
+  import, timers, 7 days side by side, a comparison script, the files out of the poller.
 - `PLAN.md`, the table "Order and state": updated on 2026-11-15 by Claude at Renaud's request
   (WP1 steps 0-5 done, the week runs until 2026-11-22, step 6 waits for the port; WP3 in
   `main`, then 1-2 days of fetches on steacher1 once WP1 is done, V1 below).

@@ -1,0 +1,54 @@
+# Definitions (titles, descriptions, warnings) are Renaud's (skills/add-dataset). Every
+# definition below is a draft by Claude (WP4, 2026-11-15) until he changes or confirms it.
+# Structure (keys, types, refresh) by Claude, from WP4 points 1 to 8 (accepted by Renaud on
+# 2026-11-15) and the measures in docs/work-packages/WP4-files-overwritten-or-revised.md.
+name: swissgrid_tsi
+title: Total System Imbalance of the Swiss control area, 5 minutes (Swissgrid)  # draft by Claude
+# draft by Claude
+description: >-
+  Total System Imbalance (TSI) of the Swiss control area per 5 minutes, from Swissgrid's file
+  total-system-imbalance.csv. The file holds only the latest quarter-hour, as three 5-minute
+  values, and is replaced every 15 minutes: adele asks for it every minute, and a value that
+  adele did not get then is lost (the quarter-hour value stays in swissgrid_balance_daily for
+  24 h and in swissgrid_balance). fetched_at of the first version of a row is about the time at
+  which Swissgrid published it, within a minute.
+resources:
+  - name: tsi
+    description: One row per 5-minute interval.  # draft by Claude
+    schema:
+      primaryKey: [delivery_start]
+      fields:
+        - name: delivery_start
+          type: datetime
+          description: Start of the 5-minute interval, UTC.  # draft by Claude
+        - name: tsi
+          type: number
+          unit: MW
+          # draft by Claude
+          description: >-
+            Total System Imbalance of the control area over the interval, as published (two
+            decimals). > 0 = the control area is long (a surplus), < 0 = short.
+adele:
+  format_version: 1
+  refresh:
+    every: PT1M      # decided by Renaud, 2026-11-15
+    # The file shows a quarter-hour from about 15 to 30 minutes after its start; one hour of
+    # lookback keeps it with margin, and is also the time for which a failing stretch is retried.
+    lookback: PT1H
+    horizon: PT0S
+    timeout: PT50S   # under the minute of the timer: a hung fetch must not cost the next tick
+  revisions: append-only
+  raw: keep
+  resolution:
+    - {from: "2026-09-27", value: PT5M}
+  # drafts by Claude
+  warnings:
+    - >-
+      Not every 5-minute interval is here: the source keeps a quarter-hour for 15 minutes only.
+      The Swissgrid poller that ran before adele missed 80 of 1,932 quarter-hours in its first
+      20 days (network errors, and minutes in which Swissgrid kept serving the previous file).
+      For a complete series per quarter-hour, use swissgrid_balance or swissgrid_balance_daily.
+    - >-
+      The mean of the three values of a quarter-hour is not exactly the quarter-hour TSI of
+      swissgrid_balance: they differ by up to 0.55 MW (median 0.07 MW, 1,849 quarter-hours of
+      2026-09-27 to 2026-10-17).

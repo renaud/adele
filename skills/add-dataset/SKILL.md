@@ -84,6 +84,14 @@ is wrong, show the evidence from the data and let the analyst decide.
    A calendar period is returned as `datetime.date` values (pandas: `.dt.date`), not as
    timestamps. A table without a time column is returned whole at every call, also when the
    window is short: an empty answer is an error.
+   A source that overwrites itself (a file that holds only the latest values, so a missed or
+   misread answer can't be asked again) gets `adele.raw: keep` (D33). `fetch.py` then defines
+   `download(start, end)`, which yields each answer as `{"name": <file name>, "url": ..., "body":
+   <bytes>}` as soon as it has it, and `parse(answers)`, which returns the tables as `fetch`
+   would (each answer also has `received_at`). The server keeps every answer that differs from
+   the last one, before `parse` runs. Examples: `datasets/swissgrid_tsi`,
+   `datasets/swissgrid_balance_daily`. Answers kept elsewhere before (a poller's archive) go in
+   with `adele-server import <id> <folder>`, before the first scheduled fetch.
 6. **Example queries.** For each question that the analyst gives, write the SQL, run it, and
    show the result. The analyst confirms the result before the entry gets a `verified_at`.
    Once `checks.yaml` exists (step 8), a check can be an example too (`- check: <name>`): pick

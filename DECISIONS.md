@@ -795,3 +795,69 @@ D30 left out (`TODOs.md`, V2).
 **Rejected.** `window` per table (one call of `fetch()` per dataset). A field in `state.json`
 for the time of change of a table (D23). Converting timestamps returned for a date column:
 00:00 UTC and local midnight give different dates.
+
+## D33 - Raw answers kept for files that overwrite themselves; Swissgrid's three balance files (2026-11-15)
+
+**Decision.** WP4, points 1 to 8 of `docs/work-packages/WP4-files-overwritten-or-revised.md`.
+
+- `adele.raw: keep` (the only value): `fetch.py` defines `download(start, end)`, which yields
+  each answer as `{name, url, body}`, and `parse(answers)`, which returns the tables. The runner
+  writes each answer to the work folder as soon as it is yielded, before anything parses it; the
+  server moves it into the archive also when the parse, the time limit or the merge fails. A
+  failure to keep an answer fails the fetch. `validate` refuses the key with a `fetch()`, and
+  `download` and `parse` without the key and without `fetch()`.
+- The archive: `<data_dir>/<id>/_raw/<YYYY-MM-DD>/<received_at>_<name>.gz`, one file per kept
+  answer, and a `manifest.csv` per day (received_at, name, file, url, bytes, sha256). A table
+  name can't start with `_`, so a query can't read it (D24). An answer equal to the last kept
+  answer of its name is not kept again. Kept for ever. No ETag and no bookmark (D23 holds).
+- G6 needs no code: a lookback that covers the files, P800D for the year files. A fetch keeps
+  the rows of its window, and `merge_versions` writes only the partitions with a new version.
+- `adele-server import <id> <folder>`: answers kept by another program (the Swissgrid poller's
+  layout) or an archive of adele, parsed in time order, each group received at the same time
+  merged as a version stamped with its time of reception, with the window that a scheduled run
+  at that time would have had. Only for an `append-only` dataset that keeps raw answers, before
+  the first scheduled run, and into a dataset without versions fetched by adele (or one whose
+  versions all come from an import). A group whose parse fails is kept in the archive, listed,
+  and not merged; the others go on. `imported` in `state.json` (first and last time) is written
+  before each group is merged; a second run merges again the group of the newest stored
+  version, whose partitions a hard stop may have written in part (`merge_versions(resume=True)`
+  leaves a partition that holds that version). `versions_since` becomes the time of the first
+  imported answer. This extends D30, where `fetched_at` is the time at which `fetch.py`
+  returned.
+- Three datasets, `append-only`: `swissgrid_tsi` (5-minute TSI, raw kept, every PT1M,
+  lookback PT1H, timeout PT50S), `swissgrid_balance_daily` (the last 24 h, raw kept, every
+  PT5M, lookback P2D), `swissgrid_balance` (the year files since Nov 2024, no raw answers,
+  every PT6H, lookback P800D). The hand-over from the poller is file by file, after 7 days side
+  by side, from the end of WP1 on.
+
+Built: `server/src/adele_server/raw.py`, `catalog.py`, `ingest.py` (runner modes, the archive,
+`import_answers`), `storage.py` (`resume`), `cli.py`, `render.py` (`raw_answers`, `imported` in
+`describe`);
+`server/tests/test_raw.py`, `server/tests/test_swissgrid_fetch.py`; `datasets/swissgrid_*`;
+`skills/add-dataset`. Numbered D33 because the branch `wp2` holds D32.
+
+**Why.** Renaud, 2026-11-15: "all points 1-8 ok", to the eight recommendations of the WP4 doc.
+G4 exists for one case: the parser fails or is wrong after the source has replaced the file, so
+the answer must be kept before the parse, and a split `fetch.py` is the shape in which the
+server can be sure of that and parse old answers again. The Swissgrid poller's archive (20 days,
+copy of 2026-10-17) gave the sizes (0.16 GB a year for the TSI and daily answers), the A --> B
+--> A answers (306 of 2,158 for TSI), the revisions of the daily file (34 of 2,029 quarter-hours)
+and the agreement of the year and daily files (1 of 1,972 quarter-hours differs). The import
+was tried on that copy: 2,158 TSI answers in 24 s, 1,795 daily answers in 34 s, the 34
+revisions found again. The year files parsed by `fetch.py` equal SED's table on all 69,696
+common quarter-hours, every column.
+
+**Limits.** Nothing ran on steacher1. The prices are converted from ct/kWh to EUR/MWh at
+ingestion, and the 5-minute stamps are read as starts of intervals: both to confirm before the
+first fetches on steacher1 (stored versions can't be converted, answer d of WP3). A dataset
+whose rows are not near the time of reception can't be imported (the window of a scheduled
+run). The checks still run after each fetch, 1,440 times a day for TSI: measured 10 ms each on
+the Mac, left as is.
+
+**Rejected.** The server giving `fetch.py` a folder to write answers to (nothing checks that
+they are the bytes received). The server downloading the files itself (the URL lookup of the
+poller would move into the server). A Parquet table of answers (the 30 MB answers of `afrr_1s`
+later). Skipping an answer equal to any answer of the last 24 h (hides that the source served an
+older file). `lookback: all` (a key and code for the files with the whole history, WP6). The
+year file in the table of the daily file (one refresh per dataset). Keeping the poller as the
+downloader. Importing the poller's answers as a backfill (loses the first published values).
