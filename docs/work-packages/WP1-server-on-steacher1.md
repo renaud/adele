@@ -3,6 +3,23 @@
 Draft by Claude, 2026-11-15, not accepted. From `PLAN.md` (WP1) and `TODOs.md` (POC step 6).
 Renaud's answers of 2026-11-15 are in.
 
+## Where WP1 stands (2026-11-15, 12:20 UTC)
+
+- Steps 0-4 done. Step 5 (backfill) in progress: the backfills run on steacher1 as the fetch
+  units with a runtime drop-in each; they were stopped at 12:16 to give `adele` a new uid
+  (`deploy/wp1-step5-uid-fix.sh`, see the log) and start again at the end of that script.
+  Next: `deploy/wp1-step5-backfill.sh finish` once both have stopped, then the timers, step 6
+  (HTTPS, once Renaud opens the port), step 7 (the week), step 8.
+- steacher1 runs commit f1766c9 (`/opt/adele`). It stays there during the week: the evidence
+  of the week holds for one version. Only a fix that WP1 needs is pulled there, and it goes
+  into the log below.
+- Rules for other sessions (WP3 runs in its own worktree from 2026-11-15, Renaud):
+  - `main` holds what steacher1 runs plus WP1 fixes. WP3 lands in `main` after the week, and
+    reaches steacher1 only once WP1 is done (as `WP3-versions.md` says).
+  - Don't touch `deploy/` or this file; WP1 may still change `server/` for a fix.
+  - Don't run anything on steacher1. Claude's only route there is `/usr/local/bin/sc-run`
+    (user `claude`, no sudo), and root steps are scripts that Renaud runs.
+
 ## Goal
 
 adele runs on steacher1 with the two datasets that are in adele today (`entsoe_day_ahead_prices`,
@@ -197,3 +214,34 @@ None on 2026-11-15.
 - Differences from the draft, now in `deploy/README.md`: `adele-query` has the home
   `/nonexistent`; `/etc/adele` is `root:adele 0750`; uv from its release archive;
   `UV_PYTHON_INSTALL_DIR` also for `uv sync`; `--locked`; `validate` from `/tmp`.
+
+### 2026-11-15, step 5 (`deploy/wp1-step5-backfill.sh start`, run by Renaud at 12:11)
+
+- A runtime drop-in per dataset (`/run/systemd/system/adele-fetch@<id>.service.d/backfill.conf`)
+  replaces `fetch --if-due` with the backfill commands; the units started without waiting.
+  entsoe: `--start 2014-12-31`. weathernext3: the 2024-11-12 00 run, the 2025-11-12 00 and 03
+  runs, then every run from 2026-11-12 00 UTC (three `ExecStart` lines, the first two with `-`).
+- First measures: uv built both environments in about a minute; a weathernext3 run of 2026
+  takes 47-48 s on steacher1 (the 2024 run took 236 s, environment included); the fetch uses
+  2.3 GB of memory.
+- **uid collision.** `useradd --system` gave `adele` the uid 999, and postgres and redis in the
+  Docker containers of steacher.org also run as 999 (Docker keeps the host's uids). Checked
+  with `setpriv` as `adele` against postgres: environment not readable, root folder of the
+  container not listable (Claude had predicted both readable: wrong), signals allowed. So a
+  `fetch.py` or a library that calls `kill(-1, ...)` would stop the production database.
+  Fix: `deploy/wp1-step5-uid-fix.sh`, `adele` 5100, `adele-query` 5101 (`usermod -u` refuses
+  while postgres runs as 999, so `userdel -f` and `useradd` again; the groups stay). The
+  install script and `deploy/README.md` now set these uids.
+- **A stop that hangs.** The fix script's `systemctl stop` did not end for weathernext3: the
+  SIGTERM ended the second `ExecStart` (the 2025 runs), the `-` made that a success, and systemd
+  started the third line at 12:16:49 although the unit was stopping. That process got no
+  SIGTERM, and the stop's 90 s limit did not kill it (Claude's reading: the timer was set again
+  with `TimeoutStartSec=infinity` from the drop-in). Way out: `systemctl kill` on the unit. To
+  stop a backfill unit with these drop-ins, use `systemctl kill`, not `systemctl stop`.
+- The fix script then ran to its end on steacher1 (12:22), but its output after step 2 never
+  reached the Mac (`deploy/wp1-step5-uid-fix.txt` stops there; the SSH session stayed open
+  with no process under it). Checked over `sc-run` instead: `adele` 5100, the three folders
+  owned by 5100 with their modes, `adele-server` running, both backfills started again at
+  12:22:46 as 5100. After: `setpriv --reuid=adele ... kill -0 <postgres pid>` --> `Operation
+  not permitted`.
+- Pace after the restart: entsoe about 35 s per year window, weathernext3 about 53 s per run.

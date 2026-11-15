@@ -1,0 +1,5 @@
+== 1. before: adele = uid 999; postgres pid 1461
+  environment of postgres: not readable
+  root folder of its container: not listable
+  signals to postgres: allowed
+== 2. stop the backfills and adele-server

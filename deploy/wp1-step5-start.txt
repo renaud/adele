@@ -1,0 +1,25 @@
+== /run/systemd/system/adele-fetch@entsoe_day_ahead_prices.service.d/backfill.conf
+# WP1 step 5, written by deploy/wp1-step5-backfill.sh; removed by its mode finish
+[Service]
+ExecStart=
+ExecStart=/opt/adele/server/.venv/bin/adele-server --config /etc/adele/adele-server.toml backfill entsoe_day_ahead_prices --start 2014-12-31
+TimeoutStartSec=infinity
+== /run/systemd/system/adele-fetch@weathernext3.service.d/backfill.conf
+# WP1 step 5, written by deploy/wp1-step5-backfill.sh; removed by its mode finish
+[Service]
+ExecStart=
+ExecStart=-/opt/adele/server/.venv/bin/adele-server --config /etc/adele/adele-server.toml backfill weathernext3 --start 2024-11-12T00:00 --end 2024-11-12T01:00
+ExecStart=-/opt/adele/server/.venv/bin/adele-server --config /etc/adele/adele-server.toml backfill weathernext3 --start 2025-11-12T00:00 --end 2025-11-12T04:00 --step-hours 4
+ExecStart=/opt/adele/server/.venv/bin/adele-server --config /etc/adele/adele-server.toml backfill weathernext3 --start 2026-11-12
+TimeoutStartSec=infinity
+== adele-fetch@entsoe_day_ahead_prices.service
+MainPID=1652102
+ActiveState=activating
+SubState=start
+2026-11-15T12:11:31+00:00 steacher1 systemd[1]: Starting adele-fetch@entsoe_day_ahead_prices.service - adele: fetch the dataset entsoe_day_ahead_prices if its refresh is due...
+== adele-fetch@weathernext3.service
+MainPID=1652103
+ActiveState=activating
+SubState=start
+2026-11-15T12:11:31+00:00 steacher1 systemd[1]: Starting adele-fetch@weathernext3.service - adele: fetch the dataset weathernext3 if its refresh is due...
+== started. Follow:  sc-run 'journalctl -u adele-fetch@weathernext3.service -f'

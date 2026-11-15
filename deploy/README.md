@@ -55,7 +55,11 @@ The install that ran on steacher1 is `wp1-step4-install.sh` (root; it can be run
 keeps an existing config). The secret that is a variable is copied first, from the admin's
 machine, never printed (see the script's header). The script, in order:
 
-1. users `adele` and `adele-query` (system users, no home: `/nonexistent`, no shell);
+1. users `adele` (uid 5100) and `adele-query` (uid 5101): system users, no home (`/nonexistent`),
+   no shell. The uids are fixed because the first free system uid (999) is the uid of postgres
+   and redis in many Docker images, and Docker keeps the host's uids: on steacher1 the fetch
+   units then had the uid of the production database (`wp1-step5-uid-fix.sh`). On a new server,
+   check `ps -eo uid=` first;
 2. the folders of the layout above, with their owners and modes;
 3. uv from its GitHub release archive, checked against the `.sha256` of the same release;
 4. `uv python install 3.13` with `UV_PYTHON_INSTALL_DIR=/opt/uv-python`;

@@ -29,9 +29,11 @@ export UV_PYTHON_INSTALL_DIR=/opt/uv-python   # not under /root: ProtectHome=yes
 [ -f "$GCLOUD_SRC" ] || { echo "missing: $GCLOUD_SRC"; exit 1; }
 
 echo "== 1. users"
-id adele >/dev/null 2>&1 || useradd --system --no-create-home --home-dir /nonexistent \
+# Fixed uids: the first free system uid (999 on steacher1) is also the uid of postgres and redis
+# in the Docker containers there (wp1-step5-uid-fix.sh). Check `ps -eo uid=` on a new server.
+id adele >/dev/null 2>&1 || useradd --system --uid 5100 --no-create-home --home-dir /nonexistent \
   --shell /usr/sbin/nologin adele
-id adele-query >/dev/null 2>&1 || useradd --system --no-create-home --home-dir /nonexistent \
+id adele-query >/dev/null 2>&1 || useradd --system --uid 5101 --no-create-home --home-dir /nonexistent \
   --shell /usr/sbin/nologin -G adele adele-query
 id adele; id adele-query
 
