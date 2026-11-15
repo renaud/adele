@@ -77,7 +77,7 @@ def test_query_rows_cap_and_footer(server):
 
 
 def test_query_error_and_log(server):
-    with pytest.raises(adele.AdeleError, match="only SELECT and EXPLAIN"):
+    with pytest.raises(adele.AdeleError, match="only SELECT statements"):
         adele.query("COPY test_prices.prices TO 'x.csv'")
     log = (server.log_dir / "queries.jsonl").read_text().splitlines()
     assert '"key": "tester"' in log[-1] and "COPY" in log[-1]

@@ -180,12 +180,13 @@ def describe_dict(cfg: Config, ds: Dataset) -> dict:
     if st.get("problems"):
         card["problems"] = st["problems"]
     eta = state.next_fetch_eta(st, ds.refresh.every)
+    pieces = f", in pieces of {iso_duration(ds.refresh.max_window)}" if ds.refresh.max_window else ""
     card["freshness"] = {
         "last_fetched_at": ts(st.get("last_fetched_at")),
         "last_changed_at": ts(st.get("last_changed_at")),
         "next_fetch_eta": ts(eta) if eta else "on the next scheduled run",
-        "refresh": f"every {iso_duration(ds.refresh.every)}, window on {ds.window} "
-                   f"[now - {iso_duration(ds.refresh.lookback)}, now + {iso_duration(ds.refresh.horizon)})",
+        "refresh": f"every {iso_duration(ds.refresh.every)}, window on {ds.window} [last scheduled run - "
+                   f"{iso_duration(ds.refresh.lookback)}, now + {iso_duration(ds.refresh.horizon)}){pieces}",
     }
     card["revisions"] = {"overwrite": "only the latest value of each row is kept",
                          "none": "rows never change once stored (each is fetched once)"}.get(ds.revisions, ds.revisions)

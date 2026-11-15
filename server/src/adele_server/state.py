@@ -11,7 +11,13 @@ import os
 from pathlib import Path
 
 UTC = dt.timezone.utc
-TIME_KEYS = ("last_attempt_at", "last_fetched_at", "last_changed_at")
+# last_scheduled_at: the `now` of the last scheduled run that succeeded. The next scheduled window
+# starts at last_scheduled_at - lookback (ingest.scheduled_window). last_fetched_at can't serve
+# for that: every window of a backfill sets it, also a window of 2015.
+# failing_since: the `now` of the first scheduled run that failed since the last one that
+# succeeded. When it is older than the lookback, the scheduled window is [now - lookback, ...)
+# again. `given_up` then holds the stretch that was left out, [start, end) as ISO strings.
+TIME_KEYS = ("last_attempt_at", "last_fetched_at", "last_changed_at", "last_scheduled_at", "failing_since")
 
 
 def now() -> dt.datetime:
@@ -42,6 +48,29 @@ def save(data_dir: Path, ds_id: str, s: dict) -> None:
     os.replace(tmp, p)
 
 
-def next_fetch_eta(s: dict, every: dt.timedelta) -> dt.datetime | None:
+# The periods of `every` are counted on the clock (UTC) from a Monday at 00:00: PT1M starts on
+# the minute, PT1H on the hour, P1D at midnight, P1W on Monday.
+PERIOD_ORIGIN = dt.datetime(1970, 1, 5, tzinfo=UTC)
+
+
+def period(t: dt.datetime, every: dt.timedelta) -> int:
+    """The number of the period of `every` that holds `t`."""
+    return (t - PERIOD_ORIGIN) // every
+
+
+def is_due(s: dict, every: dt.timedelta, now: dt.datetime) -> bool:
+    """A scheduled run is due when `now` lies in a later period of `every` than the last attempt.
+
+    Not when `every` has passed since the last attempt: a timer ticks at 12:00:00, the attempt is
+    stamped 12:00:01, and with `every: PT1M` the tick of 12:01:00 would come 1 s too early, so
+    every second run would be skipped. Due also without an attempt, and when the last attempt
+    is later than `now` (a clock that was set back).
+    """
     last = s.get("last_attempt_at")
-    return last + every if last else None
+    return last is None or last > now or period(now, every) > period(last, every)
+
+
+def next_fetch_eta(s: dict, every: dt.timedelta) -> dt.datetime | None:
+    """The start of the period after the one of the last attempt: from then on, the dataset is due."""
+    last = s.get("last_attempt_at")
+    return PERIOD_ORIGIN + (period(last, every) + 1) * every if last else None

@@ -4,6 +4,7 @@
 datasets_dirs = ["../datasets"]
 data_dir = "../data_nosync"          # D7. On the Linux server: a backed-up folder (SPEC.md, Backups)
 log_dir = "../data_nosync/logs"      # queries.jsonl (one line per query), alerts.log
+# cache_dir = "/var/cache/adele"     # the runner of each fetch.py; default: $CACHE_DIRECTORY, else ~/.cache/adele
 env_file = "../.env"                 # source credentials (ENTSO_TOKEN); read by fetch commands only
 fetch_timeout_s = 1800                # per call of fetch(); a hung source sets status failing
 admin_email = "admin@example.org"    # POC: status changes go to alerts.log, no email yet

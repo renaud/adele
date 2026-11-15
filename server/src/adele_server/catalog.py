@@ -30,6 +30,7 @@ SECRET_RE = re.compile(r"^[A-Z_][A-Z0-9_]*$")
 # the server fetches only the parts of a window that hold no stored rows. append-only: POC 2.
 REVISION_POLICIES = {"overwrite", "none"}
 PARTITIONS = {"month", "day"}  # adele.partition: one Parquet file per month or per day of the window column
+REFRESH_KEYS = ("every", "lookback", "horizon", "max_window", "timeout")  # adele.refresh: any other key is refused
 
 # Table Schema type --> the DuckDB type in which the server stores the column.
 STORAGE_TYPE = {
@@ -64,6 +65,8 @@ class Refresh:
     every: dt.timedelta
     lookback: dt.timedelta
     horizon: dt.timedelta
+    max_window: dt.timedelta | None = None  # optional: a longer scheduled window is fetched in pieces of this length
+    timeout: dt.timedelta | None = None  # optional: the time limit of one call of fetch.py, if under the server's
 
 
 @dataclass
@@ -148,8 +151,21 @@ class Dataset:
 
 
 def load_catalog(dirs: Path | list[Path]) -> dict[str, Dataset]:
-    """Every dataset of the listed folders: a folder with a datapackage.yaml is one dataset,
-    another folder holds dataset folders. Two datasets with the same id are an error."""
+    """Every dataset of the listed folders, or CatalogError if one of them has an error (strict:
+    `validate` and `serve`)."""
+    catalog, errors = scan_catalog(dirs)
+    if errors:
+        raise CatalogError("invalid catalog:\n" + "\n".join(f"  - {e}" for e in errors))
+    return catalog
+
+
+def scan_catalog(dirs: Path | list[Path]) -> tuple[dict[str, Dataset], list[str]]:
+    """The valid datasets of the listed folders, and one message per error (tolerant: `fetch`).
+
+    A folder with a datapackage.yaml is one dataset, another folder holds dataset folders. A
+    dataset with an invalid descriptor is left out and its message starts with the name of its
+    folder. Two datasets with the same id are an error: the first one is kept.
+    """
     catalog, errors, origin = {}, [], {}
     for entry in [dirs] if isinstance(dirs, Path) else list(dirs):
         if not entry.is_dir():
@@ -166,20 +182,48 @@ def load_catalog(dirs: Path | list[Path]) -> dict[str, Dataset]:
             except CatalogError as e:
                 errors.append(f"{folder.name}: {e}")
                 continue
+            except Exception as e:  # noqa: BLE001 - a descriptor that can't be read at all is one invalid dataset
+                errors.append(f"{folder.name}: {type(e).__name__}: {e}")
+                continue
             if ds.id in catalog:
                 errors.append(f"dataset {ds.id!r} is defined twice: {origin[ds.id]} and {folder}")
                 continue
             catalog[ds.id], origin[ds.id] = ds, folder
-    if errors:
-        raise CatalogError("invalid catalog:\n" + "\n".join(f"  - {e}" for e in errors))
-    return catalog
+    return catalog, errors
+
+
+def refresh_every(dirs: Path | list[Path], ds_id: str) -> dt.timedelta | None:
+    """adele.refresh.every of one dataset, read from its descriptor alone, without validation.
+
+    For `fetch <id> --if-due`, which a timer runs every minute: to learn that nothing is due,
+    it must not load and validate the whole catalog. The descriptor is found as scan_catalog
+    finds it: `<entry>/<id>/datapackage.yaml`, or an entry that is one dataset with that name.
+    None when it is not found or can't be read: the caller then takes the full path, which
+    reports the error.
+    """
+    if not NAME_RE.match(ds_id):
+        return None
+    for entry in [dirs] if isinstance(dirs, Path) else list(dirs):
+        path = entry / "datapackage.yaml"
+        if not path.exists():
+            path = entry / ds_id / "datapackage.yaml"
+        try:
+            descriptor = yaml.load(path.read_text(), Loader=getattr(yaml, "CSafeLoader", yaml.SafeLoader))
+            if descriptor["name"] == ds_id:
+                return parse_duration(descriptor["adele"]["refresh"]["every"]) or None
+        except Exception:  # noqa: BLE001 - not there, not readable, or another dataset: look further
+            continue
+    return None
 
 
 def load_dataset(folder: Path, check_folder_name: bool = True) -> Dataset:
     desc_path = folder / "datapackage.yaml"
     if not desc_path.exists():
         raise CatalogError("missing datapackage.yaml")
-    descriptor = yaml.safe_load(desc_path.read_text())
+    try:
+        descriptor = yaml.safe_load(desc_path.read_text())
+    except (yaml.YAMLError, UnicodeDecodeError) as e:
+        raise CatalogError(f"datapackage.yaml is not valid YAML: {e}") from None
     if not isinstance(descriptor, dict):
         raise CatalogError("datapackage.yaml is not a mapping")
     errors: list[str] = []
@@ -225,13 +269,31 @@ def load_dataset(folder: Path, check_folder_name: bool = True) -> Dataset:
 
     adele = descriptor.get("adele") or {}
     refresh = None
+    r = adele.get("refresh")
     try:
-        r = adele["refresh"]
         refresh = Refresh(parse_duration(r["every"]), parse_duration(r["lookback"]), parse_duration(r["horizon"]))
     except (KeyError, TypeError):
         errors.append("adele.refresh needs every, lookback and horizon")
     except ValueError as e:
         errors.append(f"adele.refresh: {e}")
+    if isinstance(r, dict):  # a misspelt key (max_windw) must not be ignored
+        unknown = sorted(str(k) for k in set(r) - set(REFRESH_KEYS))
+        if unknown:
+            errors.append(f"adele.refresh: unknown key{'s' if len(unknown) > 1 else ''} {', '.join(unknown)} "
+                          f"(allowed: {', '.join(REFRESH_KEYS)})")
+    if refresh is not None:
+        if not refresh.every:
+            errors.append("adele.refresh.every: it must be longer than zero")
+        for key in ("max_window", "timeout"):
+            if key not in r:
+                continue
+            try:
+                value = parse_duration(r[key])
+                if not value:
+                    raise ValueError("it must be longer than zero")
+                setattr(refresh, key, value)
+            except ValueError as e:
+                errors.append(f"adele.refresh.{key}: {e}")
     fmt = adele.get("format_version")
     readable = ", ".join(map(str, sorted(FORMATS)))
     if fmt is None:

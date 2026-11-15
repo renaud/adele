@@ -1,31 +1,41 @@
 # Deploying adele-server on Linux (draft, 2026-11-13, not tried yet)
 
-POC step 6 (TODOs.md). Two systemd units share one install and one data folder:
+POC step 6 (TODOs.md). The units share one install and one data folder:
 
 | unit | runs | user | data folder |
 |---|---|---|---|
 | `adele-server.service` | `adele-server serve` (agent SQL) | `adele-query` | read-only (`ReadOnlyPaths=`) |
-| `adele-fetch.service` + `.timer` | `adele-server fetch --due`, every 15 min | `adele` | read-write |
+| `adele-fetch@<id>.service` + `.timer`, one pair per dataset | `adele-server fetch <id> --if-due`, every minute | `adele` | read-write |
+
+One timer and one service per dataset (D27, 2026-11-15): fetches of different datasets run side
+by side, a slow one never delays another, and each dataset has its own journal, time limit and
+file of secrets. The timer only gives the tick: `adele.refresh.every` in the descriptor decides
+whether a fetch happens. The claims about systemd behind this were tested once in a container
+(`scheduling-poc/container-test/`), not on a server.
 
 The query process can't write the data, by two layers: its user (`adele-query`, group `adele`, files
 group-readable) and its mount namespace (`ReadOnlyPaths=/var/lib/adele`). DuckDB's own settings and
-the statement filter come on top (D10). Source credentials (`ENTSO_TOKEN`, Google's) reach only the fetch
-unit: `adele-query` is in group `adele`, so `adele-server.service` hides the two files (`InaccessiblePaths=`).
-Within the fetch unit, each `fetch.py` gets only the variables that its descriptor declares in
+the statement filter come on top (D10, D24). Source credentials reach only the fetch units, and
+each fetch unit gets the variables of its own dataset: systemd reads `/etc/adele/env.d/<id>`
+(root only) before it changes to the user `adele`, so no `fetch.py` can read the file of another
+dataset. Within the unit, `fetch.py` gets only the variables that its descriptor declares in
 `adele.secrets` (entsoe: `ENTSO_TOKEN`; weathernext3: `GOOGLE_APPLICATION_CREDENTIALS`), plus
 what uv and Python need (`PATH`, `HOME`, locale, certificates, proxies, `UV_*`, `PYTHON*`,
-`XDG_*`). That filters environment variables only: files that the user `adele` can read (e.g.
-`/etc/adele/gcloud-adc.json`) stay readable by every fetch. Separating the datasets for real
-needs one user per fetch (later, with datasets from other repositories).
+`XDG_*`). A credential that is a file and not a variable (`/etc/adele/gcloud-adc.json`) must be
+readable by the user `adele`, so every fetch can read it: `adele-server.service` hides it from
+the query process (`InaccessiblePaths=`). Separating such files needs one user per fetch (later,
+with datasets from other repositories).
 
 ## Layout
 
 ```
 /opt/adele/                  git checkout; `cd server && uv sync --no-dev`
 /etc/adele/adele-server.toml config with the API keys    root:adele 0640
-/etc/adele/env               ENTSO_TOKEN=...             root:adele 0640 (fetch unit only)
-/etc/adele/gcloud-adc.json   Google credentials (WeatherNext 3)     root:adele 0640 (fetch unit only)
-/var/cache/adele/uv/         uv cache of the fetch unit (CacheDirectory=)
+/etc/adele/env.d/<id>        variables of one dataset    root:root 0600 (read by systemd)
+                             entsoe_day_ahead_prices: ENTSO_TOKEN=...
+                             weathernext3: GOOGLE_APPLICATION_CREDENTIALS=/etc/adele/gcloud-adc.json
+/etc/adele/gcloud-adc.json   Google credentials (WeatherNext 3)     root:adele 0640 (fetch units only)
+/var/cache/adele/uv/         uv cache of the fetch units (CacheDirectory=)
 /var/lib/adele/              data_dir                    adele:adele 2750
 /var/log/adele/              queries.jsonl, alerts.log   adele:adele 2770
 ```
@@ -43,14 +53,35 @@ sudo useradd --system --no-create-home --home-dir /nonexistent --shell /usr/sbin
 sudo useradd --system --no-create-home --shell /usr/sbin/nologin -G adele adele-query
 sudo install -d -o adele -g adele -m 2750 /var/lib/adele
 sudo install -d -o adele -g adele -m 2770 /var/log/adele
-sudo cp adele-server.service adele-fetch.service adele-fetch.timer /etc/systemd/system/
+sudo install -d -o root -g root -m 0700 /etc/adele/env.d
+sudo cp adele-server.service adele-fetch@.service adele-fetch@.timer /etc/systemd/system/
 sudo systemctl daemon-reload
 sudo -u adele /opt/adele/server/.venv/bin/adele-server --config /etc/adele/adele-server.toml validate
-sudo systemctl enable --now adele-server.service adele-fetch.timer
+sudo systemctl enable --now adele-server.service
+for id in entsoe_day_ahead_prices weathernext3; do sudo systemctl enable --now "adele-fetch@$id.timer"; done
 ```
 
-The data folder holds nothing but data: agent SQL may read any file under `data_dir`
-(`allowed_directories`, D10), so no home directory, credentials or caches go there. That is why
+Add a dataset (root, once per dataset; the id is the `name` of its descriptor):
+
+```bash
+sudo systemctl enable --now adele-fetch@<id>.timer
+# its secrets, if it has any: /etc/adele/env.d/<id> (root:root 0600)
+```
+
+Look at what ran (the journal needs root or the group `systemd-journal`):
+
+```bash
+systemctl list-timers 'adele-fetch@*'                # next and last tick per dataset
+systemctl list-units --all 'adele-fetch@*.service'   # running (activating) and failed instances
+journalctl -u adele-fetch@<id>.service --since -1h   # one dataset
+```
+
+A backfill holds the lock of its dataset until it ends: the ticks of the timer skip the dataset
+meanwhile. The first scheduled run after it fetches the time that the backfill took (D25).
+
+The data folder holds nothing but data: no home directory, credentials or caches go there. Agent
+SQL reads only the folders of the tables since 2026-11-14 (`allowed_directories`, D24; before, it
+could read any file under `data_dir`), and this rule stays as a second layer. That is why
 `adele` has no home (an earlier draft used `/var/lib/adele`).
 
 Fetches run `fetch.py` with `uv run --script` (PEP 723 dependencies per dataset, both datasets

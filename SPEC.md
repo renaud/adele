@@ -92,9 +92,18 @@ A dataset is a folder `datasets/<id>/` in git:
   with the rows whose delivery time falls in [start, end). A source that only serves
   "everything" or "latest" may ignore the window; the server filters.
 
-Each scheduled run fetches [now - lookback, now + horizon), both set in `adele.refresh`.
-The lookback is what catches revisions; the horizon covers data published before delivery
-(e.g. day-ahead prices). The initial backfill calls `fetch` on successive windows.
+Each scheduled run fetches [last - lookback, now + horizon), where `last` is the time of the
+last scheduled run that succeeded (`now` for the first run). `lookback` and `horizon` are set in
+`adele.refresh`. The lookback is what catches revisions; the horizon covers data published
+before delivery (e.g. day-ahead prices). The initial backfill calls `fetch` on successive
+windows.
+
+After a stop (the server was down, the source failed, a long backfill ran), the next run so
+fetches everything since the last run that succeeded, and no hole stays. A run that fails is
+tried again from the same place for one lookback. Then adele gives up on the older part, writes
+which part to the alert log, and returns to [now - lookback, now + horizon). A dataset can set
+`adele.refresh.max_window`: a longer window is fetched in pieces of that length, oldest first,
+and a piece that fails does not stop the later ones.
 
 The server does everything else: scheduling, schema check, revisions, storage, alerts.
 A connector never writes files. Source credentials (e.g. an ENTSO-E token) come from the
@@ -184,4 +193,8 @@ sources replace old values with revised ones, so adele may hold the only copy le
 
 - no writes from clients
 - no dashboards
-- no real-time streaming.
+- no real-time streaming
+- no data that is not a table: images, PDFs, rasters, full grids. From a grid, adele stores an
+  extract as a table (e.g. the cells over Switzerland).
+- no data delivered by hand (a file exported in a browser, a table typed from a PDF): `fetch.py`
+  gets every dataset from its source.

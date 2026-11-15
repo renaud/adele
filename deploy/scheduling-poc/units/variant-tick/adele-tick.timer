@@ -1,0 +1,10 @@
+# DRAFT of the variant without a timer per dataset (candidate D). Not run yet.
+[Unit]
+Description=adele: every minute, start a fetch for each dataset that is due
+
+[Timer]
+OnCalendar=*:*:00
+AccuracySec=1s
+
+[Install]
+WantedBy=timers.target

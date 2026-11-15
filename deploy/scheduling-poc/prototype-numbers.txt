@@ -1,0 +1,77 @@
+
+================ C
+ticks: 14 planned (minute 0 to 13), 14 seen by the scheduler; missing in its log: []
+fast: fetch() started in 14 of 14 minutes; lateness after the tick (s): n=14 min=0.63 median=0.70 max=0.80
+      minutes without a fetch of fast: []; minutes with two: []
+      longest gap between two fetches of fast: 60 s
+fast     every  60 s: 14 fetches started, 14 returned; periods of `every` with a tick: 14; periods with more than one fetch: none
+failing  every 120 s: 8 fetches started, 0 returned; periods of `every` with a tick: 7; periods with more than one fetch: {0: 2}
+slow     every 180 s: 5 fetches started, 5 returned; periods of `every` with a tick: 5; periods with more than one fetch: none
+hanging  every 300 s: 3 fetches started, 0 returned; periods of `every` with a tick: 3; periods with more than one fetch: {0: 2}
+lock refusals in the logs ('another fetch of ... is running'): 0
+time limit hits ('did not finish within'): 6 log lines; 'source down' failures: 16 log lines
+scheduler: woke after the minute (ms): n=14 min=4.00 median=7.00 max=15.00; decision per tick, in process (ms): n=14 min=1.10 median=2.50 max=5.10
+scheduler: child started after the tick (s), by dataset: fast: n=14 min=0.01 median=0.01 max=0.02; failing: n=8 min=0.01 median=0.02 max=1.03; slow: n=5 min=0.01 median=0.02 max=1.03; hanging: n=3 min=0.01 median=1.03 max=1.04
+  child `fetch fast`: wall s n=14 min=0.81 median=1.02 max=1.03; cpu s n=14 min=0.70 median=0.76 max=0.92; exit codes [0]
+  child `fetch failing`: wall s n=8 min=0.82 median=1.02 max=1.02; cpu s n=8 min=0.68 median=0.76 max=0.81; exit codes [1]
+  child `fetch slow`: wall s n=3 min=150.93 median=150.94 max=150.95; cpu s n=3 min=0.77 median=0.83 max=0.84; exit codes [0]
+  child `fetch hanging`: wall s n=2 min=180.59 median=180.60 max=180.61; cpu s n=2 min=0.74 median=0.76 max=0.77; exit codes [1]
+  ticks where today's rule (elapsed) would have said 'fast is not due' while the slot rule said due: []
+  waits for a free place (cap): [('hanging', 0), ('failing', 1), ('slow', 3), ('failing', 5), ('hanging', 9), ('failing', 11)]
+  decisions per dataset: {'failing': {'start': 8, 'not_due': 6}, 'fast': {'start': 14}, 'hanging': {'start': 3, 'not_due': 10, 'locked': 1}, 'slow': {'start': 5, 'not_due': 4, 'running': 3, 'locked': 2}}
+left in the temp folder: ['adele-slow-5_8qhj5z']
+
+================ L
+ticks: 14 planned (minute 0 to 13), 14 seen by the scheduler; missing in its log: []
+fast: fetch() started in 14 of 14 minutes; lateness after the tick (s): n=14 min=0.60 median=0.63 max=0.81
+      minutes without a fetch of fast: []; minutes with two: []
+      longest gap between two fetches of fast: 60 s
+fast     every  60 s: 14 fetches started, 14 returned; periods of `every` with a tick: 14; periods with more than one fetch: none
+failing  every 120 s: 3 fetches started, 0 returned; periods of `every` with a tick: 7; periods with more than one fetch: none
+slow     every 180 s: 2 fetches started, 2 returned; periods of `every` with a tick: 5; periods with more than one fetch: none
+hanging  every 300 s: 3 fetches started, 0 returned; periods of `every` with a tick: 3; periods with more than one fetch: none
+lock refusals in the logs ('another fetch of ... is running'): 0
+time limit hits ('did not finish within'): 2 log lines; 'source down' failures: 3 log lines
+unit fetch-fast: started 14 times, 0 ticks dropped because it was still running (minutes []); exit codes [0]
+  runs: wall s n=14 min=0.81 median=0.82 max=1.02; cpu s n=14 min=0.69 median=0.73 max=0.97
+  runs that fetched nothing (cost of an empty tick): wall s none; cpu s none
+  started after the tick (ms): n=14 min=2.00 median=7.00 max=10.00; at most 1 runs of the unit at once
+unit fetch-rest: started 3 times, 11 ticks dropped because it was still running (minutes [1, 2, 3, 4, 5, 7, 8, 9, 10, 11, 13]); exit codes [1]
+  runs: wall s n=2 min=331.34 median=331.37 max=331.40; cpu s n=2 min=1.46 median=1.49 max=1.51
+  runs that fetched nothing (cost of an empty tick): wall s none; cpu s none
+  started after the tick (ms): n=3 min=6.00 median=10.00 max=11.00; at most 1 runs of the unit at once
+left in the temp folder: ['adele-hanging-gfzpi2s3']
+
+================ T
+ticks: 14 planned (minute 0 to 13), 14 seen by the scheduler; missing in its log: []
+fast: fetch() started in 4 of 14 minutes; lateness after the tick (s): n=4 min=0.90 median=0.96 max=1.11
+      minutes without a fetch of fast: [1, 2, 3, 4, 5, 7, 8, 9, 11, 12]; minutes with two: []
+      longest gap between two fetches of fast: 360 s
+fast     every  60 s: 4 fetches started, 4 returned; periods of `every` with a tick: 14; periods with more than one fetch: none
+failing  every 120 s: 4 fetches started, 0 returned; periods of `every` with a tick: 7; periods with more than one fetch: none
+slow     every 180 s: 2 fetches started, 2 returned; periods of `every` with a tick: 5; periods with more than one fetch: none
+hanging  every 300 s: 3 fetches started, 0 returned; periods of `every` with a tick: 3; periods with more than one fetch: none
+lock refusals in the logs ('another fetch of ... is running'): 0
+time limit hits ('did not finish within'): 4 log lines; 'source down' failures: 8 log lines
+unit fetch: started 4 times, 10 ticks dropped because it was still running (minutes [1, 2, 3, 4, 5, 7, 8, 9, 11, 12]); exit codes [1]
+  runs: wall s n=3 min=151.60 median=181.22 max=331.54; cpu s n=3 min=1.38 median=1.39 max=1.82
+  runs that fetched nothing (cost of an empty tick): wall s none; cpu s none
+  started after the tick (ms): n=4 min=2.00 median=7.50 max=8.00; at most 1 runs of the unit at once
+left in the temp folder: ['adele-hanging-sv2oa0zt']
+
+================ O
+ticks: 14 planned (minute 0 to 13), 14 seen by the scheduler; missing in its log: []
+fast: fetch() started in 14 of 14 minutes; lateness after the tick (s): n=14 min=0.60 median=0.81 max=1.07
+      minutes without a fetch of fast: []; minutes with two: []
+      longest gap between two fetches of fast: 60 s
+fast     every  60 s: 14 fetches started, 14 returned; periods of `every` with a tick: 14; periods with more than one fetch: none
+failing  every 120 s: 7 fetches started, 0 returned; periods of `every` with a tick: 7; periods with more than one fetch: none
+slow     every 180 s: 4 fetches started, 4 returned; periods of `every` with a tick: 5; periods with more than one fetch: none
+hanging  every 300 s: 3 fetches started, 0 returned; periods of `every` with a tick: 3; periods with more than one fetch: none
+lock refusals in the logs ('another fetch of ... is running'): 16
+time limit hits ('did not finish within'): 4 log lines; 'source down' failures: 14 log lines
+unit fetch: started 14 times, 0 ticks dropped because it was still running (minutes []); exit codes [0, 1]
+  runs: wall s n=12 min=0.81 median=1.32 max=181.23; cpu s n=12 min=0.69 median=1.10 max=1.48
+  runs that fetched nothing (cost of an empty tick): wall s none; cpu s none
+  started after the tick (ms): n=14 min=2.00 median=6.00 max=9.00; at most 3 runs of the unit at once
+left in the temp folder: ['adele-hanging-gjzf7pah', 'adele-slow-q82d5j97']

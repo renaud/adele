@@ -1,0 +1,37 @@
+# Draft, not tried on a server yet. One instance per dataset: adele-fetch@<dataset id>.service,
+# started every minute by adele-fetch@<dataset id>.timer (D27). Instances of different datasets
+# run side by side. systemd does not start an instance again while it runs, and the lock of the
+# dataset in the server covers the same case a second time.
+[Unit]
+Description=adele: fetch the dataset %i if its refresh is due
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+User=adele
+Group=adele
+UMask=0027
+# Source credentials of this dataset only: /etc/adele/env.d/<dataset id>, root:root 0600.
+# systemd reads the file before it changes to the user adele, so no fetch.py can read the file
+# of another dataset. The server passes on only the variables that the descriptor lists in
+# adele.secrets (plus PATH, HOME, locale, certificates, proxies, UV_*, PYTHON*, XDG_*).
+EnvironmentFile=-/etc/adele/env.d/%i
+# fetch.py files run with `uv run --script` (PEP 723); uv in /usr/local/bin, its cache outside the data
+Environment=UV_CACHE_DIR=/var/cache/adele/uv
+Environment=UV_PYTHON_INSTALL_DIR=/opt/uv-python
+CacheDirectory=adele
+# Exits at once, without output, when the dataset is not due (adele.refresh.every).
+ExecStart=/opt/adele/server/.venv/bin/adele-server --config /etc/adele/adele-server.toml fetch %i --if-due
+# The server limits each call of fetch.py itself (fetch_timeout_s, adele.refresh.timeout). This
+# limit is the second layer, for a run that hangs elsewhere. It is long because a run that
+# catches up after a stop fetches many pieces (adele.refresh.max_window). A dataset that must
+# never wait that long gets a shorter one in a drop-in:
+# /etc/systemd/system/adele-fetch@<dataset id>.service.d/limits.conf with TimeoutStartSec=
+TimeoutStartSec=6h
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ProtectHome=yes
+ReadOnlyPaths=/opt/adele
+ReadWritePaths=/var/lib/adele /var/log/adele

@@ -1,0 +1,16 @@
+# DRAFT, not run on a server yet (2026-11-14). Replaces deploy/adele-fetch.timer.
+# One timer per dataset, enabled by root once:  systemctl enable --now adele-fetch@<dataset id>.timer
+# The timer only gives the tick. Whether a fetch happens is decided by `adele.refresh.every` of
+# the descriptor (fetch --if-due), so the schedule stays written in one place.
+[Unit]
+Description=adele: every minute, fetch the dataset %i if its refresh is due
+
+[Timer]
+OnCalendar=*:*:00
+# The default accuracy is 1 minute: the timer could then fire at any second of the minute.
+AccuracySec=1s
+# No Persistent=: a tick missed during a reboot is not caught up, the next minute does the work.
+# A tick that elapses while the instance still runs is dropped by systemd, without a log line.
+
+[Install]
+WantedBy=timers.target

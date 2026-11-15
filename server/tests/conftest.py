@@ -77,6 +77,7 @@ def env(tmp_path: Path, monkeypatch):
     (tmp_path / "adele-server.toml").write_text(textwrap.dedent(f"""\
         datasets_dir = "datasets"
         data_dir = "data"
+        cache_dir = "cache"
         [query]
         max_rows = 10
         timeout_s = 5

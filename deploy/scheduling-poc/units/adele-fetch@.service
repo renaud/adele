@@ -1,0 +1,36 @@
+# DRAFT, not run on a server yet (2026-11-14). Replaces deploy/adele-fetch.service.
+# One instance per dataset: adele-fetch@<dataset id>.service. Instances run side by side;
+# systemd keeps one run per instance (to confirm with the test script, steps 2 to 4), and the
+# dataset's lock in the server code covers the same case a second time.
+[Unit]
+Description=adele: fetch the dataset %i if its refresh is due
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+User=adele
+Group=adele
+UMask=0027
+# Source credentials. Each fetch.py gets only the ones that its descriptor lists in adele.secrets.
+EnvironmentFile=/etc/adele/env
+# Optional, one file per dataset, root:root 0600: systemd reads it before it changes to the user
+# adele, so that the user adele (and so every other fetch.py) cannot read the file (test script, step 9).
+EnvironmentFile=-/etc/adele/env.d/%i
+Environment=UV_CACHE_DIR=/var/cache/adele/uv
+Environment=UV_PYTHON_INSTALL_DIR=/opt/uv-python
+Environment=GOOGLE_APPLICATION_CREDENTIALS=/etc/adele/gcloud-adc.json
+CacheDirectory=adele
+# --if-due does not exist yet (server change 1): exit 0 without output when the dataset is not due.
+ExecStart=/opt/adele/server/.venv/bin/adele-server --config /etc/adele/adele-server.toml fetch %i --if-due
+# Second layer under fetch_timeout_s (1800 s): systemd stops the whole run, uv and fetch.py
+# included, if the server code did not. A dataset fetched every minute needs a much shorter
+# limit: see adele-fetch@swissgrid_tsi.service.d/limits.conf.
+TimeoutStartSec=2100
+# The six settings of deploy/adele-fetch.service, unchanged.
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ProtectHome=yes
+ReadOnlyPaths=/opt/adele
+ReadWritePaths=/var/lib/adele /var/log/adele

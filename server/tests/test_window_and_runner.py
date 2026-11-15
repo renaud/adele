@@ -110,7 +110,7 @@ def test_window_on_init_time_filters_and_partitions_by_init_month(env):
     assert "| init_time 2026-01-31 22:00Z .. 2026-02-01 01:00Z |" in line and "PT1H" in line
     card = render.describe_dict(cfg, ds)
     assert card["tables"][0]["init_time coverage"] == "2026-01-31 22:00Z .. 2026-02-01 01:00Z (4 distinct values)"
-    assert card["freshness"]["refresh"] == "every PT1H, window on init_time [now - PT6H, now + PT1H)"
+    assert card["freshness"]["refresh"] == "every PT1H, window on init_time [last scheduled run - PT6H, now + PT1H)"
 
 
 def test_window_on_delivery_start_is_the_default(env):

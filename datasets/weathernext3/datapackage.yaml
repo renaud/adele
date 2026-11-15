@@ -161,6 +161,7 @@ adele:
     every: PT1H
     lookback: PT12H  # runs appear ~7 h after init; a 2026 run older than 10 h without its marker fails
     horizon: PT1H
+    max_window: PT1H  # one run per fetch; a longer window is fetched in pieces, oldest first (D25)
   revisions: none  # a run never changes once written: each run is fetched once
   warnings:
     - >-

@@ -1,0 +1,27 @@
+DRAFT (2026-11-15), nothing here has run on a server. Run linux/adele-systemd-claims-test.sh first.
+
+Install (root), instead of adele-fetch.service and adele-fetch.timer of deploy/:
+  cp adele-fetch@.service adele-fetch@.timer /etc/systemd/system/
+  systemctl daemon-reload
+  systemctl disable --now adele-fetch.timer            # the old single timer, if it was installed
+  for id in entsoe_day_ahead_prices weathernext3; do systemctl enable --now "adele-fetch@$id.timer"; done
+
+Add a dataset (root, once per dataset; the id is the `name` of its descriptor):
+  systemctl enable --now adele-fetch@<id>.timer
+  # optional: /etc/adele/env.d/<id> (root:root 0600) with the secrets of that dataset only
+  # optional: /etc/systemd/system/adele-fetch@<id>.service.d/limits.conf with TimeoutStartSec=
+
+Look (any user for the lists; the journal needs root or the group systemd-journal):
+  systemctl list-timers 'adele-fetch@*'                # next and last tick per dataset
+  systemctl list-units --all 'adele-fetch@*.service'   # running (activating) and failed instances
+  journalctl -u adele-fetch@<id>.service --since -1h   # what ran and what failed, for one dataset
+  systemctl --failed 'adele-fetch@*'
+
+Needs in the server code before it works: `fetch <id> --if-due` (see the report, changes 1 to 6).
+
+On the Mac (no systemd, no sandbox): `adele-server fetch --due` from cron or launchd, as today,
+or proto/sched_c.py as a loop that fetches the due datasets side by side.
+
+variant-tick/: the same template unit, started by one tick per minute instead of one timer per
+dataset (no command per dataset, one line that runs as root). Use it only if the per-dataset
+command is not acceptable, and after step 6 of the test script passed.

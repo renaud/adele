@@ -1,0 +1,17 @@
+#!/bin/sh
+# DRAFT, not run yet. Installed by root as /usr/local/libexec/adele-dispatch (root:root 0755),
+# outside the git checkout. Runs as root from adele-tick.service.
+# Input: a file written by the user adele, one dataset id per line. Nothing in it is trusted:
+# a line is used only if it is a dataset id (^[a-z][a-z0-9_]*$, NAME_RE of catalog.py), and the
+# only thing done with it is to start the unit of that name. At most 200 lines are read.
+set -eu
+f="${1:?usage: adele-dispatch <file of dataset ids>}"
+[ -f "$f" ] && [ ! -L "$f" ] || exit 0
+n=0
+while IFS= read -r id && [ "$n" -lt 200 ]; do
+    n=$((n + 1))
+    case "$id" in
+        "" | *[!a-z0-9_]* | [!a-z]*) echo "adele-dispatch: line $n refused" >&2 ;;
+        *) systemctl start --no-block "adele-fetch@$id.service" ;;
+    esac
+done < "$f"

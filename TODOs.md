@@ -25,12 +25,14 @@
       changes over time, each row carries it in a `resolution` column, and the catalog lists the
       periods of each series, computed from the data.
     ```
-  - Security, replaces the "read-only" bullet:
+  - Security, replaces the "read-only" bullet (text changed 2026-11-14 with D24):
     ```
     - read-only: the server's DuckDB can read the Parquet files of the catalog and nothing else
       (no other local file, no network, no extension install, no change of settings by a query).
-      DuckDB can't make an allowed folder read-only, so the server also runs only SELECT and
-      EXPLAIN statements, and the query process runs as a user that can only read the data.
+      DuckDB can't make an allowed folder read-only, so the server runs only what DuckDB's
+      parser shows to be a read (one SELECT, with table functions from a list; no other
+      statement, also no EXPLAIN), and the query process runs as a user that can only read the
+      data.
     ```
 - SPEC.md, five texts from D12-D18 (2026-11-13), paste-ready:
   - Catalog, extensions bullet, replaces it:
@@ -56,10 +58,21 @@
       server runs them after each fetch; a value outside its tolerance sets the status to
       failing.
 
-    Each scheduled run fetches [now - lookback, now + horizon), both set in `adele.refresh`.
-    The lookback catches revisions and late data; the horizon covers data published before
-    delivery (e.g. day-ahead prices). The initial backfill calls `fetch` on successive windows.
+    Each scheduled run fetches [last - lookback, now + horizon), where `last` is the time of
+    the last scheduled run that succeeded (`now` for the first run). `lookback` and `horizon`
+    are set in `adele.refresh`. The lookback catches revisions and late data; the horizon
+    covers data published before delivery (e.g. day-ahead prices). The initial backfill calls
+    `fetch` on successive windows.
+
+    After a stop (the server was down, the source failed, a long backfill ran), the next run so
+    fetches everything since the last run that succeeded, and no hole stays. A run that fails
+    is tried again from the same place for one lookback. Then adele gives up on the older part,
+    writes which part to the alert log, and returns to [now - lookback, now + horizon). A
+    dataset can set `adele.refresh.max_window`: a longer window is fetched in pieces of that
+    length, oldest first, and a piece that fails does not stop the later ones.
     ```
+    (The two paragraphs on the window are in SPEC.md since 2026-11-15, D25. Keep them when
+    pasting the rest of this block.)
   - Time conventions, the interval rule and coverage, replace those two bullets:
     ```
     - a timestamp marks the start of its interval; intervals are half-open: [start, start +
@@ -78,6 +91,25 @@
     - a dataset is one or more tables; each table is stored as Parquet, partitioned by month of
       its window time (by default the delivery month), or by day when the dataset declares
       `adele.partition: day`.
+    ```
+- SPEC.md, one text from D22 and D26 (2026-11-15), paste-ready. Time conventions, replaces
+  "every table has a `delivery_start` column" of the text above and the rule on local time:
+    ```
+    - a table has one time column, or none:
+      - `delivery_start`: the start of an interval of fixed duration, in UTC.
+      - `valid_at`: an instant, in UTC.
+      - `delivery_date`, `delivery_month` or `delivery_year`: a calendar day, month or year in
+        the time zone that the table declares (`timezone`, e.g. Europe/Zurich), stored as a
+        date. A month and a year are stored as their first day. `describe` prints the
+        expression that joins such a table with a table in UTC.
+      - none (a register of plants, a list of stations): each fetch replaces the whole table.
+    - all timestamps are stored in UTC. A calendar period is stored as a date, never as a
+      timestamp: a local day lasts 23 to 25 hours.
+    ```
+- SPEC.md, one sentence from D27 (2026-11-15), paste-ready. Adding a dataset, at the end of the
+  paragraph on `max_window`:
+    ```
+    It can also set `adele.refresh.timeout`, the time limit of one call of `fetch.py`.
     ```
 - SPEC.md, two texts from D20-D21 (2026-11-14), paste-ready:
   - Keys or prose, the traps bullet, replaces it:
@@ -170,6 +202,29 @@ repository, `adele-server sync` with pinned tags that only the admin moves.
 POC 2: actual load (`append-only`, `as_of`, MW --> MWh at ingestion, a join with prices on the
 server), `pull`, email alerts.
 
+Swissgrid, when its datasets are written (decided 2026-11-15): the 5-minute TSI file
+(`total-system-imbalance.csv`: one quarter-hour as three 5-minute values, replaced every 15
+minutes) and the daily balance file (`control-area-balance-daily.csv`: one row per quarter-hour,
+the last 24 hours) are two datasets, each with its own `fetch.py`, refresh and time limit. The
+daily one guarantees that no quarter-hour of TSI is lost (a margin of 24 hours); the 5-minute
+one adds the detail inside the quarter-hour and about 17 minutes of advance. The 5-minute
+dataset is fetched every minute (`every: PT1M`, Renaud, 2026-11-15), with a short `timeout`.
+Open: whether the year file (`control-area-balance-<year>.csv`, the same values revised) is a
+third dataset or the same table as the daily file (that needs `append-only`).
+Before adele: one poller script for all Swissgrid files, with a poll interval per file; in
+swiss_energy_data the two files were entries without a table (`tables: []`), kept as raw
+versions only.
+
+Next, state at the end of 2026-11-15:
+
+- A real fetch of both datasets with the code of D25 and D27 (Renaud: "very soon"). Until then
+  the new window, the pieces of weathernext3 and the fixed runner path are tested on synthetic
+  data only.
+- The work packages are in `PLAN.md`, which Renaud edits himself. Claude's proposal for the
+  order of the three server builds: WP3 (versions), then WP4 (the Swissgrid files, which need
+  WP3), then WP2 (table shapes). `append-only` can be built during the week of unattended
+  fetches on steacher1.
+
 Next for Claude (decided 2026-11-14, not built):
 
 - D20, warnings in the footer: a warning is a string or `{text, footer}`; `describe` shows all,
@@ -180,6 +235,74 @@ Next for Claude (decided 2026-11-14, not built):
   and ranges in `describe`. Declare it for weathernext3 (first period at 2026-11-12 for the
   sample; PT3H from 2024-01-01 and PT1H from 2026-01-01 after the steacher1 backfill). Open:
   how to accept a run that Google never publishes.
+- D22, tables without a time column: catalog (accept a table with neither `delivery_start` nor
+  `valid_at`; no window check for it), staging without the filter on the window, a merge that
+  replaces the one file (an empty fetch is an error), row count and last change in `list` and
+  `describe`, tests. The text for SPEC.md (Time conventions, Storage) comes with the one for
+  the date column, once its details are settled (docs/datasets-inventory.md, section 6).
+
+Found on 2026-11-14 by subagents (docs/datasets-inventory.md, sections 4 and 5), not fixed:
+
+- ~~A hole older than the lookback is never fetched again~~ fixed 2026-11-15 (D25): the
+  scheduled window starts at the last scheduled run that succeeded, `adele.refresh.max_window`
+  for pieces, giving up after one lookback of failures. 233 tests pass. Left over: an unknown
+  key under `adele.refresh` is not refused (a misspelt `max_window` is ignored); the cost of the
+  14 pieces of a usual weathernext3 run is not measured; no real fetch was run with it.
+- A backfill doesn't resume: `--start` is required (`cli.py`) and a second run fetches every
+  window again. A window that fails in the middle leaves a hole; the command prints it and
+  returns 1, but `state.json` ends with status ok. D21 (`expected_spacing`) would report the
+  hole, once built and declared.
+- `revisions: none`: a run that is stored in part counts as stored (`windows_to_fetch`) and is
+  never completed. Tested by the subagent: 2 rows of 4 stayed after a second backfill.
+- Date column (decided 2026-11-15, D26; the build comes after D22). To change: the `adele:` block per
+  table (`resolution`, `window`, `partition` are per dataset in `catalog.py`, so a dataset with a
+  table by quarter-hour and a table by month can't load); `Table.time_field` (falls back to
+  `valid_at`); the window filter in `_stage` (a period is kept when it overlaps the window);
+  `windows_to_fetch` (TypeError on a date); `ts()` in `render.py` (fails on a date, so `list`
+  and `describe` fail); the hint when `fetch.py` returns timestamps for a date column
+  (`pd.to_datetime` gives TIMESTAMP); `describe` prints the zone and the join expression.
+- `skills/adele/SKILL.md:38` weights by `epoch(resolution)`: 720 hours for any month. Fix when
+  the first table by month comes.
+- ~~Queries could read the query log and write a file inside the folder of a table~~ fixed
+  2026-11-14 (D24, `engine.py`). Since 2026-11-15 a query is one SELECT and nothing else: no
+  EXPLAIN at all (D29, which supersedes D28). Also refused: the table functions `query`,
+  `query_table` and `histogram`. Left over from that work:
+  - a query over the row cap that ends with `;` or with a `--` comment fails (older defect: the
+    server counts with `SELECT count(*) FROM (<query>)`).
+  - `deploy/adele-server.service` sets no working directory, so DuckDB's `.tmp` would be `/.tmp`,
+    which is read-only there: a query that needs temporary files would fail (not tried).
+  - scalar functions are on no list (814; none found that writes).
+
+Fetch scheduling (G5), investigated 2026-11-15 by a subagent. Decided and built the same day
+(D27): one systemd timer and one service per dataset, `fetch <id> --if-due`, "due" in whole
+periods of `every`, `adele.refresh.timeout`, a backfill that holds the lock. 317 tests pass. Not
+done: nothing ran on steacher1, and no real fetch ran with this code. Files in
+`deploy/scheduling-poc/`: draft units, a test script for a Linux server, the prototypes and
+their numbers. The claims about systemd were tested once in a Docker container on the Mac
+(systemd 255 under emulation, 27 checks passed: `deploy/scheduling-poc/container-test/`), not
+on steacher1. One claim was wrong: `KillMode=mixed` does not wait for the children.
+
+- Candidates: one timer and one service per dataset (`adele-fetch@<id>`, the subagent's
+  recommendation and Claude's since then), a scheduler that stays running (best numbers, but a
+  restart stops every fetch in progress and all datasets share one journal), a tick that starts
+  one unit per due dataset (needs a polkit rule or one line that runs as root), two lanes.
+- Measured on the Mac, 14 minutes per run, one run each: with the timer and the service of
+  today, the dataset due every minute was fetched in 4 of 14 minutes (longest gap 360 s). With
+  each candidate: 14 of 14, about 0.7 s after the tick, no double fetch.
+- Defects found on the way, fixed 2026-11-15:
+  - a `fetch.py` with a script block cost 8.7 s per fetch on the Mac, because its runner was
+    written to a new temporary path each time and uv built a new environment. The runner now
+    has one path per dataset (`<cache_dir>/runners/<id>/`): 0.3 s from the second fetch on.
+  - SIGTERM to `adele-server fetch` left `fetch.py` running without a limit. Now the child is
+    stopped, the attempt is recorded, and the exit code is 143 (130 for Ctrl-C).
+  - one invalid descriptor made the fetch of every other dataset exit with 2.
+- Still open:
+  - `load_catalog` imports every `fetch.py` that has no script block (`catalog.py`,
+    `_load_fetch`), also in the query process. Both datasets have a script block today.
+- The subagent's remark on the requirement: a fetch of TSI covers the last 15 minutes, so what
+  matters is "never 15 minutes without a success", not "every minute". A hang under the time
+  limit of 1,800 s then loses data whatever the scheduler: the time limit per dataset matters
+  more than the choice of the scheduler.
 
 Other V0 items:
 

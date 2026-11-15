@@ -1,0 +1,26 @@
+# DRAFT of the variant without a timer per dataset (candidate D). Not run yet.
+# Line 1 runs as adele in the sandbox: it loads the descriptors and writes the ids that are due.
+# Line 2 runs as root (the + prefix switches User= and the sandbox off for that line, test
+# script step 6): it loads no descriptor and no Python, it only starts adele-fetch@<id>.service.
+# Why not the whole tick as root: load_catalog imports every fetch.py that has no PEP 723 block
+# (catalog.py, _load_fetch), so a dataset's code would run as root.
+[Unit]
+Description=adele: start a fetch for each dataset that is due
+
+[Service]
+Type=oneshot
+User=adele
+Group=adele
+UMask=0027
+RuntimeDirectory=adele
+RuntimeDirectoryPreserve=yes
+# `due` does not exist yet: print the ids of the due datasets, one per line.
+ExecStart=/opt/adele/server/.venv/bin/adele-server --config /etc/adele/adele-server.toml due --output /run/adele/due
+ExecStart=+/usr/local/libexec/adele-dispatch /run/adele/due
+TimeoutStartSec=50
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ProtectHome=yes
+ReadOnlyPaths=/opt/adele /var/lib/adele
+ReadWritePaths=/var/log/adele

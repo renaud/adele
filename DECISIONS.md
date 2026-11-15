@@ -385,3 +385,264 @@ A gap in forecast runs is the failure that `stale` doesn't catch: newer runs kee
 **Rejected.** Waiting for `stale` (it sees only that nothing new arrives). Open: a run that the
 source never publishes keeps the status failing; how to accept such a gap (a list of known gaps,
 or a warning) is decided when it happens.
+
+## D22 - A table may have no time column; each fetch replaces it whole (2026-11-14)
+
+**Decision.** A table has `delivery_start`, or `valid_at` (D17), or no time column. A table
+without one (a register of plants, a list of stations) is stored as one file. Each fetch returns
+the whole table and the server replaces the stored one: a row that the source no longer delivers
+goes. A fetch that returns no row for such a table is an error, and the stored table stays. The
+window (D14), the partitions (D16) and `revisions: none` (D15) don't apply to such a table. In
+place of a coverage, `adele list` and `describe` show its row count and the time of its last
+change. Supersedes "exactly one time field" in D17. Not built yet (TODOs.md).
+
+**Why.** Nobody decided against such tables: the rule of D17 came from the first two datasets,
+which are time series, and D14 gave the time column three jobs (which rows a fetch brings, which
+file a row goes into, the coverage). In the inventory of the two earlier projects
+(docs/datasets-inventory.md), 18 of the 85 tables of sources have no time column, and most series
+need one of them to explain their codes: 135 stations with position and altitude don't fit in
+`categories`. Renaud, 2026-11-14: "we should definitely find a way to support any dataset that
+does not have a time column"; the table mirrors the source (his answer "1 a").
+
+**Rejected.** Rows that are only added or changed, never removed: the table would keep a plant
+that left the register, with no mark. With `append-only` (POC 2), the history of a row that goes
+can be kept.
+
+## D23 - Nothing passes between two fetches for now; no journal, no SQLite file (2026-11-14)
+
+**Decision.** `fetch(start, end)` gets the window and nothing else. adele keeps no journal of its
+requests and no SQLite file per dataset. What a dataset holds (its coverage, the stored values of
+the window column) is computed from the Parquet files when needed. A bookmark (a small JSON that
+`fetch` gets and returns, kept in `state.json`) is added when the first dataset needs one.
+
+**Why.** Renaud, 2026-11-14: "I'm not sold on using an SQLite per dataset", then "5 ok, fine
+then. no sqlite for this". Between nothing and a bookmark, Claude recommended nothing; his answer
+was "Use subagents for 1,3,4", which Claude read as an ok for this point (3). Measured the same
+day: computing what is stored costs milliseconds (the footers of 120 day files with 201 million
+rows: 11-19 ms; `count, min, max` over them: 68-108 ms). A subagent then looked for a dataset
+that needs memory among the 83 of docs/datasets-inventory.md: none has an API with a cursor, none
+serves only what changed since the last call, and no recorded limit is exceeded at the `every`
+that the source needs. An answer of Swissgrid's TSI file is 120 bytes (median of about 2,300
+downloads in the poller's log), so asking every minute without an ETag moves 0.17 MB a day.
+
+**Limits.** Three cases will need a bookmark or a conditional request when they come. Swissgrid's
+year files, if they are asked more often than once a day: EnergieUebersichtCH is 18 to 26 MB, and
+the poller, which asked hourly, got "not modified" for 360 of 469 answers (1.1 GB saved in 20
+days; read in its log by the subagent). The "recent" files of MeteoSwiss SMN, if they are asked
+more often than once a day: 851 MB per fetch. The Open-Meteo backfill: its budget of calls
+belongs to the source, not to one dataset, so a bookmark per dataset can't enforce it. The check
+also found three defects of the server that memory would not solve (TODOs.md): a hole older than
+the lookback is never fetched again, a backfill doesn't resume, and with `revisions: none` a run
+stored in part counts as stored.
+
+**Rejected.** A journal in a SQLite file per dataset (Claude's first recommendation): a second
+store that can contradict the Parquet files, against a cost of computing that the measurements
+don't show. A bookmark now: no dataset would use it.
+
+## D24 - A query reads only the folders of the tables, and lists decide what is a read (2026-11-14)
+
+**Decision.** Two changes to D10. (1) `allowed_directories` is one folder per table of the catalog
+(`<data_dir>/<dataset>/<table>/`), not the data folder. (2) The filter on writes becomes a set of
+allow-lists, all read from DuckDB's parser: one statement, of type SELECT or EXPLAIN; in its parse
+tree (`json_serialize_sql`) only query nodes that read (SELECT, set operations, recursive CTE), at
+any depth; table functions only from a list of 37 (`TABLE_FUNCTIONS` in `engine.py`). A SELECT
+that DuckDB can't serialize is refused. For EXPLAIN, the server takes the text after the keyword,
+checks it as a SELECT and adds `EXPLAIN` itself. So `EXPLAIN ANALYZE` and an EXPLAIN with options
+are refused, and so are the table functions `query`, `query_table` and `histogram`, which
+answered before. Built: `server/src/adele_server/engine.py`, 93 new tests.
+
+**Why.** Found on 2026-11-14 with the real engine. Reads: the data folder also holds the query
+log (`logs/queries.jsonl`, the SQL of every member), `alerts.log` and a `state.json` per dataset;
+`read_json` returned the 36 lines of the log. Writes: the filter of D10 looked only at the type of
+the statement. `EXPLAIN ANALYZE COPY ... TO` has the type EXPLAIN and runs the COPY. A COPY in a
+CTE of a SELECT has the type SELECT. Three table functions run SQL that they get as data (`query`,
+`json_execute_serialized_sql`, `destroy_external_resource`). Each of these added or replaced a
+partition of a table (synthetic data: 96 --> 97 rows, then 2). DuckDB 2.0.0 has no setting that
+makes a folder read-only. Renaud, 2026-11-14: to "Apply the fix of the readable folders now?" he
+answered "Use subagents for 1,3,4", which Claude read as a yes. Claude added the guard on writes
+the same day without his answer; he decides whether it stays as it is.
+
+**Limits.** Scalar functions are on no list (814 in duckdb 2.0.0; none was found that writes).
+The check relies on `json_serialize_sql` showing every node. A query can still read every file
+inside the folder of a table (the temporary files of a merge hold rows of the same table) and
+DuckDB's own `.tmp` folder. The layer that doesn't depend on parsing is the operating system: on
+the Linux server the query process runs as a user for whom the data folder is read-only
+(`deploy/adele-server.service`, a draft that was never tried).
+
+**Rejected.** Moving the logs out of the data folder as the only fix: the state files stay
+readable. A list of forbidden words (ANALYZE, COPY): a later DuckDB can add a construct that
+writes, and an allow-list refuses what it doesn't hold.
+
+## D25 - A scheduled run starts at the last run that succeeded; a failing stretch is given up after one lookback (2026-11-15)
+
+**Decision.** Four rules for the window of a scheduled run (`fetch --due`, or `fetch <dataset>`
+without `--start` and `--end`):
+
+1. The window is [last - lookback, now + horizon), where last is the time of the last scheduled
+   run that succeeded (`last_scheduled_at` in `state.json`), and `now` on the first run.
+2. A new optional key, `adele.refresh.max_window`: a window longer than it is fetched in pieces
+   of that length, oldest first, each one merged before the next starts. Every piece is
+   attempted, and the run succeeds only if all of them do.
+3. A run that fails keeps last. Once the runs have failed for longer than the lookback
+   (`failing_since`), the window is [now - lookback, now + horizon) until a run succeeds, and the
+   part that is given up, [last - lookback, now - lookback), is written once to `alerts.log`.
+4. A fetch with `--start` or `--end` changes nothing. A backfill sets last to the time at which
+   it started, when it reaches the present, starts at or before last - lookback, and has at least
+   one window that succeeded. It lists its failed windows.
+
+weathernext3 declares `max_window: PT1H`. Built: `server/src/adele_server/ingest.py`
+(`scheduled_window`, `scheduled_fetch`, `backfill`), `catalog.py`, `state.py`, `cli.py`;
+`server/tests/test_catch_up.py` (32 tests).
+
+**Why.** The window was always [now - lookback, now + horizon). After a stop longer than the
+lookback, the time in between was never fetched again and nothing reported it. A long backfill
+is such a stop: it ends at the time at which it was started, and the first scheduled run after
+it starts at now - lookback (weathernext3: a lookback of 12 h, a backfill of days). Found by a
+subagent on 2026-11-14. Renaud, to "The hole older than the lookback: fix now?": "4 yes. put this
+decision also in SPEC.md"; to `max_window`: "3 ok". Rule 3 was added by Claude after the first
+build: with rules 1 and 2 alone, a failure that never ends stops a dataset for good. weathernext3
+has that case: its `fetch.py` raises for a run without `success` marker from 10 h after its init.
+Before, that run left the lookback 2 h later. One lookback of retries is what a failure inside
+the usual window got before; it now also holds for the time of a stop. Simulated on a synthetic
+dataset: with `max_window: PT1H`, a run that is never written fails 13 hourly runs and only that
+run is missing; without the key, nothing is stored during those 13 h and 9 more runs are lost.
+
+**Limits.** A source that fails for longer than the lookback still leaves a hole, as before; the
+alert log now names it, and D21 would report it. A source that serves only its latest values
+brings nothing for the time of a stop. A usual run of weathernext3 is now 14 pieces; their cost
+is not measured, and no real fetch ran with this code yet. An unknown key under `adele.refresh`
+is not refused, so a misspelt `max_window` is ignored.
+
+**Rejected.** The last stored value as the start (a source that lags or has stopped would make
+every window grow). `last_fetched_at` as the start (each window of a backfill sets it, also one
+of 2015). Retrying a failing stretch for ever (stops the dataset). Filling the time of a stop
+once, without retry (one network error in a catch-up of 180 pieces leaves a hole).
+
+## D26 - Calendar periods: a date column named after its period, and a time zone per table (2026-11-15)
+
+**Decision.** A table whose rows cover a calendar day, month or year in local time has a date
+column in place of `delivery_start`:
+
+- The column is `delivery_date` for a day, `delivery_month` for a month, `delivery_year` for a
+  year. All three are of type date. A month and a year are stored as their first day, and the
+  server checks that.
+- The table declares its zone: `timezone` in its `adele:` block, an IANA name (Europe/Zurich) or
+  `UTC`. An abbreviation such as `CET` is refused: DuckDB applies summer time to it.
+- Such a table has no `resolution`: the name of the column gives it.
+- When the source does not state the zone of its days, the author writes the most likely zone,
+  and the description of the column says that it is assumed.
+- A fetch keeps a period when it overlaps the window [start, end), not only when its first
+  instant falls inside.
+- `describe` prints the zone and the expression that joins the table with a table in UTC,
+  together with the plain filter that lets DuckDB skip partitions.
+- A day of UTC is a fixed duration: such a table keeps `delivery_start` and `P1D`.
+
+With D22, this supersedes "exactly one of `delivery_start` and `valid_at`" in D17. Not built yet
+(TODOs.md). A prerequisite: the `adele:` block per table, because `resolution`, `window` and
+`partition` are per dataset today.
+
+**Why.** A day of Europe/Zurich lasts 23 to 25 hours and a month has no fixed duration, so
+"a start in UTC plus a resolution" is wrong for them: on 2026-03-29, `delivery_start + INTERVAL 1
+DAY` joins 96 quarter-hours where the day has 92. Renaud chose the date column on 2026-11-14
+("2 c"), over a start with an end and over all three columns. A subagent then tested the details
+against the server code, the 9 datasets of docs/datasets-inventory.md with such periods and
+duckdb 2.0.0. With one name for the three periods, a join of a table by day with a table by month
+returns 12 rows a year instead of 365, without an error; with three names the same join fails.
+The catalog refuses `P1M` and `P1Y` on purpose (their length varies), hence no `resolution`. A
+table by month with a lookback of 3 days stored 0 rows with the status ok, hence the rule on the
+window. Renaud, 2026-11-15: "1 ok" to the three names; on a zone that the source does not state:
+"a. write it down, so this is known".
+
+**Limits.** Not covered: a period with its own end (ENTSO-E outages; Swissgrid's reserve
+auctions, whose products cover a week, a day or a block of 4 hours) and a state at a date (the
+BFE Energie Reporter gives the capacity on the last day of each month). They wait for the first
+dataset that needs them. The join needs the zone: a cast without it gives 96 quarter-hours on
+every day, without an error, and puts 2,300 of the 35,040 quarter-hours of 2026 on the wrong day.
+A DuckDB on a laptop uses the zone of the machine, so a local copy can answer differently from
+the server.
+
+**Rejected.** A start and an end (a filter by date then reads the wrong day). All three columns
+(Claude's recommendation). One name, `delivery_date`, for the three periods (Claude's first
+proposal). A value `unknown` for the zone (`describe` could then print no join).
+
+## D27 - One systemd timer and one service per dataset (2026-11-15)
+
+**Decision.** On the Linux server each dataset has its own pair of units, instances of two
+templates: `adele-fetch@<id>.timer` ticks every minute and starts `adele-fetch@<id>.service`,
+which runs `adele-server fetch <id> --if-due`. The schedule stays in the descriptor: the timer
+only gives the tick. With it:
+
+- `fetch <id> --if-due` exits at once, without output, when the dataset is not due. That path
+  reads only the state file and the `every` of that one descriptor.
+- A dataset is due when `now` lies in a later period of `every` than its last attempt. The
+  periods are counted on the clock, in UTC. A last attempt later than `now` counts as due.
+- A new optional key, `adele.refresh.timeout`: the limit of one call of `fetch.py` is the smaller
+  of it and the server's `fetch_timeout_s`. An unknown key under `adele.refresh` is an error.
+- Each service keeps the six sandbox settings, and reads the secrets of its dataset from
+  `/etc/adele/env.d/<id>` (root only). There is no shared file of secrets any more.
+- A backfill holds the lock of its dataset from its first window to its final checks.
+- One invalid descriptor no longer stops the fetch of the other datasets. `validate` and `serve`
+  stay strict.
+
+Built: `deploy/adele-fetch@.service`, `deploy/adele-fetch@.timer` (drafts, not tried on a
+server), `server/src/adele_server/` (`cli.py`, `state.py`, `catalog.py`, `ingest.py`),
+`server/tests/test_fetch_command.py`. On the Mac, `fetch --due` from cron stays possible.
+
+**Why.** Swissgrid's 5-minute file keeps a value for 15 minutes, and a fetch of weathernext3
+lasts minutes. With one timer and one service for all datasets, a prototype on the Mac fetched
+the dataset due every minute in 4 of 14 minutes (longest gap 360 s): systemd does not start a
+unit again while it runs, and one run fetched the datasets one after the other. Renaud,
+2026-11-14: "I insist on sandbox settings", which rules out a plain cron line; 2026-11-15: "3 B"
+to one timer per dataset. A subagent compared the candidates with prototypes (each fetched in 14
+of 14 minutes, about 0.7 s after the tick, no double fetch), and the claims about systemd were
+tested in a container (`deploy/scheduling-poc/`, 27 checks passed): a unit that runs is not
+started twice, the sandbox settings hold for children and grandchildren, a file of secrets that
+only root reads reaches the unit, and the unit can't read the file. The rule on periods: with
+"time since the last attempt", an attempt stamped 12:00:01 made the tick of 12:01:00 "not due".
+The cost of a tick that fetches nothing went from 0.36 s to 0.04 s of CPU (measured, one
+dataset). The lock: with a tick every minute, a scheduled run would have started between two
+windows of a long backfill; the next window then failed on the lock and ended the backfill.
+
+**Limits.** Nothing ran on steacher1. Root runs one command per dataset (`systemctl enable --now
+adele-fetch@<id>.timer`). All timers fire in the same second. A credential that is a file (the
+Google credentials) stays readable by every fetch.
+
+**Rejected.** A scheduler that stays running (best numbers in the prototype, but a restart or a
+crash stops every fetch in progress: tested, and `KillMode=mixed` does not wait for them; one
+journal for all datasets). A tick that starts one unit per due dataset (needs a polkit rule, or
+a line that runs as root). Two lanes, fast and slow (the slow lane lost 11 of 14 ticks in the
+prototype). cron with `systemd-run` (the sandbox settings would sit in a cron line).
+
+## D28 - `EXPLAIN ANALYZE` of a checked SELECT is allowed (2026-11-15)
+
+**Decision.** A query may be `EXPLAIN ANALYZE <select>`, when the SELECT passes the checks of
+D24. The server takes the text after the two words, checks it, and adds `EXPLAIN ANALYZE`
+itself. EXPLAIN with options in parentheses stays refused, and so does the spelling `ANALYSE`.
+This changes one sentence of D24. Built: `server/src/adele_server/engine.py`.
+
+**Why.** D24 refused `EXPLAIN ANALYZE` because it runs the statement that follows, a COPY
+included. Once that statement is a SELECT that only reads, running it is what every query does.
+It gives agents the run times of their own queries back. Renaud, 2026-11-15: "2 b", among (a)
+the guard as built, (b) with `EXPLAIN ANALYZE` back, (c) a short list of forbidden functions in
+place of the list of allowed ones.
+
+**Rejected.** (c): a function that a later DuckDB adds, and that runs SQL from a string, would
+pass unchecked.
+
+## D29 - A query is one SELECT: no EXPLAIN (2026-11-15)
+
+**Decision.** The server runs one statement of type SELECT and nothing else. `EXPLAIN` and
+`EXPLAIN ANALYZE` are refused, like every other statement. Supersedes D28, and the sentence on
+EXPLAIN in D24. Built: `server/src/adele_server/engine.py` (the function `explained` and the
+branch for EXPLAIN are removed), `server/tests/test_engine.py`.
+
+**Why.** Renaud, 2026-11-15, an hour after D28: "if we could disallow all `explain` or `explain
+analyze`, that would be good enough", then "EXPLAIN: disallow, then". The handling of EXPLAIN was
+the most delicate part of the guard against writes: DuckDB gives no parse tree for an EXPLAIN, so
+it was the one place where the server took a query apart with the tokenizer and put it together
+again. Without it the guard has two parts, the check of the parse tree and the list of table
+functions. Nobody used EXPLAIN: 0 of the 36 queries of the real log, and neither the skill nor
+the client mentions it.
+
+**Limits.** An agent can't see the plan or the run times of a query. A query that is too slow
+gets the message of the time limit, which says to aggregate or to narrow the filter.

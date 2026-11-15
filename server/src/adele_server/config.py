@@ -28,11 +28,23 @@ class Config:
     keys: dict[str, str]  # key name (team member) --> API key
     query: QueryLimits = field(default_factory=QueryLimits)
     fetch_timeout_s: float = 1800.0  # per call of fetch(start, end); a hung source must not go unnoticed
+    cache_dir: Path | None = None  # files that the server can write again (the uv runners); see cache_path
 
     @property
     def datasets_dir(self) -> Path:
         """The first entry of datasets_dirs (configs and tests with a single folder)."""
         return self.datasets_dirs[0]
+
+    @property
+    def cache_path(self) -> Path:
+        """`cache_dir` of the config, else $CACHE_DIRECTORY (systemd sets it for a unit with
+        `CacheDirectory=`; the first entry), else $XDG_CACHE_HOME/adele or ~/.cache/adele."""
+        if self.cache_dir is not None:
+            return self.cache_dir
+        from_systemd = os.environ.get("CACHE_DIRECTORY", "").split(":")[0]
+        if from_systemd:
+            return Path(from_systemd)
+        return Path(os.environ.get("XDG_CACHE_HOME") or Path.home() / ".cache") / "adele"
 
 
 def load(path: str | os.PathLike | None = None) -> Config:
@@ -65,6 +77,7 @@ def load(path: str | os.PathLike | None = None) -> Config:
         keys=keys,
         query=QueryLimits(**raw.get("query", {})),
         fetch_timeout_s=float(raw.get("fetch_timeout_s", 1800)),
+        cache_dir=path_of("cache_dir"),
     )
 
 
