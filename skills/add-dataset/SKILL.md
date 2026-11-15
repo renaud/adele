@@ -62,6 +62,9 @@ is wrong, show the evidence from the data and let the analyst decide.
    the docstring of `fetch.py`, with the date: the next person needs the evidence.
 6. **Example queries.** For each question that the analyst gives, write the SQL, run it, and
    show the result. The analyst confirms the result before the entry gets a `verified_at`.
+   A check of `checks.yaml` can be an example too (`- check: <name>`): pick the checks whose
+   SQL shows a trap that the other examples don't. Five examples at most; `describe` prints
+   them all.
 7. **Check.** Validate the descriptor (`adele-server validate`), run the fetch on a short
    window, run it again (it must change nothing), then backfill. Profile the stored data:
    gaps per series, days of the clock change (23 and 25 hours), extremes, the first day of

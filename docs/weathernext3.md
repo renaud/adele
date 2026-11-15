@@ -149,6 +149,9 @@ Measured 2026-11-13 (from the Mac):
   required notices, "experimental modelling only".
 - Training: 2024-2025 come from the evaluation checkpoint (trained to 2023-12-31, out of
   sample); 2026 from the production checkpoint (trained to 2026-06-30): Jan-Jun 2026 in sample.
+  Confirmed by the WeatherNext team by email on 2026-10-29, to Renaud's question: the store has
+  one hierarchy (weathernext_3_0_0) and no checkpoint string in the metadata; forecasts "from
+  July 1, 2026 onward are out of sample". The warning reads this as init_time from 2026-07-01.
 - Latency: one run observed, written about 7 h after its init time.
 
 ## What doesn't fit the current spec

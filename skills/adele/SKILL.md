@@ -15,7 +15,9 @@ and the server checks what the card states (key, codes, types, example queries) 
 1. `adele list`: one line per dataset (id, title, resolution, coverage, status).
 2. `adele describe <id>`: always before the first query on a dataset. Read the grain, the
    units, the resolution periods, the warnings and the sample rows. Copy table names and code
-   values (zones, types) from the card. Don't guess them.
+   values (zones, types) from the card. Don't guess them. The examples show how this
+   dataset's traps are handled in SQL: start from the closest one. An example with a
+   `published_figure` returns that figure, published by the source that it names.
 3. `adele query "<sql>"`: DuckDB SQL, run on the server. For SQL over several lines:
 
    ```bash

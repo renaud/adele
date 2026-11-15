@@ -238,11 +238,19 @@ def describe_dict(cfg: Config, ds: Dataset) -> dict:
         con.close()
     card["tables"] = tables
     if ds.examples:
-        card["examples"] = [
-            {"question": ex["question"], "sql": ex["sql"].strip() + "\n",
-             "verified_at": str(ex["verified_at"]) if ex.get("verified_at") else "not verified yet"}
-            for ex in ds.examples[:3]]
+        card["examples"] = [example_entry(ex, st) for ex in ds.examples]
     return card
+
+
+def example_entry(ex: dict, st: dict) -> dict:
+    """An example of the card. One that names a check shows the figure that its SQL reproduces."""
+    entry = {"question": ex["question"], "sql": ex["sql"].strip() + "\n"}
+    if ex.get("check"):
+        differs = ", which this data does not reproduce now" if ex["check"] in failing_checks(st) else ""
+        entry["published_figure"] = f"{ex['expected']:g} ({ex['source']}){differs}"
+    else:
+        entry["verified_at"] = str(ex["verified_at"]) if ex.get("verified_at") else "not verified yet"
+    return entry
 
 
 def failing_checks(st: dict) -> list[str]:

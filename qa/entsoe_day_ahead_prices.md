@@ -92,3 +92,23 @@ prices equal entsoe-py's on every common hour).
 failure, a failure rate of 15 % per run or more would have shown at least one failure 96 times in
 100 (0.85^20 = 0.04), so it is unlikely; a rate of 5 % would still give 20 clean runs 36 times in
 100 (0.95^20 = 0.36). So the pilot rules out frequent failures, not rare ones.
+
+## Run 2026-11-15, after D31 (five examples, four of them published figures)
+
+Rerun of the 20 questions because the card and the skill changed (D12). Same setup as above,
+one run each, dev server on the Mac with data last fetched 2026-11-13 20:05 UTC. Transcripts in
+`qa/runs_nosync/20261115-202037/`.
+
+- 20 of 20 answers match the references above. q11 and q12 depend on the day: references from
+  the stored data, delivery day 2026-11-14 and 272.04 (2026-11-08 to 2026-11-14), both matched.
+- Every agent called `describe`. 8 of 20 answers use a published figure of the card: to
+  cross-check (q01 names ElCom's 75.95 for the mean of daily means, q05 RTE's definition of a
+  negative hour, q20 SMARD's 457), or to say that the card has none for that year (q02).
+- q13 and q18 gave no figure from memory this time (on 2026-11-13, q13 did). One run each, so
+  this can't be put down to the change.
+- q11 and q12 found that the data was a day and a half old while the status said `ok`: `stale`
+  is not built (V0, "Not in the POC"). On steacher1 the timers fetch every hour.
+- Cost: 4.59 USD against 4.31 (+7 %); 17 of the 20 questions cost more. If nothing had changed,
+  each question would cost more or less with even odds, and 17 or more of 20 would happen about
+  1 time in 800 (sign test), so the rise is real. The longer card is the likely cause, but the
+  skill also grew and the client or model may have changed since 2026-11-13.

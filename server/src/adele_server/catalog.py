@@ -139,7 +139,18 @@ class Dataset:
 
     @property
     def examples(self) -> list[dict]:
-        return list(self.adele.get("examples", []))
+        """The examples, an example that names a check replaced by the check's question, sql,
+        expected value and source (D31)."""
+        by_name = {c["name"]: c for c in self.checks}
+        out = []
+        for ex in self.adele.get("examples", []):
+            if ex.get("check"):
+                c = by_name[ex["check"]]
+                out.append({"check": c["name"], "question": c["question"], "sql": c["sql"],
+                            "expected": c["expected"], "source": c["source"]})
+            else:
+                out.append(dict(ex))
+        return out
 
     @property
     def resolution(self) -> list[dict]:
@@ -331,6 +342,11 @@ def load_dataset(folder: Path, check_folder_name: bool = True) -> Dataset:
             errors.append(f"fetch.py: {type(e).__name__}: {e}")
     checks, check_errors = load_checks(folder / "checks.yaml")
     errors += check_errors
+    if not check_errors:
+        names = {c["name"] for c in checks}
+        for i, ex in enumerate(adele.get("examples", []) or []):
+            if isinstance(ex, dict) and isinstance(ex.get("check"), str) and ex["check"] not in names:
+                errors.append(f"adele.examples[{i}]: check {ex['check']!r} is not in checks.yaml")
     if errors:
         raise CatalogError("; ".join(errors))
     return Dataset(ds_id, folder, descriptor, tables, refresh, revisions, fetch, checks, meta)
@@ -452,10 +468,22 @@ def _adele_errors(adele: dict) -> list[str]:
     warnings = adele.get("warnings", [])
     if not isinstance(warnings, list) or not all(isinstance(w, str) for w in warnings):
         errors.append("adele.warnings must be a list of sentences")
-    for i, ex in enumerate(adele.get("examples", []) or []):
-        if not isinstance(ex, dict) or not ex.get("question") or not ex.get("sql"):
-            errors.append(f"adele.examples[{i}] needs question and sql")
+    examples = adele.get("examples", []) or []
+    if not isinstance(examples, list):
+        return errors + ["adele.examples must be a list"]
+    if len(examples) > MAX_EXAMPLES:
+        errors.append(f"adele.examples: at most {MAX_EXAMPLES} (describe prints them all), got {len(examples)}")
+    for i, ex in enumerate(examples):
+        if isinstance(ex, dict) and "check" in ex:
+            if not isinstance(ex["check"], str) or set(ex) != {"check"}:
+                errors.append(f"adele.examples[{i}]: an example that names a check has only `check: <name>` "
+                              "(its question and sql come from checks.yaml)")
+        elif not isinstance(ex, dict) or not ex.get("question") or not ex.get("sql"):
+            errors.append(f"adele.examples[{i}] needs question and sql, or check")
     return errors
+
+
+MAX_EXAMPLES = 5  # describe prints every example (D31)
 
 
 _PEP723_RE = re.compile(r"(?m)^# /// script[ \t]*\n((?:^#(?:| .*)\n)+?)^# ///[ \t]*$")

@@ -91,3 +91,61 @@ def test_checks_yaml_must_hold_a_list(env):
     (cfg.datasets_dir / "test_prices" / "checks.yaml").write_text("a_mean: 11.5\n")
     with pytest.raises(CatalogError, match="list `checks`"):
         load_catalog(cfg.datasets_dir)
+
+
+# --- an example that names a check (D31) -------------------------------------------------------
+
+def set_examples(cfg, examples):
+    path = cfg.datasets_dir / "test_prices" / "datapackage.yaml"
+    d = yaml.safe_load(path.read_text())
+    d["adele"]["examples"] = examples
+    path.write_text(yaml.safe_dump(d, sort_keys=False))
+
+
+HAND = {"question": "Average price per zone?",
+        "sql": "SELECT zone, avg(price) FROM test_prices.prices GROUP BY zone ORDER BY zone"}
+
+
+def test_example_naming_a_check_shows_its_published_figure(env):
+    cfg, _, _ = env
+    set_examples(cfg, [HAND, {"check": "a_mean"}])
+    catalog = write_checks(cfg, [GOOD])
+    assert fetch(cfg, catalog).problems == []
+    hand, from_check = render.describe_dict(cfg, catalog["test_prices"])["examples"]
+    assert hand["verified_at"] == "not verified yet"
+    assert from_check == {"question": GOOD["question"], "sql": GOOD["sql"] + "\n",
+                          "published_figure": "11.5 (Test report, https://example.org/report.pdf)"}
+    assert "published_figure: 11.5 (Test report" in render.render_describe(cfg, catalog["test_prices"])
+
+
+def test_example_naming_a_failing_check_says_so_and_fails_once(env):
+    cfg, _, _ = env
+    set_examples(cfg, [{"check": "a_mean"}])
+    catalog = write_checks(cfg, [{**GOOD, "expected": 12.0}])
+    fetch(cfg, catalog)
+    st = state.load(cfg.data_dir, "test_prices")
+    assert st["problems"] == ["check a_mean: got 11.5, published 12 (tolerance 0.01; Test report)"]
+    entry = render.describe_dict(cfg, catalog["test_prices"])["examples"][0]
+    assert entry["published_figure"].endswith("which this data does not reproduce now")
+
+
+def test_describe_prints_every_example(env):
+    cfg, _, _ = env
+    set_examples(cfg, [{**HAND, "question": f"q{i}?"} for i in range(5)])
+    catalog = load_catalog(cfg.datasets_dir)
+    assert [e["question"] for e in render.describe_dict(cfg, catalog["test_prices"])["examples"]] == \
+        ["q0?", "q1?", "q2?", "q3?", "q4?"]
+
+
+@pytest.mark.parametrize("examples, message", [
+    ([{"check": "nope"}], "check 'nope' is not in checks.yaml"),
+    ([{"check": "a_mean", "question": "Mean?"}], "has only `check: <name>`"),
+    ([{"check": 3}], "has only `check: <name>`"),
+    ([{"question": "q?"}], "needs question and sql, or check"),
+    ([HAND] * 6, "at most 5"),
+])
+def test_invalid_examples_are_refused(env, examples, message):
+    cfg, _, _ = env
+    set_examples(cfg, examples)
+    with pytest.raises(CatalogError, match=message):
+        write_checks(cfg, [GOOD])

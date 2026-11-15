@@ -25,8 +25,11 @@ One [Frictionless](https://github.com/frictionlessdata/datapackage) [Data Packag
 - authored vs computed: whoever adds a dataset writes its `datapackage.yaml` (in git). The server
   adds the computed fields (coverage, freshness, status, row counts, `duckdb_type`) and serves
   the merged JSON.
-- extensions: all adele properties go in one `adele:` block at package level (resolution,
-  refresh, revisions, plus the computed ones). Fields get a free-text `unit` (EUR/MWh, MW, MWh).
+- extensions: all adele properties go in one `adele:` block at package level
+  (format_version, resolution, refresh, revisions, window, partition, expected_spacing,
+  secrets, plus the computed ones). `adele.format_version` is the version of the
+  descriptor format (1); the server refuses another. Fields get a free-text `unit`
+  (EUR/MWh, MW, MWh).
 - types: `describe` shows each field's Table Schema `type` and its `duckdb_type`, read from Parquet.
 - validation: the server validates every descriptor at startup (frictionless-py, descriptor
   only) and refuses to start on an error. `resource.path` is required by the standard; it
@@ -42,10 +45,13 @@ separate prose document: the agent never reads the YAML, it reads what `describe
 - code meanings --> value and label per field. The server checks that the data holds no
   undeclared value.
 - traps --> prose. A trap about one field goes in the `description` of that field. A trap
-  about the dataset goes in `adele.warnings`, a list of short sentences.
-- example queries --> `adele.examples`, a list of `question`, `sql`, `verified_at`. `describe`
-  prints two or three. The server runs all of them after each fetch; an example that fails
-  sets status to failing.
+  about the dataset goes in `adele.warnings`, a list of short sentences. A warning that
+  matters for every query is marked `{text: ..., footer: true}`: the query footer shows it.
+- example queries --> `adele.examples`, at most five; `describe` prints them all. An example
+  is a `question` and its `sql`, with `verified_at` once a person has confirmed the result.
+  Or it names a check of `checks.yaml` (`check: <name>`): `describe` then prints the check's
+  question and SQL, and the published figure that the SQL reproduces, with its source. The
+  server runs every example after each fetch; an example that fails sets status to failing.
 
 Sketch for the first dataset (key names to be settled when it runs; `categories` to be
 checked against Data Package v2):
@@ -85,25 +91,32 @@ adele:
 
 ## Adding a dataset
 
-A dataset is a folder `datasets/<id>/` in git:
+A dataset is a folder in git (today `datasets/<id>/`; later one repository per dataset):
 
 - `datapackage.yaml`: the catalog entry (see Catalog).
-- `fetch.py`: one function `fetch(start, end)` that returns a pyarrow Table or pandas DataFrame
-  with the rows whose delivery time falls in [start, end). A source that only serves
-  "everything" or "latest" may ignore the window; the server filters.
+- `fetch.py`: one function `fetch(start, end)` that returns a pyarrow Table or pandas
+  DataFrame with the rows whose window time falls in [start, end). The window time is the
+  delivery time, unless `adele.window` names another time column (e.g. the init time of a
+  forecast run). A source that only serves "everything" or "latest" may ignore the window;
+  the server filters. `fetch.py` declares its own dependencies (PEP 723). The server runs
+  it in a separate process that gets only the secrets listed in `adele.secrets`.
+- `checks.yaml` (optional): figures published by others that the data must reproduce. The
+  server runs them after each fetch; a value outside its tolerance sets the status to
+  failing.
 
-Each scheduled run fetches [last - lookback, now + horizon), where `last` is the time of the
-last scheduled run that succeeded (`now` for the first run). `lookback` and `horizon` are set in
-`adele.refresh`. The lookback is what catches revisions; the horizon covers data published
-before delivery (e.g. day-ahead prices). The initial backfill calls `fetch` on successive
-windows.
+Each scheduled run fetches [last - lookback, now + horizon), where `last` is the time of
+the last scheduled run that succeeded (`now` for the first run). `lookback` and `horizon`
+are set in `adele.refresh`. The lookback catches revisions and late data; the horizon
+covers data published before delivery (e.g. day-ahead prices). The initial backfill calls
+`fetch` on successive windows.
 
-After a stop (the server was down, the source failed, a long backfill ran), the next run so
-fetches everything since the last run that succeeded, and no hole stays. A run that fails is
-tried again from the same place for one lookback. Then adele gives up on the older part, writes
-which part to the alert log, and returns to [now - lookback, now + horizon). A dataset can set
-`adele.refresh.max_window`: a longer window is fetched in pieces of that length, oldest first,
-and a piece that fails does not stop the later ones.
+After a stop (the server was down, the source failed, a long backfill ran), the next run
+fetches everything since the last run that succeeded, and no hole stays. A run that fails
+is tried again from the same place for one lookback. Then adele gives up on the older part,
+writes which part to the alert log, and returns to [now - lookback, now + horizon). A
+dataset can set `adele.refresh.max_window`: a longer window is fetched in pieces of that
+length, oldest first, and a piece that fails does not stop the later ones. It can also set
+`adele.refresh.timeout`, the time limit of one call of `fetch.py`.
 
 The server does everything else: scheduling, schema check, revisions, storage, alerts.
 A connector never writes files. Source credentials (e.g. an ENTSO-E token) come from the
@@ -122,14 +135,29 @@ Every dataset has two time axes, and the catalog reports both:
 
 Rules:
 
-- all timestamps are stored in UTC; local time is a display concern only.
-- a timestamp marks the start of its interval; intervals are half-open: [start, start + resolution).
-- resolution is an ISO 8601 duration (PT15M, PT1H, P1D). If it changed over the dataset's
-  history, the catalog lists each period with its resolution.
-- coverage = first and last delivery interval present.
+- a table has one time column, or none:
+  - `delivery_start`: the start of an interval of fixed duration, in UTC.
+  - `valid_at`: an instant, in UTC.
+  - `delivery_date`, `delivery_month` or `delivery_year`: a calendar day, month or year in
+    the time zone that the table declares (`timezone`, e.g. Europe/Zurich), stored as a
+    date. A month and a year are stored as their first day. `describe` prints the
+    expression that joins such a table with a table in UTC.
+  - none (a register of plants, a list of stations): each fetch replaces the whole table.
+- all timestamps are stored in UTC. A calendar period is stored as a date, never as a
+  timestamp: a local day lasts 23 to 25 hours.
+- a timestamp marks the start of its interval; intervals are half-open: [start, start +
+  resolution). A value at an instant (e.g. cloud cover at 12:00) has no interval: its table
+  has `valid_at` instead of `delivery_start`, and no resolution.
+- coverage = first and last delivery interval (or instant) present, and the range of the
+  window column when it isn't the delivery time.
+- resolution is an ISO 8601 duration (PT15M, PT1H, P1D). When it differs between series or
+  changes over time, each row carries it in a `resolution` column, and the catalog lists the
+  periods of each series, computed from the data.
 - freshness = last_fetched_at, last_changed_at (a fetch may bring nothing new), next_fetch_eta,
   status (ok | stale | failing).
-
+- expected spacing: a dataset can declare how often its window values appear (e.g. one
+  forecast run per hour), in periods like resolution. Each expected value that is missing
+  between the first period and the last stored value sets status to failing.
 
 ## Revisions
 
@@ -137,17 +165,25 @@ Sources revise past values (e.g. ENTSO-E corrects actual load days later). Each 
 declares its policy in the catalog:
 
 - `overwrite`: adele keeps only the latest value.
-- `append-only`: every row carries `fetched_at`. Queries return the latest value per key;
-  `as_of=<timestamp>` returns what adele knew at that time.
+- `append-only`: adele keeps every version of a row. A fetch stores a row when its key is new
+  or one of its values changed, with `fetched_at`, the time at which adele got it.
+  `<id>.<table>` returns the latest version of each row, `<id>.<table>_versions` every
+  version. `as_of=<timestamp>` returns what adele held at that time. Versions start with the
+  first scheduled fetch (`versions_since`): rows backfilled before carry the time of the
+  backfill, so an earlier `as_of` is refused. `fetched_at` is not the time at which the source
+  published a value: a value may look later than it was, never earlier.
+- `none`: values never change once published (e.g. forecast runs). adele fetches only the
+  parts of the window that it doesn't hold yet; a changed value is an error.
   
-
 ## Storage
 
 The server normalizes every source on ingest. Source formats (csv, xlsx, SQL database, APIs) never reach the client.
 
 - a trap that a column can remove is removed on ingest, not only documented. E.g. a table with
   `load_mw` (mean power over the interval) also gets `energy_mwh`, which can be summed.
-- a dataset is one or more tables; each table is stored as Parquet, partitioned by delivery month.
+- a dataset is one or more tables; each table is stored as Parquet, partitioned by month of
+  its window time (by default the delivery month), or by day when the dataset declares
+  `adele.partition: day`.
 - DuckDB is the query engine: on the server for remote queries, on the client for local copies.
 - a local copy is a set of Parquet partitions; sync is incremental (changed partitions only).
 - the server writes each partition to a temporary file and renames it, so readers never see a half-written partition.
@@ -162,8 +198,8 @@ Access goes in four steps, each one cheap in tokens:
 3. `query "<sql>"`: DuckDB SQL run on the server; results capped at N rows. A capped result
    says so and says how to get the rest ("showing 100 of 35,040 rows. Aggregate, narrow the
    filter, or use pull"). Every result ends with a short footer for the datasets that the
-   query read: resolution, units, `adele.warnings`, freshness. An agent that skipped
-   `describe` still gets the warnings next to the numbers.
+   query read: resolution, units, the warnings marked for the footer, freshness. An agent
+   that skipped `describe` still gets the main warnings next to the numbers.
 4. `pull <id> [--since <date>]`: copy the Parquet partitions locally for heavy work.
 
 Two items in describe help agents more than anything else:
@@ -179,6 +215,10 @@ inspecting the SQL text.
 
 - read-only: the server's DuckDB can read the Parquet files of the catalog and nothing else
   (no other local file, no network, no extension install, no change of settings by a query).
+  DuckDB can't make an allowed folder read-only, so the server runs only what DuckDB's
+  parser shows to be a read (one SELECT, with table functions from a list; no other
+  statement, also no EXPLAIN), and the query process runs as a user that can only read the
+  data.
 - limits per query: time, rows returned, memory.
 - log: one line per query (key id, SQL, duration, rows).
 - values in cells and descriptions that come from a source are data, never instructions. The

@@ -16,7 +16,8 @@ licenses:
     title: CC BY 4.0 for values about a time 1 h ago or more. Cite WeatherNext 3 (Google DeepMind).
   - path: https://storage.googleapis.com/weathernext-public/terms-of-use.pdf
     title: >-
-      Google's experimental terms for newer values (every forecast of the future): internal use,
+      GDM Real-Time Weather Forecasting Experimental Data Terms of Use, for newer values (every
+      forecast of the future): internal use,
       copyright notice "Copyright 2024-6 Google LLC". Required notice: "This data is intended for
       experimental modelling only and is not intended, validated, or approved for real world use."
 resources:
@@ -53,11 +54,14 @@ resources:
           description: Longitude of the centre of the grid cell. The cell spans 0.1 degree.
         - name: checkpoint
           type: string
+          # The last two sentences: draft by Claude (2026-11-15), from the WeatherNext team's
+          # email of 2026-10-29.
           description: >-
             The version of the model that made the run. evaluation: runs of 2024 and 2025, by a
             model trained on data up to 2023-12-31, so these runs are out of sample. production:
             runs from 2026, by a model trained on data up to 2026-06-30, so the runs of January to
-            June 2026 are in sample.
+            June 2026 are in sample. Set by adele from the folder of the run (2024/ and 2025/: evaluation;
+            2026_to_present/: production). The source's files don't name the checkpoint.
           categories:
             - {value: evaluation, label: trained on data up to 2023-12-31}
             - {value: production, label: trained on data up to 2026-06-30}
@@ -164,11 +168,13 @@ adele:
     max_window: PT1H  # one run per fetch; a longer window is fetched in pieces, oldest first (D25)
   revisions: none  # a run never changes once written: each run is fetched once
   warnings:
+    # draft by Claude (2026-11-15): source and init_time added, from the WeatherNext team's email
     - >-
-      Runs of January to June 2026 come from a model trained on data up to 2026-06-30: they
-      forecast weather that the model has already seen, so their errors look smaller than they
-      are. To measure forecast skill, use runs with checkpoint = 'evaluation' (2024-2025) or runs
-      from July 2026.
+      Runs of January to June 2026 come from a model trained on observations up to 2026-06-30:
+      they forecast weather that the model has already seen, so their errors look smaller than
+      they are. To measure forecast skill, use runs with checkpoint = 'evaluation' (2024-2025,
+      trained up to 2023-12-31, so strictly out of sample) or runs with an init_time from
+      2026-07-01 on. Source: the WeatherNext team, by email on 2026-10-29.
     - >-
       The columns p10, p50 and p90 are quantiles across the 64 members, per cell and per hour. A
       series of hourly p10 values is not the forecast of one member, and the sum of hourly p10

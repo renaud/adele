@@ -646,3 +646,34 @@ the client mentions it.
 
 **Limits.** An agent can't see the plan or the run times of a query. A query that is too slow
 gets the message of the time limit, which says to aggregate or to narrow the filter.
+
+## D31 - An example can name a published figure; at most five examples (2026-11-15)
+
+**Decision.** An entry of `adele.examples` is either a question with its SQL (and `verified_at`
+once a person has confirmed the result), or `check: <name>`, the name of a check of
+`checks.yaml`. For the second, `describe` prints the check's question and SQL, and the published
+figure with its source (`published_figure: 513 (RTE, ...)`); when the check fails, the line says
+that the data doesn't reproduce the figure now. Such an example isn't run a second time: its
+check runs after each fetch. A dataset has at most five examples, and `describe` prints them
+all (it printed the first three). `entsoe_day_ahead_prices` has its example plus four checks,
+one per trap: a mean weighted by duration across 2025-10-01 (`de_2025_mean`), negative hours as
+a sum of durations (`de_2024_negative_hours`), RTE's hours of quarter-hours
+(`fr_2025_negative_hours_hourly_mean`), days cut in Europe/Zurich
+(`ch_2022_mean_of_daily_means`). Built: `server/src/adele_server/catalog.py`, `checks.py`,
+`render.py`, `server/tests/test_published_checks.py`. Numbered D31 because the branch `wp3`
+holds D30.
+
+**Why.** Renaud, 2026-11-15: "option b, have the one example plus 4 from checks.yaml". The 82
+checks use 7 kinds of query, and the single example of the card showed none of the traps that
+the warnings name: its plain `avg(price)` is right for one local day, and wrong when an agent
+reuses it over a period that spans the change of resolution. An example taken from a check
+keeps its SQL in one place, is tested against a figure published by others after each fetch,
+and gives the agent a known answer. This partly reverses D12, which refused `expected` and
+`source` on examples for the size of the card: with five examples at most, the card grows by
+four lines.
+
+**Rejected.** (a) Copying checks into `adele.examples`: the same SQL in two files. (c) A
+command that returns more examples on request (`adele examples <id> --search ...`): agents
+follow the steps of the skill and seldom make optional calls, and for this dataset it would
+return near-copies of the same seven queries. To reconsider if a run of the questions of `qa/`
+shows an agent missing a trap that a check would have taught.

@@ -64,6 +64,8 @@ def run_checks(catalog: dict[str, Dataset], ds: Dataset, data_dir: Path, limits:
     finally:
         con.close()
     for i, ex in enumerate(ds.examples):
+        if ex.get("check"):  # runs below as a check, against its published figure
+            continue
         try:
             res = engine.run(catalog, data_dir, limits, ex["sql"], max_rows=1)
             if not res.rows:
