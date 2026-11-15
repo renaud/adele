@@ -1,4 +1,4 @@
-# Deploying adele-server on Linux (draft, 2026-11-13, not tried yet)
+# Deploying adele-server on Linux (draft of 2026-11-13; installed on steacher1 on 2026-11-15)
 
 POC step 6 (TODOs.md). The units share one install and one data folder:
 
@@ -10,8 +10,8 @@ POC step 6 (TODOs.md). The units share one install and one data folder:
 One timer and one service per dataset (D27, 2026-11-15): fetches of different datasets run side
 by side, a slow one never delays another, and each dataset has its own journal, time limit and
 file of secrets. The timer only gives the tick: `adele.refresh.every` in the descriptor decides
-whether a fetch happens. The claims about systemd behind this were tested once in a container
-(`scheduling-poc/container-test/`), not on a server.
+whether a fetch happens. The claims about systemd behind this were tested in a container
+(`scheduling-poc/container-test/`) and on steacher1 (`scheduling-poc/result-steacher1.txt`).
 
 The query process can't write the data, by two layers: its user (`adele-query`, group `adele`, files
 group-readable) and its mount namespace (`ReadOnlyPaths=/var/lib/adele`). DuckDB's own settings and
@@ -29,7 +29,10 @@ with datasets from other repositories).
 ## Layout
 
 ```
-/opt/adele/                  git checkout; `cd server && uv sync --no-dev`
+/opt/adele/                  git checkout; `cd server && uv sync --no-dev --locked`
+/usr/local/bin/uv, uvx       uv, pinned version          root:root 0755
+/opt/uv-python/              the Python of the venv and of the fetch.py runners (UV_PYTHON_INSTALL_DIR)
+/etc/adele/                  config and secrets          root:adele 0750
 /etc/adele/adele-server.toml config with the API keys    root:adele 0640
 /etc/adele/env.d/<id>        variables of one dataset    root:root 0600 (read by systemd)
                              entsoe_day_ahead_prices: ENTSO_TOKEN=...
@@ -48,16 +51,27 @@ folder of dataset folders.
 
 ## Install
 
+The install that ran on steacher1 is `wp1-step4-install.sh` (root; it can be run again, and it
+keeps an existing config). The secret that is a variable is copied first, from the admin's
+machine, never printed (see the script's header). The script, in order:
+
+1. users `adele` and `adele-query` (system users, no home: `/nonexistent`, no shell);
+2. the folders of the layout above, with their owners and modes;
+3. uv from its GitHub release archive, checked against the `.sha256` of the same release;
+4. `uv python install 3.13` with `UV_PYTHON_INSTALL_DIR=/opt/uv-python`;
+5. `git clone` into `/opt/adele`, then `uv sync --no-dev --locked` in `server/`, with the same
+   `UV_PYTHON_INSTALL_DIR`, so that the venv links to `/opt/uv-python` and not to `/root`;
+6. `/etc/adele/adele-server.toml` with one API key generated on the server (never printed);
+7. the Google file and `/etc/adele/env.d/weathernext3`; checks that the ENTSO-E token is there;
+8. the three units into `/etc/systemd/system/`, `daemon-reload`, and `systemd-analyze verify`
+   on copies named after the instances (`%i` comes from the unit's name);
+9. `validate` as the user `adele`, from `/tmp`;
+10. `systemctl enable` and `restart` of `adele-server.service`, then `GET /health`;
+11. with `nsenter`, what the query process sees of `env.d` and `gcloud-adc.json` (mode 0).
+
+It enables no fetch timer. After the backfill (WP1 step 5):
+
 ```bash
-sudo useradd --system --no-create-home --home-dir /nonexistent --shell /usr/sbin/nologin adele
-sudo useradd --system --no-create-home --shell /usr/sbin/nologin -G adele adele-query
-sudo install -d -o adele -g adele -m 2750 /var/lib/adele
-sudo install -d -o adele -g adele -m 2770 /var/log/adele
-sudo install -d -o root -g root -m 0700 /etc/adele/env.d
-sudo cp adele-server.service adele-fetch@.service adele-fetch@.timer /etc/systemd/system/
-sudo systemctl daemon-reload
-sudo -u adele /opt/adele/server/.venv/bin/adele-server --config /etc/adele/adele-server.toml validate
-sudo systemctl enable --now adele-server.service
 for id in entsoe_day_ahead_prices weathernext3; do sudo systemctl enable --now "adele-fetch@$id.timer"; done
 ```
 
@@ -93,9 +107,9 @@ Credentials: run `gcloud auth application-default login --no-browser` as an admi
 file to `/etc/adele/gcloud-adc.json`. If those credentials carry a quota project, fetch.py drops it
 (reads must stay billed to Google).
 
-Open: `uv sync` links the venv to a Python that uv installs under the home of the user who runs it,
-which `ProtectHome=yes` hides from the units; install with `UV_PYTHON_INSTALL_DIR=/opt/uv-python` or use
-the system Python.
+`uv sync` links the venv to a Python that uv installs under the home of the user who runs it,
+which `ProtectHome=yes` hides from the units. So the install sets `UV_PYTHON_INSTALL_DIR=/opt/uv-python`
+for `uv sync` too (on steacher1: `.venv/bin/python` --> `/opt/uv-python/cpython-3.13.9-linux-x86_64-gnu`).
 
 ## Access from outside: HTTPS through Caddy
 

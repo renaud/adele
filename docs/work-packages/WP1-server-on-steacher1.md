@@ -59,6 +59,8 @@ outside the server can query it over HTTPS.
 4. **Install** as `deploy/README.md` says: users, folders, uv and a Python in `/opt/uv-python`,
    the clone in `/opt/adele`, the config, the secrets per dataset (ENTSO-E token, Google file),
    the units, `validate`. Every step that differs from the draft goes into `deploy/README.md`.
+   Done (2026-11-15): `deploy/wp1-step4-install.sh`, run twice by Renaud; `adele-server.service`
+   runs on 127.0.0.1:8000. See the log.
 5. **Backfill**, then enable the timers. entsoe: from 2015. weathernext3: a few days, plus the 7
    sample runs again to add their clouds (`TODOs.md`).
 6. **HTTPS on another port**, once Renaud has opened it (see below). One API key for Renaud;
@@ -178,3 +180,20 @@ None on 2026-11-15.
   `AccuracySec=1s`.
 - After the run: no unit, unit file or folder `adelepoc*` left. The only failed unit,
   `systemd-networkd-wait-online.service`, failed at boot on 2026-10-19, before adele.
+
+### 2026-11-15, step 4 (`deploy/wp1-step4-install.sh`, run by Renaud)
+
+- The ENTSO-E token went first, through a pipe from `.env` on the Mac to `sudo tee` (the
+  first form, with `sh -c "... cat > ..."`, broke when the long line was copied: `sh` stopped
+  on a syntax error before it wrote anything).
+- The script ran twice (first at 11:59, the second run is in `deploy/wp1-step4-result.txt`);
+  the second run kept the config and changed nothing.
+- uv 0.9.8 (checksum OK), Python 3.13.9 in `/opt/uv-python`, `.venv/bin/python` links there.
+  `systemd-analyze verify`: rc 0, no warning. `validate`: both datasets ok.
+- `adele-server.service` enabled and running; `/health` answers after about 2 s, both datasets
+  `failing` with "never fetched" (`state.load` for a dataset without state). Inside the
+  service's namespace, `env.d` and `gcloud-adc.json` have mode 0 (the file has size 0).
+- Disk: 9.4 GB free; `/opt/adele` 216 MB, `/opt/uv-python` 104 MB.
+- Differences from the draft, now in `deploy/README.md`: `adele-query` has the home
+  `/nonexistent`; `/etc/adele` is `root:adele 0750`; uv from its release archive;
+  `UV_PYTHON_INSTALL_DIR` also for `uv sync`; `--locked`; `validate` from `/tmp`.

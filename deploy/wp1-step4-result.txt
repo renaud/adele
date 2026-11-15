@@ -1,0 +1,58 @@
+== 1. users
+uid=999(adele) gid=987(adele) groups=987(adele)
+uid=997(adele-query) gid=986(adele-query) groups=986(adele-query),987(adele)
+== 2. folders
+drwxr-x--- 3 root  adele 4096 Nov 15 11:59 /etc/adele
+drwx------ 2 root  root  4096 Nov 15 12:01 /etc/adele/env.d
+drwxr-s--- 2 adele adele 4096 Nov 15 11:58 /var/lib/adele
+drwxrws--- 2 adele adele 4096 Nov 15 11:58 /var/log/adele
+== 3. uv 0.9.8 in /usr/local/bin
+uv-x86_64-unknown-linux-gnu.tar.gz: OK
+uv 0.9.8
+== 4. Python 3.13 in /opt/uv-python
+/opt/uv-python/cpython-3.13.9-linux-x86_64-gnu/bin/python3.13
+== 5. the code in /opt/adele
+Python 3.13 is already installed
+Already up to date.
+f1766c9 2026-11-15 WP1 steps 0-3: unit fixes, user claude and sc-run, systemd test on steacher1 (27 of 27)
+lrwxrwxrwx 1 root root 61 Nov 15 11:58 /opt/adele/server/.venv/bin/python -> /opt/uv-python/cpython-3.13.9-linux-x86_64-gnu/bin/python3.13
+== 6. config (kept if it exists: it holds the API key)
+kept: /etc/adele/adele-server.toml
+Resolved 58 packages in 1ms
+Audited 51 packages in 1ms
+-rw-r----- 1 root adele 238 Nov 15 11:59 /etc/adele/adele-server.toml
+== 7. secrets per dataset
+-rw-r----- 1 root adele  351 Nov 15 12:02 /etc/adele/gcloud-adc.json
+
+/etc/adele/env.d/:
+total 8
+-rw------- 1 root root 49 Nov 15 12:02 entsoe_day_ahead_prices
+-rw------- 1 root root 58 Nov 15 12:02 weathernext3
+ENTSO_TOKEN: present in /etc/adele/env.d/entsoe_day_ahead_prices (1 line)
+== 8. units
+systemd-analyze verify: rc=0 (expected 0, no lines above)
+== 9. validate, as the user adele
+ok  entsoe_day_ahead_prices: tables entsoe_day_ahead_prices.prices
+ok  weathernext3: tables weathernext3.solar_radiation, weathernext3.weather
+== 10. start adele-server.service
+curl: (7) Failed to connect to 127.0.0.1 port 8000 after 0 ms: Couldn't connect to server
+curl: (7) Failed to connect to 127.0.0.1 port 8000 after 0 ms: Couldn't connect to server
+{"ok":true,"datasets":{"entsoe_day_ahead_prices":"failing","weathernext3":"failing"}}
+health: yes (expected yes)
+● adele-server.service - adele: HTTP API and agent SQL (read-only on the data)
+     Loaded: loaded (/etc/systemd/system/adele-server.service; enabled; preset: enabled)
+     Active: active (running) since Sun 2026-11-15 12:02:39 UTC; 2s ago
+   Main PID: 1648517 (adele-server)
+      Tasks: 2 (limit: 9482)
+== 11. what the query process sees of the credentials (InaccessiblePaths)
+expected: mode 0 for both, size 0 for the file
+/etc/adele/env.d mode=0 size=40
+/etc/adele/gcloud-adc.json mode=0 size=0
+for comparison, outside the unit:
+/etc/adele/env.d mode=700 size=4096
+/etc/adele/gcloud-adc.json mode=640 size=351
+== 12. timers (expected: none enabled yet, step 5)
+NEXT LEFT LAST PASSED UNIT ACTIVATES
+
+0 timers listed.
+== done
