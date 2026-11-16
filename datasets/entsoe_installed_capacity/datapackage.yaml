@@ -1,0 +1,71 @@
+# Definitions (titles, descriptions, labels, warnings, questions) are Renaud's (skills/add-dataset).
+# WP5.1, 2026-11-15: every definition below is a draft by Claude until he changes or confirms it.
+# Structure (keys, types, refresh) by Claude. Sources of the facts: the docstring of fetch.py and
+# swissgrid_project/data/entsoe/README.md.
+name: entsoe_installed_capacity
+title: Installed generation capacity per production type and year, CH (ENTSO-E)  # draft by Claude
+# draft by Claude
+description: >-
+  Installed generation capacity of the Swiss bidding zone per production type, one value per
+  calendar year, as published on the ENTSO-E Transparency Platform (document A68, Regulation (EU)
+  543/2013 article 14.1.A, year-ahead). CH serves four types only: hydro pumped storage,
+  run-of-river, reservoir and nuclear. From 2015.
+# The same platform as entsoe_day_ahead_prices: Renaud's licence entry there, copied by Claude.
+licenses:
+  - name: CC-BY-4.0
+    path: https://creativecommons.org/licenses/by/4.0/
+    title: Creative Commons Attribution 4.0 International License
+resources:
+  - name: capacity
+    description: One row per production type and calendar year.  # draft by Claude
+    adele:
+      timezone: Europe/Zurich
+    schema:
+      primaryKey: [area, psr_type, delivery_year]
+      fields:
+        - name: area
+          type: string
+          description: Bidding zone (short name).  # draft by Claude
+          categories:
+            - {value: CH, label: "Switzerland (10YCH-SWISSGRIDZ)"}
+        - name: psr_type
+          type: string
+          description: Production type (ENTSO-E psrType).  # draft by Claude
+          # labels: draft by Claude, from entsoe-py's mappings of the code list
+          categories:
+            - {value: B10, label: Hydro pumped storage}
+            - {value: B11, label: Hydro run-of-river and poundage}
+            - {value: B12, label: Hydro water reservoir}
+            - {value: B14, label: Nuclear}
+        - name: delivery_year
+          type: date
+          # draft by Claude
+          description: >-
+            The calendar year in Europe/Zurich, stored as its first day (1 January). The
+            platform publishes the value for the year ahead.
+        - name: capacity
+          type: number
+          unit: MW
+          description: Installed net generation capacity at the start of the year, as published.  # draft by Claude
+adele:
+  format_version: 2
+  secrets: [ENTSO_TOKEN]
+  refresh:
+    # One request per year in the window; the value of a new year is fetched from 1 January
+    # (fetch.py: the platform copies the latest values into the years to come). Proposal by Claude.
+    every: P1D
+    lookback: P366D
+    horizon: PT0S
+  revisions: overwrite
+  # drafts by Claude
+  warnings:
+    - >-
+      CH serves no solar, wind or thermal capacity on this platform: the four types are not the
+      Swiss total.
+    - >-
+      Steps that are changes of reporting rather than new plants are possible: run-of-river goes
+      from 190 MW (2015-2017) to 528.5 MW (2018), pumped storage from 4,178 MW (2016) to 6,228 MW
+      (2017).
+  # D31: checks of checks.yaml as examples; chosen by Claude (2026-11-16).
+  examples:
+    - check: ch_2020_nuclear_mw  # a year is a date (1 January); Mühleberg's closure shows in 2020

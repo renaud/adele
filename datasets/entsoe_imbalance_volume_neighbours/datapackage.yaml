@@ -1,0 +1,117 @@
+# Definitions (titles, descriptions, labels, warnings, questions) are Renaud's (skills/add-dataset).
+# WP5.1, 2026-11-15: every definition below is a draft by Claude until he changes or confirms it.
+# Structure (keys, types, refresh) by Claude. Sources of the facts: the docstring of fetch.py and
+# swissgrid_project/data/entsoe_neighbours/README.md ("Sign conventions", "Known problems").
+# The Swiss series of the same document is a dataset of WP5.2 (revisions: append-only).
+name: entsoe_imbalance_volume_neighbours
+title: Total imbalance volume of the control areas around Switzerland (ENTSO-E)  # draft by Claude
+# draft by Claude
+description: >-
+  Total imbalance volume of the control areas of Austria, France, Italy (total and two macro
+  zones) and Germany (DE_LU until 2022-09-02, the four TSO areas from 2019 to 2022), per
+  settlement period, as published on the ENTSO-E Transparency Platform (document A86,
+  Regulation (EU) 543/2013 article 17.1.H). The volume is the energy of the open-loop area
+  control error in the period, signed: > 0 means the control area was long (surplus).
+# The same platform as entsoe_day_ahead_prices: Renaud's licence entry there, copied by Claude.
+licenses:
+  - name: CC-BY-4.0
+    path: https://creativecommons.org/licenses/by/4.0/
+    title: Creative Commons Attribution 4.0 International License
+resources:
+  - name: volumes
+    description: One row per control area and settlement period.  # draft by Claude
+    schema:
+      primaryKey: [area, delivery_start]
+      fields:
+        - name: area
+          type: string
+          description: Control area (short name).  # draft by Claude
+          # labels: draft by Claude (the EIC codes are those that fetch.py asks for)
+          categories:
+            - {value: AT, label: "Austria, APG (10YAT-APG------L)"}
+            - {value: FR, label: "France, RTE (10YFR-RTE------C)"}
+            - {value: IT, label: "Italy, Terna (10YIT-GRTN-----B)"}
+            - {value: IT_MACRO_NORTH, label: "Italy, macro zone North (10Y1001A1001A84D)"}
+            - {value: IT_MACRO_SOUTH, label: "Italy, macro zone South (10Y1001A1001A85B)"}
+            - {value: DE_LU, label: "Germany-Luxembourg (10Y1001A1001A82H)"}
+            - {value: DE_50HZ, label: "Germany, 50Hertz (10YDE-VE-------2)"}
+            - {value: DE_AMPRION, label: "Germany, Amprion (10YDE-RWENET---I)"}
+            - {value: DE_TENNET, label: "Germany, TenneT (10YDE-EON------1)"}
+            - {value: DE_TRANSNETBW, label: "Germany, TransnetBW (10YDE-ENBW-----N)"}
+        - name: delivery_start
+          type: datetime
+          description: Start of the settlement period, UTC.  # draft by Claude
+        - name: resolution
+          type: duration
+          # draft by Claude
+          description: >-
+            Length of the settlement period: PT15M, and PT30M for FR until 2024-12-30 23:30 UTC.
+            To turn a volume into a mean power: imbalance / (epoch(resolution) / 3600) MW.
+        - name: direction
+          type: string
+          # draft by Claude
+          description: >-
+            Direction code as served. A01 means long and A02 short for every area except AT
+            before 2024-12-01, where it is the opposite in most periods (see imbalance).
+          categories:
+            - {value: A01, label: "A01 as served"}
+            - {value: A02, label: "A02 as served"}
+            - {value: A03, label: "A03 as served (balanced, volume 0)"}
+        - name: volume
+          type: number
+          unit: MWh
+          description: Imbalance volume of the period as served, a magnitude (>= 0).  # draft by Claude
+        - name: imbalance
+          type: number
+          unit: MWh
+          # draft by Claude
+          description: >-
+            Signed imbalance volume of the period: > 0 the control area was long (surplus), < 0
+            short. The sign comes from the direction: A01 plus and A02 minus, except for AT before
+            2024-12-01 00:00 local in the periods that carry no second value (MV - SV), where
+            ENTSO-E served the opposite convention (inferred from AT's imbalance prices).
+adele:
+  format_version: 1
+  secrets: [ENTSO_TOKEN]
+  refresh:
+    # Revisions seen between 2026-11-01 and 2026-11-15: 3,075 values, 2,958 of them 1 to 12
+    # months after delivery (TenneT's whole August 2026), plus 258 added and 61 removed
+    # (docs/work-packages/WP5.1-entsoe.md). Every 6 hours over 400 days catches a correction up
+    # to 13 months late, at 20 requests of up to a year per run. Proposal by Claude.
+    every: PT6H
+    lookback: P400D
+    horizon: PT0S
+  # Revised after publication: every version is kept (Renaud's rule for the revised ENTSO-E
+  # series, TODOs.md), as for the Swiss series of WP5.2.
+  revisions: append-only
+  # drafts by Claude
+  warnings:
+    - >-
+      Germany is not one series: DE_LU until 2022-09-02, then the sum of the four TSO areas (all
+      four exist from 2022-06-22; TenneT from 2019-12-01, TransnetBW from 2020-01-28, 50Hertz
+      from 2021-02-10, Amprion from 2022-06-22). Over 2022-06-22 to 2022-09-02 the sum follows
+      DE_LU with correlation 0.93 and a median gap of 15 MWh per quarter-hour.
+    - >-
+      AT's direction codes changed meaning on 2024-12-01: the column imbalance applies the
+      change (inferred from the prices, not stated by ENTSO-E). Don't sum the raw volume with a
+      sign from direction.
+    - >-
+      Italy: the total IT is missing from 2018-07-01 to 2021-12-31 and for 43 days from
+      2022-01-09; the macro zones run to 2022-02-23 and their sum is not the total (correlation
+      0.53). IT's sign is not checked: Italy has no imbalance price on the platform.
+    - >-
+      FR settles per half hour until 2024-12-30 23:30 UTC (a volume per half hour) and per
+      quarter-hour after; 1,692 half-hours are missing before 2025.
+    - >-
+      Revised after publication: between 2026-11-01 and 2026-11-15 TenneT's whole August 2026
+      changed, TransnetBW filled 84 quarter-hours, FR corrected 2026-05-13. adele keeps every
+      version that a fetch saw (volumes_versions); volumes holds the latest. A value that the
+      source withdraws stays in adele.
+    - >-
+      Outliers kept as served: TenneT 8,301.4 MWh on 2024-02-15 11:30 local (next largest
+      1,164.55), IT macro zone North about 5,000 MWh in three quarter-hours ending 2019-12-13
+      07:45 local.
+  # D31: checks of checks.yaml as examples; chosen by Claude (2026-11-16).
+  examples:
+    - check: fr_2018_2019_mean_positive_mwh  # imbalance is signed (> 0 = long), in MWh per period
+    - check: fr_2018_2019_share_positive_pct  # FR's half-hours before 2025 count as one period each

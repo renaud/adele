@@ -1,0 +1,44 @@
+# Published figures that this dataset must reproduce (skills/add-dataset, step 8). Collected
+# 2026-11-15 by a research agent, checked against adele on 2026-11-16 (Claude). Notes and the
+# figures left out: qa/published_figures_entsoe_imbalance_volume_neighbours.md.
+#
+# ENTSO-E's Balancing Report 2020 (France, 2018 and 2019 pooled): "The average system imbalance
+# is + 390 MWh for an ISP with a positive imbalance and - 350 MWh for a negative imbalance. On
+# average, the system imbalance is 55 % of the ISP positive and 45 % negative." Its sign
+# convention and its data source are not stated; adele's sign (> 0 = long) reproduces the
+# asymmetry (a flipped sign would give 46 % positive). The MWh look rounded to 10 and the shares
+# to 5 %: tolerance 5 MWh and 2.5 points. The negative mean (-350) differs: adele -356.2.
+checks:
+  - name: fr_2018_2019_mean_positive_mwh
+    question: "FR: mean imbalance of the settlement periods with a positive imbalance, 2018-2019 (Europe/Paris years), MWh per period"
+    sql: |
+      SELECT avg(imbalance) FILTER (imbalance > 0)
+      FROM entsoe_imbalance_volume_neighbours.volumes
+      WHERE area = 'FR'
+        AND delivery_start >= TIMESTAMPTZ '2018-01-01 00:00:00 Europe/Paris'
+        AND delivery_start <  TIMESTAMPTZ '2020-01-01 00:00:00 Europe/Paris'
+    expected: 390
+    tolerance: 5
+    source: "ENTSO-E, Balancing Report 2020, section 5.19.2.3 (France), p. 70, https://eepublicdownloads.entsoe.eu/clean-documents/Publications/Market%20Committee%20publications/ENTSO-E_Balancing_Report_2020.pdf"
+  - name: fr_2018_2019_share_positive_pct
+    question: "FR: share of the settlement periods with a positive imbalance, 2018-2019 (Europe/Paris years), %"
+    sql: |
+      SELECT 100.0 * count(*) FILTER (imbalance > 0) / count(*)
+      FROM entsoe_imbalance_volume_neighbours.volumes
+      WHERE area = 'FR'
+        AND delivery_start >= TIMESTAMPTZ '2018-01-01 00:00:00 Europe/Paris'
+        AND delivery_start <  TIMESTAMPTZ '2020-01-01 00:00:00 Europe/Paris'
+    expected: 55
+    tolerance: 2.5
+    source: "ENTSO-E, Balancing Report 2020, section 5.19.2.3 (France), p. 70, https://eepublicdownloads.entsoe.eu/clean-documents/Publications/Market%20Committee%20publications/ENTSO-E_Balancing_Report_2020.pdf"
+  - name: fr_2018_2019_share_negative_pct
+    question: "FR: share of the settlement periods with a negative imbalance, 2018-2019 (Europe/Paris years), %"
+    sql: |
+      SELECT 100.0 * count(*) FILTER (imbalance < 0) / count(*)
+      FROM entsoe_imbalance_volume_neighbours.volumes
+      WHERE area = 'FR'
+        AND delivery_start >= TIMESTAMPTZ '2018-01-01 00:00:00 Europe/Paris'
+        AND delivery_start <  TIMESTAMPTZ '2020-01-01 00:00:00 Europe/Paris'
+    expected: 45
+    tolerance: 2.5
+    source: "ENTSO-E, Balancing Report 2020, section 5.19.2.3 (France), p. 70, https://eepublicdownloads.entsoe.eu/clean-documents/Publications/Market%20Committee%20publications/ENTSO-E_Balancing_Report_2020.pdf"

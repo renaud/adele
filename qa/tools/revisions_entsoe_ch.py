@@ -8,8 +8,10 @@ a time series is identified by its fields outside the periods (mRID left out), a
 time (curve types A01 and A03 expanded) and by its text fields; each numeric field of a point is
 one value. A value counts if its time is before the old answer's createdDateTime.
 
-Usage: python revisions_entsoe_ch.py [--since YEAR] <raw_nosync folder> <.env with ENTSO_TOKEN> <out folder> [family ...]
-(yearly windows of one border take several seconds each: --since 2025 keeps the last two)
+Usage: python revisions_entsoe_ch.py [--since YEAR] [--neighbours] <raw_nosync folder> <.env with ENTSO_TOKEN> <out folder> [family ...]
+(yearly windows of one border take several seconds each: --since 2025 keeps the last two;
+--neighbours: the imbalance volumes and prices of the neighbours, saved on 2026-11-01 in
+swissgrid_project/data/entsoe_neighbours/raw_nosync/)
 The token is read from the file and never printed. Fresh answers are saved in <out folder>.
 """
 from __future__ import annotations
@@ -54,6 +56,19 @@ FAMILIES = {  # as in swissgrid_project/code/pv_imbalance/fetch_entsoe_ch.py
     "flows": [(f"A11_{lab}", p) for lab, p in border("A11", {})],
     "scheduled": [(f"A09_{ct}_{lab}", p) for ct in ("A01", "A05")
                   for lab, p in border("A09", {"contract_MarketAgreement.type": ct})],
+}
+# --neighbours (WP5.1, 2026-11-15): the imbalance volumes and prices of the neighbours, saved by the
+# swissgrid project on 2026-11-01 (`swissgrid_project/data/entsoe_neighbours/raw_nosync/<family>/`),
+# with the request parameters of its `code/datasets/fetch_entsoe.py` (IMB_AREAS, FAMILIES).
+NB_AREAS = {
+    "DE_LFB": "10YCB-GERMANY--8", "DE_50HZ": "10YDE-VE-------2", "DE_AMPRION": "10YDE-RWENET---I",
+    "DE_TENNET": "10YDE-EON------1", "DE_TRANSNETBW": "10YDE-ENBW-----N", "DE_LU": "10Y1001A1001A82H",
+    "FR": "10YFR-RTE------C", "AT": "10YAT-APG------L", "IT": "10YIT-GRTN-----B",
+    "IT_MACRO_NORTH": "10Y1001A1001A84D", "IT_MACRO_SOUTH": "10Y1001A1001A85B",
+}
+NEIGHBOURS = {
+    "imbalance_volume": [(f"A86_{a}", {"documentType": "A86", "controlArea_Domain": c}) for a, c in NB_AREAS.items()],
+    "imbalance_price": [(f"A85_{a}", {"documentType": "A85", "controlArea_Domain": c}) for a, c in NB_AREAS.items()],
 }
 STEP = {"PT1M": 1, "PT15M": 15, "PT30M": 30, "PT60M": 60, "P1D": 1440, "P7D": 10080}
 
@@ -145,8 +160,12 @@ def main() -> None:
         i = args.index("--since")
         since = dt.datetime(int(args[i + 1]) - 1, 12, 31, 23, tzinfo=dt.timezone.utc)
         del args[i:i + 2]
+    families = FAMILIES
+    if "--neighbours" in args:
+        args.remove("--neighbours")
+        families = NEIGHBOURS
     raw, env, out = Path(args[0]), Path(args[1]), Path(args[2])
-    fams = args[3:] or list(FAMILIES)
+    fams = args[3:] or list(families)
     tok = next(m.group(1) for line in env.read_text().splitlines()
                if (m := re.match(r"^\s*(?:export\s+)?ENTSO_TOKEN\s*=\s*['\"]?([^'\"\s]+)", line)))
     s = requests.Session()
@@ -154,7 +173,7 @@ def main() -> None:
         stats = Counter()
         diffs = defaultdict(list)  # age bucket --> [(label, key, old, new)]
         status_change = Counter()
-        for label, params in FAMILIES[fam]:
+        for label, params in families[fam]:
             for old_path in sorted((raw / fam).glob(f"{label}_[0-9]*")):
                 if old_path.name.endswith(".err.txt"):
                     continue

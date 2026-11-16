@@ -1,0 +1,168 @@
+# Published figures that this dataset must reproduce (skills/add-dataset, step 8). Collected
+# 2026-11-15 by a research agent, checked against adele on 2026-11-16 (Claude): every figure
+# matches. Notes and the figures left out: qa/published_figures_entsoe_installed_capacity.md.
+#
+# ENTSO-E's Statistical Factsheets 2019, 2020, 2022 and 2024, table "Net Generation Capacity":
+# "based upon data reported to the ENTSO-E Central Transparency Platform", capacity "as of 1st
+# of January" of the year, in whole MW (run-of-river 604.5 prints as 605). Tolerance 0.5.
+checks:
+  - name: ch_2019_nuclear_mw
+    question: "CH: installed capacity of B14 (nuclear) for 2019, MW"
+    sql: |
+      SELECT capacity
+      FROM entsoe_installed_capacity.capacity
+      WHERE area = 'CH' AND psr_type = 'B14'
+        AND delivery_year = DATE '2019-01-01'
+    expected: 3373
+    tolerance: 0.5
+    source: "ENTSO-E, Statistical Factsheet 2019, table Net Generation Capacity, CH, https://eepublicdownloads.entsoe.eu/clean-documents/Publications/Statistics/Factsheet/entsoe_sfs2019_web.pdf"
+  - name: ch_2019_pumped_storage_mw
+    question: "CH: installed capacity of B10 (pumped storage) for 2019, MW"
+    sql: |
+      SELECT capacity
+      FROM entsoe_installed_capacity.capacity
+      WHERE area = 'CH' AND psr_type = 'B10'
+        AND delivery_year = DATE '2019-01-01'
+    expected: 6641
+    tolerance: 0.5
+    source: "ENTSO-E, Statistical Factsheet 2019, table Net Generation Capacity, CH, https://eepublicdownloads.entsoe.eu/clean-documents/Publications/Statistics/Factsheet/entsoe_sfs2019_web.pdf"
+  - name: ch_2019_run_of_river_mw
+    question: "CH: installed capacity of B11 (run of river) for 2019, MW"
+    sql: |
+      SELECT capacity
+      FROM entsoe_installed_capacity.capacity
+      WHERE area = 'CH' AND psr_type = 'B11'
+        AND delivery_year = DATE '2019-01-01'
+    expected: 635
+    tolerance: 0.5
+    source: "ENTSO-E, Statistical Factsheet 2019, table Net Generation Capacity, CH, https://eepublicdownloads.entsoe.eu/clean-documents/Publications/Statistics/Factsheet/entsoe_sfs2019_web.pdf"
+  - name: ch_2019_reservoir_mw
+    question: "CH: installed capacity of B12 (reservoir) for 2019, MW"
+    sql: |
+      SELECT capacity
+      FROM entsoe_installed_capacity.capacity
+      WHERE area = 'CH' AND psr_type = 'B12'
+        AND delivery_year = DATE '2019-01-01'
+    expected: 5419
+    tolerance: 0.5
+    source: "ENTSO-E, Statistical Factsheet 2019, table Net Generation Capacity, CH, https://eepublicdownloads.entsoe.eu/clean-documents/Publications/Statistics/Factsheet/entsoe_sfs2019_web.pdf"
+  - name: ch_2020_nuclear_mw
+    question: "CH: installed capacity of B14 (nuclear) for 2020, MW"
+    sql: |
+      SELECT capacity
+      FROM entsoe_installed_capacity.capacity
+      WHERE area = 'CH' AND psr_type = 'B14'
+        AND delivery_year = DATE '2020-01-01'
+    expected: 2970
+    tolerance: 0.5
+    source: "ENTSO-E, Statistical Factsheet 2020, table Net Generation Capacity, CH, https://eepublicdownloads.entsoe.eu/clean-documents/Publications/Statistics/Factsheet/entsoe_sfs2020_web.pdf"
+  - name: ch_2020_pumped_storage_mw
+    question: "CH: installed capacity of B10 (pumped storage) for 2020, MW"
+    sql: |
+      SELECT capacity
+      FROM entsoe_installed_capacity.capacity
+      WHERE area = 'CH' AND psr_type = 'B10'
+        AND delivery_year = DATE '2020-01-01'
+    expected: 6672
+    tolerance: 0.5
+    source: "ENTSO-E, Statistical Factsheet 2020, table Net Generation Capacity, CH, https://eepublicdownloads.entsoe.eu/clean-documents/Publications/Statistics/Factsheet/entsoe_sfs2020_web.pdf"
+  - name: ch_2020_run_of_river_mw
+    question: "CH: installed capacity of B11 (run of river) for 2020, MW"
+    sql: |
+      SELECT capacity
+      FROM entsoe_installed_capacity.capacity
+      WHERE area = 'CH' AND psr_type = 'B11'
+        AND delivery_year = DATE '2020-01-01'
+    expected: 635
+    tolerance: 0.5
+    source: "ENTSO-E, Statistical Factsheet 2020, table Net Generation Capacity, CH, https://eepublicdownloads.entsoe.eu/clean-documents/Publications/Statistics/Factsheet/entsoe_sfs2020_web.pdf"
+  - name: ch_2020_reservoir_mw
+    question: "CH: installed capacity of B12 (reservoir) for 2020, MW"
+    sql: |
+      SELECT capacity
+      FROM entsoe_installed_capacity.capacity
+      WHERE area = 'CH' AND psr_type = 'B12'
+        AND delivery_year = DATE '2020-01-01'
+    expected: 5415
+    tolerance: 0.5
+    source: "ENTSO-E, Statistical Factsheet 2020, table Net Generation Capacity, CH, https://eepublicdownloads.entsoe.eu/clean-documents/Publications/Statistics/Factsheet/entsoe_sfs2020_web.pdf"
+  - name: ch_2022_nuclear_mw
+    question: "CH: installed capacity of B14 (nuclear) for 2022, MW"
+    sql: |
+      SELECT capacity
+      FROM entsoe_installed_capacity.capacity
+      WHERE area = 'CH' AND psr_type = 'B14'
+        AND delivery_year = DATE '2022-01-01'
+    expected: 2970
+    tolerance: 0.5
+    source: "ENTSO-E, Statistical Factsheet 2022, table Net Generation Capacity, CH, https://eepublicdownloads.entsoe.eu/clean-documents/Publications/Statistics/Factsheet/entsoe_sfs2022_web.pdf"
+  - name: ch_2022_pumped_storage_mw
+    question: "CH: installed capacity of B10 (pumped storage) for 2022, MW"
+    sql: |
+      SELECT capacity
+      FROM entsoe_installed_capacity.capacity
+      WHERE area = 'CH' AND psr_type = 'B10'
+        AND delivery_year = DATE '2022-01-01'
+    expected: 6681
+    tolerance: 0.5
+    source: "ENTSO-E, Statistical Factsheet 2022, table Net Generation Capacity, CH, https://eepublicdownloads.entsoe.eu/clean-documents/Publications/Statistics/Factsheet/entsoe_sfs2022_web.pdf"
+  - name: ch_2022_run_of_river_mw
+    question: "CH: installed capacity of B11 (run of river) for 2022, MW"
+    sql: |
+      SELECT capacity
+      FROM entsoe_installed_capacity.capacity
+      WHERE area = 'CH' AND psr_type = 'B11'
+        AND delivery_year = DATE '2022-01-01'
+    expected: 605
+    tolerance: 0.5
+    source: "ENTSO-E, Statistical Factsheet 2022, table Net Generation Capacity, CH, https://eepublicdownloads.entsoe.eu/clean-documents/Publications/Statistics/Factsheet/entsoe_sfs2022_web.pdf"
+  - name: ch_2022_reservoir_mw
+    question: "CH: installed capacity of B12 (reservoir) for 2022, MW"
+    sql: |
+      SELECT capacity
+      FROM entsoe_installed_capacity.capacity
+      WHERE area = 'CH' AND psr_type = 'B12'
+        AND delivery_year = DATE '2022-01-01'
+    expected: 5588
+    tolerance: 0.5
+    source: "ENTSO-E, Statistical Factsheet 2022, table Net Generation Capacity, CH, https://eepublicdownloads.entsoe.eu/clean-documents/Publications/Statistics/Factsheet/entsoe_sfs2022_web.pdf"
+  - name: ch_2024_nuclear_mw
+    question: "CH: installed capacity of B14 (nuclear) for 2024, MW"
+    sql: |
+      SELECT capacity
+      FROM entsoe_installed_capacity.capacity
+      WHERE area = 'CH' AND psr_type = 'B14'
+        AND delivery_year = DATE '2024-01-01'
+    expected: 2970
+    tolerance: 0.5
+    source: "ENTSO-E, Statistical Factsheet 2024, table Net Generation Capacity, CH, https://eepublicdownloads.blob.core.windows.net/public-cdn-container/clean-documents/Publications/Statistics/Factsheet/entsoe_sfs2024_web.pdf"
+  - name: ch_2024_pumped_storage_mw
+    question: "CH: installed capacity of B10 (pumped storage) for 2024, MW"
+    sql: |
+      SELECT capacity
+      FROM entsoe_installed_capacity.capacity
+      WHERE area = 'CH' AND psr_type = 'B10'
+        AND delivery_year = DATE '2024-01-01'
+    expected: 6697
+    tolerance: 0.5
+    source: "ENTSO-E, Statistical Factsheet 2024, table Net Generation Capacity, CH, https://eepublicdownloads.blob.core.windows.net/public-cdn-container/clean-documents/Publications/Statistics/Factsheet/entsoe_sfs2024_web.pdf"
+  - name: ch_2024_run_of_river_mw
+    question: "CH: installed capacity of B11 (run of river) for 2024, MW"
+    sql: |
+      SELECT capacity
+      FROM entsoe_installed_capacity.capacity
+      WHERE area = 'CH' AND psr_type = 'B11'
+        AND delivery_year = DATE '2024-01-01'
+    expected: 635
+    tolerance: 0.5
+    source: "ENTSO-E, Statistical Factsheet 2024, table Net Generation Capacity, CH, https://eepublicdownloads.blob.core.windows.net/public-cdn-container/clean-documents/Publications/Statistics/Factsheet/entsoe_sfs2024_web.pdf"
+  - name: ch_2024_reservoir_mw
+    question: "CH: installed capacity of B12 (reservoir) for 2024, MW"
+    sql: |
+      SELECT capacity
+      FROM entsoe_installed_capacity.capacity
+      WHERE area = 'CH' AND psr_type = 'B12'
+        AND delivery_year = DATE '2024-01-01'
+    expected: 5772
+    tolerance: 0.5
+    source: "ENTSO-E, Statistical Factsheet 2024, table Net Generation Capacity, CH, https://eepublicdownloads.blob.core.windows.net/public-cdn-container/clean-documents/Publications/Statistics/Factsheet/entsoe_sfs2024_web.pdf"

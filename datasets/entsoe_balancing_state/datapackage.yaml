@@ -1,0 +1,80 @@
+# Definitions (titles, descriptions, labels, warnings, questions) are Renaud's (skills/add-dataset).
+# WP5.1, 2026-11-15: every definition below is a draft by Claude until he changes or confirms it.
+# Structure (keys, types, refresh) by Claude. Sources of the facts: the docstring of fetch.py and
+# swissgrid_project/data/entsoe/README.md ("Time conventions", "Known problems").
+name: entsoe_balancing_state
+title: Current balancing state per minute, CH, 2019-2025 (ENTSO-E)  # draft by Claude
+# draft by Claude
+description: >-
+  The area control error of the Swiss control area per minute, as published on the ENTSO-E
+  Transparency Platform (document A86, business type B33, EB GL article 12.3.a), from 2019-10-01
+  to 2025-06-18. It is the closed-loop control error (about -FRCE), which says how well the
+  frequency control followed each minute; it is not the imbalance of the control area.
+# The same platform as entsoe_day_ahead_prices: Renaud's licence entry there, copied by Claude.
+licenses:
+  - name: CC-BY-4.0
+    path: https://creativecommons.org/licenses/by/4.0/
+    title: Creative Commons Attribution 4.0 International License
+resources:
+  - name: state
+    description: One row per minute.  # draft by Claude
+    schema:
+      primaryKey: [area, delivery_start]
+      fields:
+        - name: area
+          type: string
+          description: Control area (short name).  # draft by Claude
+          categories:
+            - {value: CH, label: "Switzerland, Swissgrid (10YCH-SWISSGRIDZ)"}
+        - name: delivery_start
+          type: datetime
+          description: Start of the minute, UTC.  # draft by Claude
+        - name: resolution
+          type: duration
+          description: Length of the interval (PT1M throughout).  # draft by Claude
+        - name: direction
+          type: string
+          # draft by Claude
+          description: >-
+            Direction code as served. Its meaning runs opposite to that of the total imbalance
+            (A86 without B33): here A01 goes with a short control area. control_error carries the
+            sign.
+          categories:
+            - {value: A01, label: "A01 as served (control area short)"}
+            - {value: A02, label: "A02 as served (control area long)"}
+            - {value: A03, label: "A03 as served (balanced, value 0)"}
+        - name: control_error
+          type: number
+          unit: MW
+          # draft by Claude
+          description: >-
+            Area control error, mean power over the minute, signed: > 0 means the control area is
+            long (as Swissgrid's TSI), < 0 short. The value is served as a magnitude; the sign
+            comes from the direction (A01 minus, A02 plus).
+adele:
+  format_version: 1
+  secrets: [ENTSO_TOKEN]
+  refresh:
+    # The series ended on 2025-06-18: a daily fetch only notices if ENTSO-E serves it again.
+    # Proposal by Claude.
+    every: P1D
+    lookback: P7D
+    horizon: PT0S
+  revisions: overwrite
+  # drafts by Claude
+  warnings:
+    - >-
+      The series ends on 2025-06-18 08:44 UTC (it starts on 2019-10-01 local) and 10,371 minutes
+      are missing in between.
+    - >-
+      This is the closed-loop control error, not the imbalance: its 15-minute mean follows
+      Swissgrid's -FRCE (correlation 0.94), not the total imbalance volume or Swissgrid's TSI
+      (correlation near 0). For the imbalance of the control area use ENTSO-E's A86 total
+      imbalance volume.
+    - >-
+      Spikes kept as served: 211 minutes above 1,000 MW on six days, while aFRR and mFRR energy
+      stayed below 350 MW. 2023-11-28 08:00-10:30 UTC (1,500 to 2,700 MW) is an error of this
+      publication: Swissgrid's FRCE in ENTSO-E's LFC report has a standard deviation of 6 MW in
+      November 2023, against 135 here. 2024-07-13 19:00-21:15 UTC (up to 4,000 MW) is also in
+      that FRCE (July 2024: 108 MW, against 105 here): whether it happened is not known. Drop
+      the minutes above 1,000 MW, or those days, before an analysis.

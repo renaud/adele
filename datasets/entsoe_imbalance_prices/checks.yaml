@@ -1,0 +1,670 @@
+# Published figures that this dataset must reproduce (skills/add-dataset, step 8). Collected
+# 2026-11-15 by two research agents, checked against adele on 2026-11-16 (Claude): every figure
+# below matches. The figures left out and why: qa/published_figures_entsoe_imbalance_prices.md.
+#
+# ElCom computed its figures on Swissgrid's own prices, which equal ENTSO-E's A85 in every
+# quarter-hour of 2023 and 2024 (swissgrid project, QA 3). Its quarter-hours are local times,
+# the start of the quarter-hour (21 of the 24 single quarter-hours of its Table 4 match at that
+# stamp, none in UTC). Its years are Europe/Zurich years (UTC years give the same counts).
+# 2017-2021: ElCom's row "AEP long" holds the counts that adele has in price_short (A05, large
+# positive prices), and its row "AEP short" is 0 where adele's price_long is 0; from 2022 the
+# labels agree. The checks follow adele's columns. Shown to Renaud as a finding.
+# BNetzA's reBAP: German local times, the start of the quarter-hour.
+# Tolerance: 0 for counts; 0.5 for prices printed as whole numbers, 0.05 for one decimal,
+# 0.005 for two decimals.
+checks:
+  - name: ch_2025_price_short_abs_over_2000
+    question: "CH: quarter-hours of 2025 (Europe/Zurich year) with |price_short| > 2000 EUR/MWh"
+    sql: |
+      SELECT count(*)
+      FROM entsoe_imbalance_prices.prices
+      WHERE area = 'CH' AND abs(price_short) > 2000
+        AND delivery_start >= TIMESTAMPTZ '2025-01-01 00:00:00 Europe/Zurich'
+        AND delivery_start <  TIMESTAMPTZ '2026-01-01 00:00:00 Europe/Zurich'
+    expected: 15
+    tolerance: 0
+    source: "ElCom, Besondere Ereignisse in der Regelzone Schweiz im Jahr 2025 (May 2026), p. 15, Tabelle 2, https://www.elcom.admin.ch/dam/it/sd-web/lpdgJ8PUh5mk/Bericht%20Besondere%20Ereignisse%20in%20der%20Regelzone%20Schweiz%202025.pdf"
+  - name: ch_2025_price_short_abs_over_3000
+    question: "CH: quarter-hours of 2025 (Europe/Zurich year) with |price_short| > 3000 EUR/MWh"
+    sql: |
+      SELECT count(*)
+      FROM entsoe_imbalance_prices.prices
+      WHERE area = 'CH' AND abs(price_short) > 3000
+        AND delivery_start >= TIMESTAMPTZ '2025-01-01 00:00:00 Europe/Zurich'
+        AND delivery_start <  TIMESTAMPTZ '2026-01-01 00:00:00 Europe/Zurich'
+    expected: 5
+    tolerance: 0
+    source: "ElCom, Besondere Ereignisse in der Regelzone Schweiz im Jahr 2025 (May 2026), p. 15, Tabelle 2, https://www.elcom.admin.ch/dam/it/sd-web/lpdgJ8PUh5mk/Bericht%20Besondere%20Ereignisse%20in%20der%20Regelzone%20Schweiz%202025.pdf"
+  - name: ch_2024_price_short_abs_over_1000
+    question: "CH: quarter-hours of 2024 (Europe/Zurich year) with |price_short| > 1000 EUR/MWh"
+    sql: |
+      SELECT count(*)
+      FROM entsoe_imbalance_prices.prices
+      WHERE area = 'CH' AND abs(price_short) > 1000
+        AND delivery_start >= TIMESTAMPTZ '2024-01-01 00:00:00 Europe/Zurich'
+        AND delivery_start <  TIMESTAMPTZ '2025-01-01 00:00:00 Europe/Zurich'
+    expected: 398
+    tolerance: 0
+    source: "ElCom, Besondere Ereignisse in der Regelzone Schweiz im Jahr 2025 (May 2026), p. 15, Tabelle 2, https://www.elcom.admin.ch/dam/it/sd-web/lpdgJ8PUh5mk/Bericht%20Besondere%20Ereignisse%20in%20der%20Regelzone%20Schweiz%202025.pdf"
+  - name: ch_2024_price_short_abs_over_2000
+    question: "CH: quarter-hours of 2024 (Europe/Zurich year) with |price_short| > 2000 EUR/MWh"
+    sql: |
+      SELECT count(*)
+      FROM entsoe_imbalance_prices.prices
+      WHERE area = 'CH' AND abs(price_short) > 2000
+        AND delivery_start >= TIMESTAMPTZ '2024-01-01 00:00:00 Europe/Zurich'
+        AND delivery_start <  TIMESTAMPTZ '2025-01-01 00:00:00 Europe/Zurich'
+    expected: 120
+    tolerance: 0
+    source: "ElCom, Besondere Ereignisse in der Regelzone Schweiz im Jahr 2025 (May 2026), p. 15, Tabelle 2, https://www.elcom.admin.ch/dam/it/sd-web/lpdgJ8PUh5mk/Bericht%20Besondere%20Ereignisse%20in%20der%20Regelzone%20Schweiz%202025.pdf"
+  - name: ch_2024_price_short_abs_over_3000
+    question: "CH: quarter-hours of 2024 (Europe/Zurich year) with |price_short| > 3000 EUR/MWh"
+    sql: |
+      SELECT count(*)
+      FROM entsoe_imbalance_prices.prices
+      WHERE area = 'CH' AND abs(price_short) > 3000
+        AND delivery_start >= TIMESTAMPTZ '2024-01-01 00:00:00 Europe/Zurich'
+        AND delivery_start <  TIMESTAMPTZ '2025-01-01 00:00:00 Europe/Zurich'
+    expected: 70
+    tolerance: 0
+    source: "ElCom, Besondere Ereignisse in der Regelzone Schweiz im Jahr 2025 (May 2026), p. 15, Tabelle 2, https://www.elcom.admin.ch/dam/it/sd-web/lpdgJ8PUh5mk/Bericht%20Besondere%20Ereignisse%20in%20der%20Regelzone%20Schweiz%202025.pdf"
+  - name: ch_2024_price_long_abs_over_1000
+    question: "CH: quarter-hours of 2024 (Europe/Zurich year) with |price_long| > 1000 EUR/MWh"
+    sql: |
+      SELECT count(*)
+      FROM entsoe_imbalance_prices.prices
+      WHERE area = 'CH' AND abs(price_long) > 1000
+        AND delivery_start >= TIMESTAMPTZ '2024-01-01 00:00:00 Europe/Zurich'
+        AND delivery_start <  TIMESTAMPTZ '2025-01-01 00:00:00 Europe/Zurich'
+    expected: 461
+    tolerance: 0
+    source: "ElCom, Besondere Ereignisse in der Regelzone Schweiz im Jahr 2025 (May 2026), p. 15, Tabelle 2, https://www.elcom.admin.ch/dam/it/sd-web/lpdgJ8PUh5mk/Bericht%20Besondere%20Ereignisse%20in%20der%20Regelzone%20Schweiz%202025.pdf"
+  - name: ch_2024_price_long_abs_over_2000
+    question: "CH: quarter-hours of 2024 (Europe/Zurich year) with |price_long| > 2000 EUR/MWh"
+    sql: |
+      SELECT count(*)
+      FROM entsoe_imbalance_prices.prices
+      WHERE area = 'CH' AND abs(price_long) > 2000
+        AND delivery_start >= TIMESTAMPTZ '2024-01-01 00:00:00 Europe/Zurich'
+        AND delivery_start <  TIMESTAMPTZ '2025-01-01 00:00:00 Europe/Zurich'
+    expected: 185
+    tolerance: 0
+    source: "ElCom, Besondere Ereignisse in der Regelzone Schweiz im Jahr 2025 (May 2026), p. 15, Tabelle 2, https://www.elcom.admin.ch/dam/it/sd-web/lpdgJ8PUh5mk/Bericht%20Besondere%20Ereignisse%20in%20der%20Regelzone%20Schweiz%202025.pdf"
+  - name: ch_2024_price_long_abs_over_3000
+    question: "CH: quarter-hours of 2024 (Europe/Zurich year) with |price_long| > 3000 EUR/MWh"
+    sql: |
+      SELECT count(*)
+      FROM entsoe_imbalance_prices.prices
+      WHERE area = 'CH' AND abs(price_long) > 3000
+        AND delivery_start >= TIMESTAMPTZ '2024-01-01 00:00:00 Europe/Zurich'
+        AND delivery_start <  TIMESTAMPTZ '2025-01-01 00:00:00 Europe/Zurich'
+    expected: 122
+    tolerance: 0
+    source: "ElCom, Besondere Ereignisse in der Regelzone Schweiz im Jahr 2025 (May 2026), p. 15, Tabelle 2, https://www.elcom.admin.ch/dam/it/sd-web/lpdgJ8PUh5mk/Bericht%20Besondere%20Ereignisse%20in%20der%20Regelzone%20Schweiz%202025.pdf"
+  - name: ch_2023_price_short_abs_over_1000
+    question: "CH: quarter-hours of 2023 (Europe/Zurich year) with |price_short| > 1000 EUR/MWh"
+    sql: |
+      SELECT count(*)
+      FROM entsoe_imbalance_prices.prices
+      WHERE area = 'CH' AND abs(price_short) > 1000
+        AND delivery_start >= TIMESTAMPTZ '2023-01-01 00:00:00 Europe/Zurich'
+        AND delivery_start <  TIMESTAMPTZ '2024-01-01 00:00:00 Europe/Zurich'
+    expected: 70
+    tolerance: 0
+    source: "ElCom, Besondere Ereignisse in der Regelzone Schweiz im Jahr 2025 (May 2026), p. 15, Tabelle 2, https://www.elcom.admin.ch/dam/it/sd-web/lpdgJ8PUh5mk/Bericht%20Besondere%20Ereignisse%20in%20der%20Regelzone%20Schweiz%202025.pdf"
+  - name: ch_2023_price_short_abs_over_3000
+    question: "CH: quarter-hours of 2023 (Europe/Zurich year) with |price_short| > 3000 EUR/MWh"
+    sql: |
+      SELECT count(*)
+      FROM entsoe_imbalance_prices.prices
+      WHERE area = 'CH' AND abs(price_short) > 3000
+        AND delivery_start >= TIMESTAMPTZ '2023-01-01 00:00:00 Europe/Zurich'
+        AND delivery_start <  TIMESTAMPTZ '2024-01-01 00:00:00 Europe/Zurich'
+    expected: 17
+    tolerance: 0
+    source: "ElCom, Besondere Ereignisse in der Regelzone Schweiz im Jahr 2025 (May 2026), p. 15, Tabelle 2, https://www.elcom.admin.ch/dam/it/sd-web/lpdgJ8PUh5mk/Bericht%20Besondere%20Ereignisse%20in%20der%20Regelzone%20Schweiz%202025.pdf"
+  - name: ch_2023_price_long_abs_over_1000
+    question: "CH: quarter-hours of 2023 (Europe/Zurich year) with |price_long| > 1000 EUR/MWh"
+    sql: |
+      SELECT count(*)
+      FROM entsoe_imbalance_prices.prices
+      WHERE area = 'CH' AND abs(price_long) > 1000
+        AND delivery_start >= TIMESTAMPTZ '2023-01-01 00:00:00 Europe/Zurich'
+        AND delivery_start <  TIMESTAMPTZ '2024-01-01 00:00:00 Europe/Zurich'
+    expected: 117
+    tolerance: 0
+    source: "ElCom, Besondere Ereignisse in der Regelzone Schweiz im Jahr 2025 (May 2026), p. 15, Tabelle 2, https://www.elcom.admin.ch/dam/it/sd-web/lpdgJ8PUh5mk/Bericht%20Besondere%20Ereignisse%20in%20der%20Regelzone%20Schweiz%202025.pdf"
+  - name: ch_2023_price_long_abs_over_2000
+    question: "CH: quarter-hours of 2023 (Europe/Zurich year) with |price_long| > 2000 EUR/MWh"
+    sql: |
+      SELECT count(*)
+      FROM entsoe_imbalance_prices.prices
+      WHERE area = 'CH' AND abs(price_long) > 2000
+        AND delivery_start >= TIMESTAMPTZ '2023-01-01 00:00:00 Europe/Zurich'
+        AND delivery_start <  TIMESTAMPTZ '2024-01-01 00:00:00 Europe/Zurich'
+    expected: 53
+    tolerance: 0
+    source: "ElCom, Besondere Ereignisse in der Regelzone Schweiz im Jahr 2025 (May 2026), p. 15, Tabelle 2, https://www.elcom.admin.ch/dam/it/sd-web/lpdgJ8PUh5mk/Bericht%20Besondere%20Ereignisse%20in%20der%20Regelzone%20Schweiz%202025.pdf"
+  - name: ch_2023_price_long_abs_over_3000
+    question: "CH: quarter-hours of 2023 (Europe/Zurich year) with |price_long| > 3000 EUR/MWh"
+    sql: |
+      SELECT count(*)
+      FROM entsoe_imbalance_prices.prices
+      WHERE area = 'CH' AND abs(price_long) > 3000
+        AND delivery_start >= TIMESTAMPTZ '2023-01-01 00:00:00 Europe/Zurich'
+        AND delivery_start <  TIMESTAMPTZ '2024-01-01 00:00:00 Europe/Zurich'
+    expected: 26
+    tolerance: 0
+    source: "ElCom, Besondere Ereignisse in der Regelzone Schweiz im Jahr 2025 (May 2026), p. 15, Tabelle 2, https://www.elcom.admin.ch/dam/it/sd-web/lpdgJ8PUh5mk/Bericht%20Besondere%20Ereignisse%20in%20der%20Regelzone%20Schweiz%202025.pdf"
+  - name: ch_2022_price_short_abs_over_1000
+    question: "CH: quarter-hours of 2022 (Europe/Zurich year) with |price_short| > 1000 EUR/MWh"
+    sql: |
+      SELECT count(*)
+      FROM entsoe_imbalance_prices.prices
+      WHERE area = 'CH' AND abs(price_short) > 1000
+        AND delivery_start >= TIMESTAMPTZ '2022-01-01 00:00:00 Europe/Zurich'
+        AND delivery_start <  TIMESTAMPTZ '2023-01-01 00:00:00 Europe/Zurich'
+    expected: 226
+    tolerance: 0
+    source: "ElCom, Besondere Ereignisse in der Regelzone Schweiz im Jahr 2025 (May 2026), p. 15, Tabelle 2, https://www.elcom.admin.ch/dam/it/sd-web/lpdgJ8PUh5mk/Bericht%20Besondere%20Ereignisse%20in%20der%20Regelzone%20Schweiz%202025.pdf"
+  - name: ch_2022_price_short_abs_over_2000
+    question: "CH: quarter-hours of 2022 (Europe/Zurich year) with |price_short| > 2000 EUR/MWh"
+    sql: |
+      SELECT count(*)
+      FROM entsoe_imbalance_prices.prices
+      WHERE area = 'CH' AND abs(price_short) > 2000
+        AND delivery_start >= TIMESTAMPTZ '2022-01-01 00:00:00 Europe/Zurich'
+        AND delivery_start <  TIMESTAMPTZ '2023-01-01 00:00:00 Europe/Zurich'
+    expected: 13
+    tolerance: 0
+    source: "ElCom, Besondere Ereignisse in der Regelzone Schweiz im Jahr 2025 (May 2026), p. 15, Tabelle 2, https://www.elcom.admin.ch/dam/it/sd-web/lpdgJ8PUh5mk/Bericht%20Besondere%20Ereignisse%20in%20der%20Regelzone%20Schweiz%202025.pdf"
+  - name: ch_2022_price_short_abs_over_3000
+    question: "CH: quarter-hours of 2022 (Europe/Zurich year) with |price_short| > 3000 EUR/MWh"
+    sql: |
+      SELECT count(*)
+      FROM entsoe_imbalance_prices.prices
+      WHERE area = 'CH' AND abs(price_short) > 3000
+        AND delivery_start >= TIMESTAMPTZ '2022-01-01 00:00:00 Europe/Zurich'
+        AND delivery_start <  TIMESTAMPTZ '2023-01-01 00:00:00 Europe/Zurich'
+    expected: 7
+    tolerance: 0
+    source: "ElCom, Besondere Ereignisse in der Regelzone Schweiz im Jahr 2025 (May 2026), p. 15, Tabelle 2, https://www.elcom.admin.ch/dam/it/sd-web/lpdgJ8PUh5mk/Bericht%20Besondere%20Ereignisse%20in%20der%20Regelzone%20Schweiz%202025.pdf"
+  - name: ch_2022_price_long_abs_over_1000
+    question: "CH: quarter-hours of 2022 (Europe/Zurich year) with |price_long| > 1000 EUR/MWh"
+    sql: |
+      SELECT count(*)
+      FROM entsoe_imbalance_prices.prices
+      WHERE area = 'CH' AND abs(price_long) > 1000
+        AND delivery_start >= TIMESTAMPTZ '2022-01-01 00:00:00 Europe/Zurich'
+        AND delivery_start <  TIMESTAMPTZ '2023-01-01 00:00:00 Europe/Zurich'
+    expected: 35
+    tolerance: 0
+    source: "ElCom, Besondere Ereignisse in der Regelzone Schweiz im Jahr 2025 (May 2026), p. 15, Tabelle 2, https://www.elcom.admin.ch/dam/it/sd-web/lpdgJ8PUh5mk/Bericht%20Besondere%20Ereignisse%20in%20der%20Regelzone%20Schweiz%202025.pdf"
+  - name: ch_2022_price_long_abs_over_2000
+    question: "CH: quarter-hours of 2022 (Europe/Zurich year) with |price_long| > 2000 EUR/MWh"
+    sql: |
+      SELECT count(*)
+      FROM entsoe_imbalance_prices.prices
+      WHERE area = 'CH' AND abs(price_long) > 2000
+        AND delivery_start >= TIMESTAMPTZ '2022-01-01 00:00:00 Europe/Zurich'
+        AND delivery_start <  TIMESTAMPTZ '2023-01-01 00:00:00 Europe/Zurich'
+    expected: 5
+    tolerance: 0
+    source: "ElCom, Besondere Ereignisse in der Regelzone Schweiz im Jahr 2025 (May 2026), p. 15, Tabelle 2, https://www.elcom.admin.ch/dam/it/sd-web/lpdgJ8PUh5mk/Bericht%20Besondere%20Ereignisse%20in%20der%20Regelzone%20Schweiz%202025.pdf"
+  - name: ch_2022_price_long_abs_over_3000
+    question: "CH: quarter-hours of 2022 (Europe/Zurich year) with |price_long| > 3000 EUR/MWh"
+    sql: |
+      SELECT count(*)
+      FROM entsoe_imbalance_prices.prices
+      WHERE area = 'CH' AND abs(price_long) > 3000
+        AND delivery_start >= TIMESTAMPTZ '2022-01-01 00:00:00 Europe/Zurich'
+        AND delivery_start <  TIMESTAMPTZ '2023-01-01 00:00:00 Europe/Zurich'
+    expected: 2
+    tolerance: 0
+    source: "ElCom, Besondere Ereignisse in der Regelzone Schweiz im Jahr 2025 (May 2026), p. 15, Tabelle 2, https://www.elcom.admin.ch/dam/it/sd-web/lpdgJ8PUh5mk/Bericht%20Besondere%20Ereignisse%20in%20der%20Regelzone%20Schweiz%202025.pdf"
+  - name: ch_2021_price_long_abs_over_1000
+    question: "CH: quarter-hours of 2021 (Europe/Zurich year) with |price_long| > 1000 EUR/MWh (ElCom's row AEP short)"
+    sql: |
+      SELECT count(*)
+      FROM entsoe_imbalance_prices.prices
+      WHERE area = 'CH' AND abs(price_long) > 1000
+        AND delivery_start >= TIMESTAMPTZ '2021-01-01 00:00:00 Europe/Zurich'
+        AND delivery_start <  TIMESTAMPTZ '2022-01-01 00:00:00 Europe/Zurich'
+    expected: 0
+    tolerance: 0
+    source: "ElCom, Besondere Ereignisse in der Regelzone Schweiz im Jahr 2025 (May 2026), p. 15, Tabelle 2, https://www.elcom.admin.ch/dam/it/sd-web/lpdgJ8PUh5mk/Bericht%20Besondere%20Ereignisse%20in%20der%20Regelzone%20Schweiz%202025.pdf"
+  - name: ch_2021_price_long_abs_over_2000
+    question: "CH: quarter-hours of 2021 (Europe/Zurich year) with |price_long| > 2000 EUR/MWh (ElCom's row AEP short)"
+    sql: |
+      SELECT count(*)
+      FROM entsoe_imbalance_prices.prices
+      WHERE area = 'CH' AND abs(price_long) > 2000
+        AND delivery_start >= TIMESTAMPTZ '2021-01-01 00:00:00 Europe/Zurich'
+        AND delivery_start <  TIMESTAMPTZ '2022-01-01 00:00:00 Europe/Zurich'
+    expected: 0
+    tolerance: 0
+    source: "ElCom, Besondere Ereignisse in der Regelzone Schweiz im Jahr 2025 (May 2026), p. 15, Tabelle 2, https://www.elcom.admin.ch/dam/it/sd-web/lpdgJ8PUh5mk/Bericht%20Besondere%20Ereignisse%20in%20der%20Regelzone%20Schweiz%202025.pdf"
+  - name: ch_2021_price_long_abs_over_3000
+    question: "CH: quarter-hours of 2021 (Europe/Zurich year) with |price_long| > 3000 EUR/MWh (ElCom's row AEP short)"
+    sql: |
+      SELECT count(*)
+      FROM entsoe_imbalance_prices.prices
+      WHERE area = 'CH' AND abs(price_long) > 3000
+        AND delivery_start >= TIMESTAMPTZ '2021-01-01 00:00:00 Europe/Zurich'
+        AND delivery_start <  TIMESTAMPTZ '2022-01-01 00:00:00 Europe/Zurich'
+    expected: 0
+    tolerance: 0
+    source: "ElCom, Besondere Ereignisse in der Regelzone Schweiz im Jahr 2025 (May 2026), p. 15, Tabelle 2, https://www.elcom.admin.ch/dam/it/sd-web/lpdgJ8PUh5mk/Bericht%20Besondere%20Ereignisse%20in%20der%20Regelzone%20Schweiz%202025.pdf"
+  - name: ch_2021_price_short_abs_over_1000
+    question: "CH: quarter-hours of 2021 (Europe/Zurich year) with |price_short| > 1000 EUR/MWh (ElCom's row AEP long: adele's price_short, see qa/published_figures_entsoe_imbalance_prices.md)"
+    sql: |
+      SELECT count(*)
+      FROM entsoe_imbalance_prices.prices
+      WHERE area = 'CH' AND abs(price_short) > 1000
+        AND delivery_start >= TIMESTAMPTZ '2021-01-01 00:00:00 Europe/Zurich'
+        AND delivery_start <  TIMESTAMPTZ '2022-01-01 00:00:00 Europe/Zurich'
+    expected: 4
+    tolerance: 0
+    source: "ElCom, Besondere Ereignisse in der Regelzone Schweiz im Jahr 2025 (May 2026), p. 15, Tabelle 2, https://www.elcom.admin.ch/dam/it/sd-web/lpdgJ8PUh5mk/Bericht%20Besondere%20Ereignisse%20in%20der%20Regelzone%20Schweiz%202025.pdf"
+  - name: ch_2021_price_short_abs_over_2000
+    question: "CH: quarter-hours of 2021 (Europe/Zurich year) with |price_short| > 2000 EUR/MWh (ElCom's row AEP long: adele's price_short, see qa/published_figures_entsoe_imbalance_prices.md)"
+    sql: |
+      SELECT count(*)
+      FROM entsoe_imbalance_prices.prices
+      WHERE area = 'CH' AND abs(price_short) > 2000
+        AND delivery_start >= TIMESTAMPTZ '2021-01-01 00:00:00 Europe/Zurich'
+        AND delivery_start <  TIMESTAMPTZ '2022-01-01 00:00:00 Europe/Zurich'
+    expected: 0
+    tolerance: 0
+    source: "ElCom, Besondere Ereignisse in der Regelzone Schweiz im Jahr 2025 (May 2026), p. 15, Tabelle 2, https://www.elcom.admin.ch/dam/it/sd-web/lpdgJ8PUh5mk/Bericht%20Besondere%20Ereignisse%20in%20der%20Regelzone%20Schweiz%202025.pdf"
+  - name: ch_2021_price_short_abs_over_3000
+    question: "CH: quarter-hours of 2021 (Europe/Zurich year) with |price_short| > 3000 EUR/MWh (ElCom's row AEP long: adele's price_short, see qa/published_figures_entsoe_imbalance_prices.md)"
+    sql: |
+      SELECT count(*)
+      FROM entsoe_imbalance_prices.prices
+      WHERE area = 'CH' AND abs(price_short) > 3000
+        AND delivery_start >= TIMESTAMPTZ '2021-01-01 00:00:00 Europe/Zurich'
+        AND delivery_start <  TIMESTAMPTZ '2022-01-01 00:00:00 Europe/Zurich'
+    expected: 0
+    tolerance: 0
+    source: "ElCom, Besondere Ereignisse in der Regelzone Schweiz im Jahr 2025 (May 2026), p. 15, Tabelle 2, https://www.elcom.admin.ch/dam/it/sd-web/lpdgJ8PUh5mk/Bericht%20Besondere%20Ereignisse%20in%20der%20Regelzone%20Schweiz%202025.pdf"
+  - name: ch_2020_price_long_abs_over_1000
+    question: "CH: quarter-hours of 2020 (Europe/Zurich year) with |price_long| > 1000 EUR/MWh (ElCom's row AEP short)"
+    sql: |
+      SELECT count(*)
+      FROM entsoe_imbalance_prices.prices
+      WHERE area = 'CH' AND abs(price_long) > 1000
+        AND delivery_start >= TIMESTAMPTZ '2020-01-01 00:00:00 Europe/Zurich'
+        AND delivery_start <  TIMESTAMPTZ '2021-01-01 00:00:00 Europe/Zurich'
+    expected: 0
+    tolerance: 0
+    source: "ElCom, Besondere Ereignisse in der Regelzone Schweiz im Jahr 2025 (May 2026), p. 15, Tabelle 2, https://www.elcom.admin.ch/dam/it/sd-web/lpdgJ8PUh5mk/Bericht%20Besondere%20Ereignisse%20in%20der%20Regelzone%20Schweiz%202025.pdf"
+  - name: ch_2020_price_long_abs_over_2000
+    question: "CH: quarter-hours of 2020 (Europe/Zurich year) with |price_long| > 2000 EUR/MWh (ElCom's row AEP short)"
+    sql: |
+      SELECT count(*)
+      FROM entsoe_imbalance_prices.prices
+      WHERE area = 'CH' AND abs(price_long) > 2000
+        AND delivery_start >= TIMESTAMPTZ '2020-01-01 00:00:00 Europe/Zurich'
+        AND delivery_start <  TIMESTAMPTZ '2021-01-01 00:00:00 Europe/Zurich'
+    expected: 0
+    tolerance: 0
+    source: "ElCom, Besondere Ereignisse in der Regelzone Schweiz im Jahr 2025 (May 2026), p. 15, Tabelle 2, https://www.elcom.admin.ch/dam/it/sd-web/lpdgJ8PUh5mk/Bericht%20Besondere%20Ereignisse%20in%20der%20Regelzone%20Schweiz%202025.pdf"
+  - name: ch_2020_price_long_abs_over_3000
+    question: "CH: quarter-hours of 2020 (Europe/Zurich year) with |price_long| > 3000 EUR/MWh (ElCom's row AEP short)"
+    sql: |
+      SELECT count(*)
+      FROM entsoe_imbalance_prices.prices
+      WHERE area = 'CH' AND abs(price_long) > 3000
+        AND delivery_start >= TIMESTAMPTZ '2020-01-01 00:00:00 Europe/Zurich'
+        AND delivery_start <  TIMESTAMPTZ '2021-01-01 00:00:00 Europe/Zurich'
+    expected: 0
+    tolerance: 0
+    source: "ElCom, Besondere Ereignisse in der Regelzone Schweiz im Jahr 2025 (May 2026), p. 15, Tabelle 2, https://www.elcom.admin.ch/dam/it/sd-web/lpdgJ8PUh5mk/Bericht%20Besondere%20Ereignisse%20in%20der%20Regelzone%20Schweiz%202025.pdf"
+  - name: ch_2020_price_short_abs_over_1000
+    question: "CH: quarter-hours of 2020 (Europe/Zurich year) with |price_short| > 1000 EUR/MWh (ElCom's row AEP long: adele's price_short, see qa/published_figures_entsoe_imbalance_prices.md)"
+    sql: |
+      SELECT count(*)
+      FROM entsoe_imbalance_prices.prices
+      WHERE area = 'CH' AND abs(price_short) > 1000
+        AND delivery_start >= TIMESTAMPTZ '2020-01-01 00:00:00 Europe/Zurich'
+        AND delivery_start <  TIMESTAMPTZ '2021-01-01 00:00:00 Europe/Zurich'
+    expected: 24
+    tolerance: 0
+    source: "ElCom, Besondere Ereignisse in der Regelzone Schweiz im Jahr 2025 (May 2026), p. 15, Tabelle 2, https://www.elcom.admin.ch/dam/it/sd-web/lpdgJ8PUh5mk/Bericht%20Besondere%20Ereignisse%20in%20der%20Regelzone%20Schweiz%202025.pdf"
+  - name: ch_2020_price_short_abs_over_2000
+    question: "CH: quarter-hours of 2020 (Europe/Zurich year) with |price_short| > 2000 EUR/MWh (ElCom's row AEP long: adele's price_short, see qa/published_figures_entsoe_imbalance_prices.md)"
+    sql: |
+      SELECT count(*)
+      FROM entsoe_imbalance_prices.prices
+      WHERE area = 'CH' AND abs(price_short) > 2000
+        AND delivery_start >= TIMESTAMPTZ '2020-01-01 00:00:00 Europe/Zurich'
+        AND delivery_start <  TIMESTAMPTZ '2021-01-01 00:00:00 Europe/Zurich'
+    expected: 12
+    tolerance: 0
+    source: "ElCom, Besondere Ereignisse in der Regelzone Schweiz im Jahr 2025 (May 2026), p. 15, Tabelle 2, https://www.elcom.admin.ch/dam/it/sd-web/lpdgJ8PUh5mk/Bericht%20Besondere%20Ereignisse%20in%20der%20Regelzone%20Schweiz%202025.pdf"
+  - name: ch_2020_price_short_abs_over_3000
+    question: "CH: quarter-hours of 2020 (Europe/Zurich year) with |price_short| > 3000 EUR/MWh (ElCom's row AEP long: adele's price_short, see qa/published_figures_entsoe_imbalance_prices.md)"
+    sql: |
+      SELECT count(*)
+      FROM entsoe_imbalance_prices.prices
+      WHERE area = 'CH' AND abs(price_short) > 3000
+        AND delivery_start >= TIMESTAMPTZ '2020-01-01 00:00:00 Europe/Zurich'
+        AND delivery_start <  TIMESTAMPTZ '2021-01-01 00:00:00 Europe/Zurich'
+    expected: 12
+    tolerance: 0
+    source: "ElCom, Besondere Ereignisse in der Regelzone Schweiz im Jahr 2025 (May 2026), p. 15, Tabelle 2, https://www.elcom.admin.ch/dam/it/sd-web/lpdgJ8PUh5mk/Bericht%20Besondere%20Ereignisse%20in%20der%20Regelzone%20Schweiz%202025.pdf"
+  - name: ch_2019_price_long_abs_over_1000
+    question: "CH: quarter-hours of 2019 (Europe/Zurich year) with |price_long| > 1000 EUR/MWh (ElCom's row AEP short)"
+    sql: |
+      SELECT count(*)
+      FROM entsoe_imbalance_prices.prices
+      WHERE area = 'CH' AND abs(price_long) > 1000
+        AND delivery_start >= TIMESTAMPTZ '2019-01-01 00:00:00 Europe/Zurich'
+        AND delivery_start <  TIMESTAMPTZ '2020-01-01 00:00:00 Europe/Zurich'
+    expected: 0
+    tolerance: 0
+    source: "ElCom, Besondere Ereignisse in der Regelzone Schweiz im Jahr 2025 (May 2026), p. 15, Tabelle 2, https://www.elcom.admin.ch/dam/it/sd-web/lpdgJ8PUh5mk/Bericht%20Besondere%20Ereignisse%20in%20der%20Regelzone%20Schweiz%202025.pdf"
+  - name: ch_2019_price_long_abs_over_2000
+    question: "CH: quarter-hours of 2019 (Europe/Zurich year) with |price_long| > 2000 EUR/MWh (ElCom's row AEP short)"
+    sql: |
+      SELECT count(*)
+      FROM entsoe_imbalance_prices.prices
+      WHERE area = 'CH' AND abs(price_long) > 2000
+        AND delivery_start >= TIMESTAMPTZ '2019-01-01 00:00:00 Europe/Zurich'
+        AND delivery_start <  TIMESTAMPTZ '2020-01-01 00:00:00 Europe/Zurich'
+    expected: 0
+    tolerance: 0
+    source: "ElCom, Besondere Ereignisse in der Regelzone Schweiz im Jahr 2025 (May 2026), p. 15, Tabelle 2, https://www.elcom.admin.ch/dam/it/sd-web/lpdgJ8PUh5mk/Bericht%20Besondere%20Ereignisse%20in%20der%20Regelzone%20Schweiz%202025.pdf"
+  - name: ch_2019_price_long_abs_over_3000
+    question: "CH: quarter-hours of 2019 (Europe/Zurich year) with |price_long| > 3000 EUR/MWh (ElCom's row AEP short)"
+    sql: |
+      SELECT count(*)
+      FROM entsoe_imbalance_prices.prices
+      WHERE area = 'CH' AND abs(price_long) > 3000
+        AND delivery_start >= TIMESTAMPTZ '2019-01-01 00:00:00 Europe/Zurich'
+        AND delivery_start <  TIMESTAMPTZ '2020-01-01 00:00:00 Europe/Zurich'
+    expected: 0
+    tolerance: 0
+    source: "ElCom, Besondere Ereignisse in der Regelzone Schweiz im Jahr 2025 (May 2026), p. 15, Tabelle 2, https://www.elcom.admin.ch/dam/it/sd-web/lpdgJ8PUh5mk/Bericht%20Besondere%20Ereignisse%20in%20der%20Regelzone%20Schweiz%202025.pdf"
+  - name: ch_2019_price_short_abs_over_1000
+    question: "CH: quarter-hours of 2019 (Europe/Zurich year) with |price_short| > 1000 EUR/MWh (ElCom's row AEP long: adele's price_short, see qa/published_figures_entsoe_imbalance_prices.md)"
+    sql: |
+      SELECT count(*)
+      FROM entsoe_imbalance_prices.prices
+      WHERE area = 'CH' AND abs(price_short) > 1000
+        AND delivery_start >= TIMESTAMPTZ '2019-01-01 00:00:00 Europe/Zurich'
+        AND delivery_start <  TIMESTAMPTZ '2020-01-01 00:00:00 Europe/Zurich'
+    expected: 23
+    tolerance: 0
+    source: "ElCom, Besondere Ereignisse in der Regelzone Schweiz im Jahr 2025 (May 2026), p. 15, Tabelle 2, https://www.elcom.admin.ch/dam/it/sd-web/lpdgJ8PUh5mk/Bericht%20Besondere%20Ereignisse%20in%20der%20Regelzone%20Schweiz%202025.pdf"
+  - name: ch_2019_price_short_abs_over_2000
+    question: "CH: quarter-hours of 2019 (Europe/Zurich year) with |price_short| > 2000 EUR/MWh (ElCom's row AEP long: adele's price_short, see qa/published_figures_entsoe_imbalance_prices.md)"
+    sql: |
+      SELECT count(*)
+      FROM entsoe_imbalance_prices.prices
+      WHERE area = 'CH' AND abs(price_short) > 2000
+        AND delivery_start >= TIMESTAMPTZ '2019-01-01 00:00:00 Europe/Zurich'
+        AND delivery_start <  TIMESTAMPTZ '2020-01-01 00:00:00 Europe/Zurich'
+    expected: 22
+    tolerance: 0
+    source: "ElCom, Besondere Ereignisse in der Regelzone Schweiz im Jahr 2025 (May 2026), p. 15, Tabelle 2, https://www.elcom.admin.ch/dam/it/sd-web/lpdgJ8PUh5mk/Bericht%20Besondere%20Ereignisse%20in%20der%20Regelzone%20Schweiz%202025.pdf"
+  - name: ch_2019_price_short_abs_over_3000
+    question: "CH: quarter-hours of 2019 (Europe/Zurich year) with |price_short| > 3000 EUR/MWh (ElCom's row AEP long: adele's price_short, see qa/published_figures_entsoe_imbalance_prices.md)"
+    sql: |
+      SELECT count(*)
+      FROM entsoe_imbalance_prices.prices
+      WHERE area = 'CH' AND abs(price_short) > 3000
+        AND delivery_start >= TIMESTAMPTZ '2019-01-01 00:00:00 Europe/Zurich'
+        AND delivery_start <  TIMESTAMPTZ '2020-01-01 00:00:00 Europe/Zurich'
+    expected: 5
+    tolerance: 0
+    source: "ElCom, Besondere Ereignisse in der Regelzone Schweiz im Jahr 2025 (May 2026), p. 15, Tabelle 2, https://www.elcom.admin.ch/dam/it/sd-web/lpdgJ8PUh5mk/Bericht%20Besondere%20Ereignisse%20in%20der%20Regelzone%20Schweiz%202025.pdf"
+  - name: ch_2018_price_long_abs_over_1000
+    question: "CH: quarter-hours of 2018 (Europe/Zurich year) with |price_long| > 1000 EUR/MWh (ElCom's row AEP short)"
+    sql: |
+      SELECT count(*)
+      FROM entsoe_imbalance_prices.prices
+      WHERE area = 'CH' AND abs(price_long) > 1000
+        AND delivery_start >= TIMESTAMPTZ '2018-01-01 00:00:00 Europe/Zurich'
+        AND delivery_start <  TIMESTAMPTZ '2019-01-01 00:00:00 Europe/Zurich'
+    expected: 0
+    tolerance: 0
+    source: "ElCom, Besondere Ereignisse in der Regelzone Schweiz im Jahr 2025 (May 2026), p. 15, Tabelle 2, https://www.elcom.admin.ch/dam/it/sd-web/lpdgJ8PUh5mk/Bericht%20Besondere%20Ereignisse%20in%20der%20Regelzone%20Schweiz%202025.pdf"
+  - name: ch_2018_price_long_abs_over_2000
+    question: "CH: quarter-hours of 2018 (Europe/Zurich year) with |price_long| > 2000 EUR/MWh (ElCom's row AEP short)"
+    sql: |
+      SELECT count(*)
+      FROM entsoe_imbalance_prices.prices
+      WHERE area = 'CH' AND abs(price_long) > 2000
+        AND delivery_start >= TIMESTAMPTZ '2018-01-01 00:00:00 Europe/Zurich'
+        AND delivery_start <  TIMESTAMPTZ '2019-01-01 00:00:00 Europe/Zurich'
+    expected: 0
+    tolerance: 0
+    source: "ElCom, Besondere Ereignisse in der Regelzone Schweiz im Jahr 2025 (May 2026), p. 15, Tabelle 2, https://www.elcom.admin.ch/dam/it/sd-web/lpdgJ8PUh5mk/Bericht%20Besondere%20Ereignisse%20in%20der%20Regelzone%20Schweiz%202025.pdf"
+  - name: ch_2018_price_long_abs_over_3000
+    question: "CH: quarter-hours of 2018 (Europe/Zurich year) with |price_long| > 3000 EUR/MWh (ElCom's row AEP short)"
+    sql: |
+      SELECT count(*)
+      FROM entsoe_imbalance_prices.prices
+      WHERE area = 'CH' AND abs(price_long) > 3000
+        AND delivery_start >= TIMESTAMPTZ '2018-01-01 00:00:00 Europe/Zurich'
+        AND delivery_start <  TIMESTAMPTZ '2019-01-01 00:00:00 Europe/Zurich'
+    expected: 0
+    tolerance: 0
+    source: "ElCom, Besondere Ereignisse in der Regelzone Schweiz im Jahr 2025 (May 2026), p. 15, Tabelle 2, https://www.elcom.admin.ch/dam/it/sd-web/lpdgJ8PUh5mk/Bericht%20Besondere%20Ereignisse%20in%20der%20Regelzone%20Schweiz%202025.pdf"
+  - name: ch_2018_price_short_abs_over_1000
+    question: "CH: quarter-hours of 2018 (Europe/Zurich year) with |price_short| > 1000 EUR/MWh (ElCom's row AEP long: adele's price_short, see qa/published_figures_entsoe_imbalance_prices.md)"
+    sql: |
+      SELECT count(*)
+      FROM entsoe_imbalance_prices.prices
+      WHERE area = 'CH' AND abs(price_short) > 1000
+        AND delivery_start >= TIMESTAMPTZ '2018-01-01 00:00:00 Europe/Zurich'
+        AND delivery_start <  TIMESTAMPTZ '2019-01-01 00:00:00 Europe/Zurich'
+    expected: 59
+    tolerance: 0
+    source: "ElCom, Besondere Ereignisse in der Regelzone Schweiz im Jahr 2025 (May 2026), p. 15, Tabelle 2, https://www.elcom.admin.ch/dam/it/sd-web/lpdgJ8PUh5mk/Bericht%20Besondere%20Ereignisse%20in%20der%20Regelzone%20Schweiz%202025.pdf"
+  - name: ch_2018_price_short_abs_over_2000
+    question: "CH: quarter-hours of 2018 (Europe/Zurich year) with |price_short| > 2000 EUR/MWh (ElCom's row AEP long: adele's price_short, see qa/published_figures_entsoe_imbalance_prices.md)"
+    sql: |
+      SELECT count(*)
+      FROM entsoe_imbalance_prices.prices
+      WHERE area = 'CH' AND abs(price_short) > 2000
+        AND delivery_start >= TIMESTAMPTZ '2018-01-01 00:00:00 Europe/Zurich'
+        AND delivery_start <  TIMESTAMPTZ '2019-01-01 00:00:00 Europe/Zurich'
+    expected: 33
+    tolerance: 0
+    source: "ElCom, Besondere Ereignisse in der Regelzone Schweiz im Jahr 2025 (May 2026), p. 15, Tabelle 2, https://www.elcom.admin.ch/dam/it/sd-web/lpdgJ8PUh5mk/Bericht%20Besondere%20Ereignisse%20in%20der%20Regelzone%20Schweiz%202025.pdf"
+  - name: ch_2018_price_short_abs_over_3000
+    question: "CH: quarter-hours of 2018 (Europe/Zurich year) with |price_short| > 3000 EUR/MWh (ElCom's row AEP long: adele's price_short, see qa/published_figures_entsoe_imbalance_prices.md)"
+    sql: |
+      SELECT count(*)
+      FROM entsoe_imbalance_prices.prices
+      WHERE area = 'CH' AND abs(price_short) > 3000
+        AND delivery_start >= TIMESTAMPTZ '2018-01-01 00:00:00 Europe/Zurich'
+        AND delivery_start <  TIMESTAMPTZ '2019-01-01 00:00:00 Europe/Zurich'
+    expected: 22
+    tolerance: 0
+    source: "ElCom, Besondere Ereignisse in der Regelzone Schweiz im Jahr 2025 (May 2026), p. 15, Tabelle 2, https://www.elcom.admin.ch/dam/it/sd-web/lpdgJ8PUh5mk/Bericht%20Besondere%20Ereignisse%20in%20der%20Regelzone%20Schweiz%202025.pdf"
+  - name: ch_2017_price_long_abs_over_1000
+    question: "CH: quarter-hours of 2017 (Europe/Zurich year) with |price_long| > 1000 EUR/MWh (ElCom's row AEP short)"
+    sql: |
+      SELECT count(*)
+      FROM entsoe_imbalance_prices.prices
+      WHERE area = 'CH' AND abs(price_long) > 1000
+        AND delivery_start >= TIMESTAMPTZ '2017-01-01 00:00:00 Europe/Zurich'
+        AND delivery_start <  TIMESTAMPTZ '2018-01-01 00:00:00 Europe/Zurich'
+    expected: 0
+    tolerance: 0
+    source: "ElCom, Besondere Ereignisse in der Regelzone Schweiz im Jahr 2025 (May 2026), p. 15, Tabelle 2, https://www.elcom.admin.ch/dam/it/sd-web/lpdgJ8PUh5mk/Bericht%20Besondere%20Ereignisse%20in%20der%20Regelzone%20Schweiz%202025.pdf"
+  - name: ch_2017_price_long_abs_over_2000
+    question: "CH: quarter-hours of 2017 (Europe/Zurich year) with |price_long| > 2000 EUR/MWh (ElCom's row AEP short)"
+    sql: |
+      SELECT count(*)
+      FROM entsoe_imbalance_prices.prices
+      WHERE area = 'CH' AND abs(price_long) > 2000
+        AND delivery_start >= TIMESTAMPTZ '2017-01-01 00:00:00 Europe/Zurich'
+        AND delivery_start <  TIMESTAMPTZ '2018-01-01 00:00:00 Europe/Zurich'
+    expected: 0
+    tolerance: 0
+    source: "ElCom, Besondere Ereignisse in der Regelzone Schweiz im Jahr 2025 (May 2026), p. 15, Tabelle 2, https://www.elcom.admin.ch/dam/it/sd-web/lpdgJ8PUh5mk/Bericht%20Besondere%20Ereignisse%20in%20der%20Regelzone%20Schweiz%202025.pdf"
+  - name: ch_2017_price_long_abs_over_3000
+    question: "CH: quarter-hours of 2017 (Europe/Zurich year) with |price_long| > 3000 EUR/MWh (ElCom's row AEP short)"
+    sql: |
+      SELECT count(*)
+      FROM entsoe_imbalance_prices.prices
+      WHERE area = 'CH' AND abs(price_long) > 3000
+        AND delivery_start >= TIMESTAMPTZ '2017-01-01 00:00:00 Europe/Zurich'
+        AND delivery_start <  TIMESTAMPTZ '2018-01-01 00:00:00 Europe/Zurich'
+    expected: 0
+    tolerance: 0
+    source: "ElCom, Besondere Ereignisse in der Regelzone Schweiz im Jahr 2025 (May 2026), p. 15, Tabelle 2, https://www.elcom.admin.ch/dam/it/sd-web/lpdgJ8PUh5mk/Bericht%20Besondere%20Ereignisse%20in%20der%20Regelzone%20Schweiz%202025.pdf"
+  - name: ch_2017_price_short_abs_over_1000
+    question: "CH: quarter-hours of 2017 (Europe/Zurich year) with |price_short| > 1000 EUR/MWh (ElCom's row AEP long: adele's price_short, see qa/published_figures_entsoe_imbalance_prices.md)"
+    sql: |
+      SELECT count(*)
+      FROM entsoe_imbalance_prices.prices
+      WHERE area = 'CH' AND abs(price_short) > 1000
+        AND delivery_start >= TIMESTAMPTZ '2017-01-01 00:00:00 Europe/Zurich'
+        AND delivery_start <  TIMESTAMPTZ '2018-01-01 00:00:00 Europe/Zurich'
+    expected: 11
+    tolerance: 0
+    source: "ElCom, Besondere Ereignisse in der Regelzone Schweiz im Jahr 2025 (May 2026), p. 15, Tabelle 2, https://www.elcom.admin.ch/dam/it/sd-web/lpdgJ8PUh5mk/Bericht%20Besondere%20Ereignisse%20in%20der%20Regelzone%20Schweiz%202025.pdf"
+  - name: ch_2017_price_short_abs_over_2000
+    question: "CH: quarter-hours of 2017 (Europe/Zurich year) with |price_short| > 2000 EUR/MWh (ElCom's row AEP long: adele's price_short, see qa/published_figures_entsoe_imbalance_prices.md)"
+    sql: |
+      SELECT count(*)
+      FROM entsoe_imbalance_prices.prices
+      WHERE area = 'CH' AND abs(price_short) > 2000
+        AND delivery_start >= TIMESTAMPTZ '2017-01-01 00:00:00 Europe/Zurich'
+        AND delivery_start <  TIMESTAMPTZ '2018-01-01 00:00:00 Europe/Zurich'
+    expected: 6
+    tolerance: 0
+    source: "ElCom, Besondere Ereignisse in der Regelzone Schweiz im Jahr 2025 (May 2026), p. 15, Tabelle 2, https://www.elcom.admin.ch/dam/it/sd-web/lpdgJ8PUh5mk/Bericht%20Besondere%20Ereignisse%20in%20der%20Regelzone%20Schweiz%202025.pdf"
+  - name: ch_2017_price_short_abs_over_3000
+    question: "CH: quarter-hours of 2017 (Europe/Zurich year) with |price_short| > 3000 EUR/MWh (ElCom's row AEP long: adele's price_short, see qa/published_figures_entsoe_imbalance_prices.md)"
+    sql: |
+      SELECT count(*)
+      FROM entsoe_imbalance_prices.prices
+      WHERE area = 'CH' AND abs(price_short) > 3000
+        AND delivery_start >= TIMESTAMPTZ '2017-01-01 00:00:00 Europe/Zurich'
+        AND delivery_start <  TIMESTAMPTZ '2018-01-01 00:00:00 Europe/Zurich'
+    expected: 0
+    tolerance: 0
+    source: "ElCom, Besondere Ereignisse in der Regelzone Schweiz im Jahr 2025 (May 2026), p. 15, Tabelle 2, https://www.elcom.admin.ch/dam/it/sd-web/lpdgJ8PUh5mk/Bericht%20Besondere%20Ereignisse%20in%20der%20Regelzone%20Schweiz%202025.pdf"
+  - name: ch_2025_max_price_short
+    question: "CH: highest price_short of 2025 (Europe/Zurich year), EUR/MWh (2025-02-12 14:00 local)"
+    sql: |
+      SELECT max(price_short)
+      FROM entsoe_imbalance_prices.prices
+      WHERE area = 'CH'
+        AND delivery_start >= TIMESTAMPTZ '2025-01-01 00:00:00 Europe/Zurich'
+        AND delivery_start <  TIMESTAMPTZ '2026-01-01 00:00:00 Europe/Zurich'
+    expected: 5566
+    tolerance: 0.5
+    source: "ElCom, Besondere Ereignisse in der Regelzone Schweiz im Jahr 2025 (May 2026), p. 21, Tabelle 4, row 12.02. 14:00, https://www.elcom.admin.ch/dam/it/sd-web/lpdgJ8PUh5mk/Bericht%20Besondere%20Ereignisse%20in%20der%20Regelzone%20Schweiz%202025.pdf"
+  - name: ch_2025_min_price_long
+    question: "CH: lowest price_long of 2025 (Europe/Zurich year), EUR/MWh (2025-09-06, 13:00-14:30 local)"
+    sql: |
+      SELECT min(price_long)
+      FROM entsoe_imbalance_prices.prices
+      WHERE area = 'CH'
+        AND delivery_start >= TIMESTAMPTZ '2025-01-01 00:00:00 Europe/Zurich'
+        AND delivery_start <  TIMESTAMPTZ '2026-01-01 00:00:00 Europe/Zurich'
+    expected: -6826
+    tolerance: 0.5
+    source: "ElCom, Besondere Ereignisse in der Regelzone Schweiz im Jahr 2025 (May 2026), p. 22, Tabelle 4, row 06.09. 13:00-14:30, https://www.elcom.admin.ch/dam/it/sd-web/lpdgJ8PUh5mk/Bericht%20Besondere%20Ereignisse%20in%20der%20Regelzone%20Schweiz%202025.pdf"
+  - name: ch_2025_02_17_1200_price_short
+    question: "CH: price_short of the quarter-hour that starts at 2025-02-17 12:00 Europe/Zurich, EUR/MWh"
+    sql: |
+      SELECT price_short
+      FROM entsoe_imbalance_prices.prices
+      WHERE area = 'CH'
+        AND delivery_start = TIMESTAMPTZ '2025-02-17 12:00:00 Europe/Zurich'
+    expected: 337
+    tolerance: 0.5
+    source: "ElCom, Besondere Ereignisse in der Regelzone Schweiz im Jahr 2025 (May 2026), p. 21-22, Tabelle 4, row 17.02. 12:00, https://www.elcom.admin.ch/dam/it/sd-web/lpdgJ8PUh5mk/Bericht%20Besondere%20Ereignisse%20in%20der%20Regelzone%20Schweiz%202025.pdf"
+  - name: ch_2025_02_17_1300_price_short
+    question: "CH: price_short of the quarter-hour that starts at 2025-02-17 13:00 Europe/Zurich, EUR/MWh"
+    sql: |
+      SELECT price_short
+      FROM entsoe_imbalance_prices.prices
+      WHERE area = 'CH'
+        AND delivery_start = TIMESTAMPTZ '2025-02-17 13:00:00 Europe/Zurich'
+    expected: 342
+    tolerance: 0.5
+    source: "ElCom, Besondere Ereignisse in der Regelzone Schweiz im Jahr 2025 (May 2026), p. 21-22, Tabelle 4, row 17.02. 13:00, https://www.elcom.admin.ch/dam/it/sd-web/lpdgJ8PUh5mk/Bericht%20Besondere%20Ereignisse%20in%20der%20Regelzone%20Schweiz%202025.pdf"
+  - name: ch_2025_04_18_1200_price_long
+    question: "CH: price_long of the quarter-hour that starts at 2025-04-18 12:00 Europe/Zurich, EUR/MWh"
+    sql: |
+      SELECT price_long
+      FROM entsoe_imbalance_prices.prices
+      WHERE area = 'CH'
+        AND delivery_start = TIMESTAMPTZ '2025-04-18 12:00:00 Europe/Zurich'
+    expected: -45.3
+    tolerance: 0.05
+    source: "ElCom, Besondere Ereignisse in der Regelzone Schweiz im Jahr 2025 (May 2026), p. 21-22, Tabelle 4, row 18.04. 12:00, https://www.elcom.admin.ch/dam/it/sd-web/lpdgJ8PUh5mk/Bericht%20Besondere%20Ereignisse%20in%20der%20Regelzone%20Schweiz%202025.pdf"
+  - name: ch_2025_04_18_1200_price_short
+    question: "CH: price_short of the quarter-hour that starts at 2025-04-18 12:00 Europe/Zurich, EUR/MWh"
+    sql: |
+      SELECT price_short
+      FROM entsoe_imbalance_prices.prices
+      WHERE area = 'CH'
+        AND delivery_start = TIMESTAMPTZ '2025-04-18 12:00:00 Europe/Zurich'
+    expected: 996.3
+    tolerance: 0.05
+    source: "ElCom, Besondere Ereignisse in der Regelzone Schweiz im Jahr 2025 (May 2026), p. 21-22, Tabelle 4, row 18.04. 12:00, https://www.elcom.admin.ch/dam/it/sd-web/lpdgJ8PUh5mk/Bericht%20Besondere%20Ereignisse%20in%20der%20Regelzone%20Schweiz%202025.pdf"
+  - name: ch_2025_07_19_1400_price_short
+    question: "CH: price_short of the quarter-hour that starts at 2025-07-19 14:00 Europe/Zurich, EUR/MWh"
+    sql: |
+      SELECT price_short
+      FROM entsoe_imbalance_prices.prices
+      WHERE area = 'CH'
+        AND delivery_start = TIMESTAMPTZ '2025-07-19 14:00:00 Europe/Zurich'
+    expected: 553
+    tolerance: 0.5
+    source: "ElCom, Besondere Ereignisse in der Regelzone Schweiz im Jahr 2025 (May 2026), p. 21-22, Tabelle 4, row 19.07. 14:00, https://www.elcom.admin.ch/dam/it/sd-web/lpdgJ8PUh5mk/Bericht%20Besondere%20Ereignisse%20in%20der%20Regelzone%20Schweiz%202025.pdf"
+  - name: ch_2025_08_06_1245_price_long
+    question: "CH: price_long of the quarter-hour that starts at 2025-08-06 12:45 Europe/Zurich, EUR/MWh"
+    sql: |
+      SELECT price_long
+      FROM entsoe_imbalance_prices.prices
+      WHERE area = 'CH'
+        AND delivery_start = TIMESTAMPTZ '2025-08-06 12:45:00 Europe/Zurich'
+    expected: -611
+    tolerance: 0.5
+    source: "ElCom, Besondere Ereignisse in der Regelzone Schweiz im Jahr 2025 (May 2026), p. 21-22, Tabelle 4, row 06.08. 12:45, https://www.elcom.admin.ch/dam/it/sd-web/lpdgJ8PUh5mk/Bericht%20Besondere%20Ereignisse%20in%20der%20Regelzone%20Schweiz%202025.pdf"
+  - name: de_lu_2017_10_17_max
+    question: "DE_LU: highest imbalance price (reBAP, single price) of 2017-10-17 (Europe/Berlin day), EUR/MWh"
+    sql: |
+      SELECT max(price_short)
+      FROM entsoe_imbalance_prices.prices
+      WHERE area = 'DE_LU'
+        AND delivery_start >= TIMESTAMPTZ '2017-10-17 00:00:00 Europe/Berlin'
+        AND delivery_start <  TIMESTAMPTZ '2017-10-18 00:00:00 Europe/Berlin'
+    expected: 24455.05
+    tolerance: 0.005
+    source: "BNetzA, Festlegung BK6-19-217 (2019-12-11), p. 14, footnote 18, https://www.amprion.net/Dokumente/Strommarkt/Bilanzkreise/Ausgleichsenergiespreis/2019/Festlegung_BK6-19-217.pdf"
+  - name: de_lu_2017_10_17_second
+    question: "DE_LU: second highest imbalance price of 2017-10-17 (Europe/Berlin day), EUR/MWh"
+    sql: |
+      SELECT price_short
+      FROM entsoe_imbalance_prices.prices
+      WHERE area = 'DE_LU'
+        AND delivery_start >= TIMESTAMPTZ '2017-10-17 00:00:00 Europe/Berlin'
+        AND delivery_start <  TIMESTAMPTZ '2017-10-18 00:00:00 Europe/Berlin'
+      ORDER BY price_short DESC
+      LIMIT 1 OFFSET 1
+    expected: 20614.97
+    tolerance: 0.005
+    source: "BNetzA, Festlegung BK6-19-217 (2019-12-11), p. 14, footnote 18, https://www.amprion.net/Dokumente/Strommarkt/Bilanzkreise/Ausgleichsenergiespreis/2019/Festlegung_BK6-19-217.pdf"
+  - name: de_lu_2019_06_12_1145
+    question: "DE_LU: imbalance price of the quarter-hour 11:45-12:00 Europe/Berlin on 2019-06-12 (reBAP with the 80 % criterion), EUR/MWh"
+    sql: |
+      SELECT price_long
+      FROM entsoe_imbalance_prices.prices
+      WHERE area = 'DE_LU'
+        AND delivery_start = TIMESTAMPTZ '2019-06-12 11:45:00 Europe/Berlin'
+    expected: 376.57
+    tolerance: 0.005
+    source: "BNetzA, Festlegung BK6-19-217 (2019-12-11), p. 5, https://www.amprion.net/Dokumente/Strommarkt/Bilanzkreise/Ausgleichsenergiespreis/2019/Festlegung_BK6-19-217.pdf"

@@ -1,0 +1,100 @@
+# Definitions (titles, descriptions, labels, warnings, questions) are Renaud's (skills/add-dataset).
+# WP5.1, 2026-11-15: every definition below is a draft by Claude until he changes or confirms it.
+# Structure (keys, types, refresh) by Claude. Sources of the facts: the docstring of fetch.py and
+# swissgrid_project/data/entsoe/README.md (QA 3, "Extreme values").
+name: entsoe_activated_balancing_prices
+title: Prices of activated balancing energy, CH (ENTSO-E)  # draft by Claude
+# draft by Claude
+description: >-
+  Prices of the balancing energy that Swissgrid activated, per reserve (aFRR, mFRR, RR), resource
+  type and direction, per quarter-hour, as published on the ENTSO-E Transparency Platform
+  (document A84, Regulation (EU) 543/2013 article 17.1.F). aFRR from 2015-04-30, mFRR from
+  2021-01-01 to 2022-08-24, RR from 2015-04-30 to 2025-12-17.
+# The same platform as entsoe_day_ahead_prices: Renaud's licence entry there, copied by Claude.
+licenses:
+  - name: CC-BY-4.0
+    path: https://creativecommons.org/licenses/by/4.0/
+    title: Creative Commons Attribution 4.0 International License
+resources:
+  - name: prices
+    description: One row per reserve, resource type, direction and quarter-hour.  # draft by Claude
+    schema:
+      primaryKey: [area, reserve, resource, direction, delivery_start]
+      fields:
+        - name: area
+          type: string
+          description: Control area (short name).  # draft by Claude
+          categories:
+            - {value: CH, label: "Switzerland, Swissgrid (10YCH-SWISSGRIDZ)"}
+        - name: reserve
+          type: string
+          description: The reserve whose energy was activated (ENTSO-E business type).  # draft by Claude
+          # labels: draft by Claude, from the code list (BusinessTypeList)
+          categories:
+            - {value: FCR, label: "Frequency containment reserve (A95)"}
+            - {value: aFRR, label: "Automatic frequency restoration reserve (A96)"}
+            - {value: mFRR, label: "Manual frequency restoration reserve (A97)"}
+            - {value: RR, label: "Replacement reserve (A98)"}
+        - name: resource
+          type: string
+          description: Type of the resources that provided the energy (ENTSO-E psrType).  # draft by Claude
+          categories:
+            - {value: generation, label: "Generation (A04)"}
+            - {value: load, label: "Load (A05)"}
+            - {value: mixed, label: "Mixed (A03)"}
+        - name: direction
+          type: string
+          description: Upward activation (more injection or less withdrawal) or downward activation.  # draft by Claude
+          categories:
+            - {value: up, label: "Up (A01)"}
+            - {value: down, label: "Down (A02)"}
+        - name: delivery_start
+          type: datetime
+          description: Start of the quarter-hour, UTC.  # draft by Claude
+        - name: resolution
+          type: duration
+          description: Length of the interval (PT15M throughout).  # draft by Claude
+        - name: product
+          type: string
+          # draft by Claude
+          description: >-
+            Market product type as served (standard or original product), null where none is
+            served. aFRR carries A04 from 2025; RR of mixed resources carries A01. Code list
+            v36r0 has no list of these codes.
+        - name: category
+          type: string
+          description: How the price is formed (ENTSO-E price category), as served.  # draft by Claude
+          categories:
+            - {value: A06, label: "Average bid price"}
+            - {value: A07, label: "Single marginal bid price"}
+            - {value: A08, label: "Not in code list v36r0; served for RR from 2025-07-30 18:00 local"}
+        - name: price
+          type: number
+          unit: EUR/MWh
+          description: Price of the activated balancing energy.  # draft by Claude
+adele:
+  format_version: 1
+  secrets: [ENTSO_TOKEN]
+  refresh:
+    every: PT1H     # a price appears about 40 minutes after its quarter-hour (measured 2026-11-15)
+    lookback: P14D  # no value changed in 15 days (qa/revisions_entsoe_ch.md); proposal by Claude
+    horizon: PT0S
+  revisions: overwrite
+  # drafts by Claude
+  warnings:
+    - >-
+      aFRR prices of 2025 are rounded to whole EUR/MWh in most quarter-hours (all of Jan-Jul and
+      Nov 2025): they equal Swissgrid's Energy Statistic within 0.5 EUR/MWh, not to the cent.
+    - >-
+      RR has two series at once from 2021-01-01 to 2022-08-24 (resource generation and mixed),
+      and its price category changes from A06 (average bid price) to A08 on 2025-07-30 18:00
+      local. Choose the resource before you average.
+    - >-
+      Extremes: aFRR down reaches -14,788.57 EUR/MWh (2024-06-27, equal to the Energy
+      Statistic). RR holds repeated round values that look like limits: -13,999 (48
+      quarter-hours, 2024-04 to 2025-03), -14,899 (2023-07-30), +-9,999 (2022-01-25).
+    - "The activated quantities (document A83) are refused by the platform for CH: this dataset has prices only."
+    - >-
+      A quarter-hour without a price in a direction has no row (not a null). aFRR has a price in
+      nearly every quarter-hour until 2021 and misses 1,600 to 4,300 quarter-hours per year and
+      direction from 2022 to 2025: count rows per direction before you average over days.

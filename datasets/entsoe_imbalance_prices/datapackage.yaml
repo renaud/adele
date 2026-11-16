@@ -1,0 +1,103 @@
+# Definitions (titles, descriptions, labels, warnings, questions) are Renaud's (skills/add-dataset).
+# WP5.1, 2026-11-15: every definition below is a draft by Claude until he changes or confirms it.
+# Structure (keys, types, refresh) by Claude. Sources of the facts: the docstring of fetch.py,
+# swissgrid_project/data/entsoe/README.md (CH) and swissgrid_project/data/entsoe_neighbours/README.md
+# (AT, DE_LU, FR).
+name: entsoe_imbalance_prices
+title: Imbalance prices per control area, CH and neighbours (ENTSO-E)  # draft by Claude
+# draft by Claude
+description: >-
+  Imbalance prices of the control areas CH, AT, DE_LU and FR as published on the ENTSO-E
+  Transparency Platform (document A85, Regulation (EU) 543/2013 article 17.1.G): the price that a
+  balance responsible party pays or receives for its imbalance in each settlement period, one
+  for a long position and one for a short position. CH from 2016-03-31, AT and FR from 2015,
+  DE_LU from 2015 to 2022-06-21.
+# The same platform as entsoe_day_ahead_prices: Renaud's licence entry there, copied by Claude.
+licenses:
+  - name: CC-BY-4.0
+    path: https://creativecommons.org/licenses/by/4.0/
+    title: Creative Commons Attribution 4.0 International License
+resources:
+  - name: prices
+    description: One row per control area and settlement period, with the two prices side by side.  # draft by Claude
+    schema:
+      primaryKey: [area, delivery_start]
+      fields:
+        - name: area
+          type: string
+          description: Control area (short name).  # draft by Claude
+          # labels: draft by Claude (the EIC codes are those that fetch.py asks for)
+          categories:
+            - {value: CH, label: "Switzerland, Swissgrid (10YCH-SWISSGRIDZ)"}
+            - {value: AT, label: "Austria, APG (10YAT-APG------L)"}
+            - {value: DE_LU, label: "Germany-Luxembourg (10Y1001A1001A82H)"}
+            - {value: FR, label: "France, RTE (10YFR-RTE------C)"}
+        - name: delivery_start
+          type: datetime
+          description: Start of the settlement period, UTC.  # draft by Claude
+        - name: resolution
+          type: duration
+          # draft by Claude
+          description: >-
+            Length of the settlement period: PT15M, and PT30M for FR until 2024-12-30 23:30 UTC.
+            To average prices over time, weight each row by it.
+        - name: price_long
+          type: number
+          unit: EUR/MWh
+          # draft by Claude
+          description: >-
+            Price for a long position (category A04 "Excess balance"): what a balance responsible
+            party whose injections exceed its withdrawals receives per MWh of imbalance (it pays
+            when the price is negative).
+        - name: price_short
+          type: number
+          unit: EUR/MWh
+          # draft by Claude
+          description: >-
+            Price for a short position (category A05 "Insufficient balance"): what a balance
+            responsible party whose withdrawals exceed its injections pays per MWh of imbalance.
+adele:
+  format_version: 1
+  secrets: [ENTSO_TOKEN]
+  refresh:
+    # A price appears about 1.5 hours after its period (CH, measured 2026-11-15). AT replaces its
+    # prices of the last week, FR corrected 2026-05-13 six months later, CH changed nothing in 15
+    # days (docs/work-packages/WP5.1-entsoe.md): every 6 hours over 400 days catches a correction
+    # up to 13 months late, at 8 requests of up to a year per run. Proposal by Claude.
+    every: PT6H
+    lookback: P400D
+    horizon: PT0S
+  # The neighbours' prices are revised after publication: every version is kept (Renaud's rule
+  # for the revised ENTSO-E series, TODOs.md).
+  revisions: append-only
+  # drafts by Claude
+  warnings:
+    - >-
+      Single or dual price: AT and DE_LU have one price (price_long = price_short in every
+      period), CH has two until 2025 and one from 2026, FR has two (price_long <= price_short).
+    - >-
+      FR settles per half hour until 2024-12-30 23:30 UTC and per quarter-hour from 2024-12-31
+      00:00 UTC: a plain average over both weighs the quarter-hours twice. Weight by resolution.
+    - "DE_LU stops on 2022-06-21: the German imbalance price is published by the four TSOs, not on this platform."
+    - >-
+      Holes as published: CH has no price before 2016-03-31, from 2016-07-01 to 2016-09-30
+      (8,736 quarter-hours) and on 2022-12-31; FR misses 1,739 half-hours before 2025.
+    - >-
+      Extremes are real: CH reaches -16,505.5 EUR/MWh for a long position (2023-07-17) and
+      +14,864.6 for a short one (2024); AT reaches -15,000 and +15,000. CH equals Swissgrid's own
+      price files in 100 % of the quarter-hours of 2023 and 2024.
+    - >-
+      Revised after publication: AT replaces the prices of about the last week (e.g. 193.52 -->
+      330.89 EUR/MWh on 2026-10-25), FR corrected four quarter-hours of 2026-05-13 six months
+      later. adele keeps every version that a fetch saw (prices_versions); prices holds the
+      latest. No CH price changed between 2026-10-31 and 2026-11-15.
+    - >-
+      ENTSO-E marks many periods as intermediate, some more than a year after delivery (AT:
+      February, June and November 2025, seen on 2026-11-15); adele does not store that status.
+  # D31: checks of checks.yaml as examples, one per trap; chosen by Claude (2026-11-16).
+  examples:
+    - check: ch_2025_02_17_1200_price_short  # a local quarter-hour as a timestamp with its zone
+    - check: de_lu_2019_06_12_1145  # the stamp is the start of the period, in local time
+    - check: ch_2024_price_long_abs_over_1000  # the long price's extremes are negative: abs()
+    - check: ch_2025_min_price_long  # a local year, cut with two timestamps
+    - check: de_lu_2017_10_17_max  # single price: price_long = price_short for DE_LU
