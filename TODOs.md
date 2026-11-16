@@ -188,9 +188,10 @@ Next, state at the end of 2026-11-15:
      each hour; its 438 A69 values equal adele's except 3 (the older values of three revised
      night values of 2026-10-26/27); the rest is in `entsoe_load` and `entsoe_generation`.
      Written in `docs/work-packages/WP5-datasets.md` (open question 6).
-  2. Checks that read another dataset: yes (D34). WP5.3 landed before WP5.2 (Renaud,
-     2026-11-16): where the forecast data exists without `entsoe_generation`, the 14 checks fail
-     and the CH forecast is `failing`. On steacher1, install WP5.2 with WP5.3 or before it.
+  2. Checks that read another dataset: yes (D34). WP5.2 is in `main` since 2026-11-16
+     (5e46433): the 25 CH checks pass with `main`'s descriptors on the two backfills (Claude,
+     and the WP5.2 session at its landing). A catalog without `entsoe_generation` still fails
+     the 14: on steacher1, install WP5.2 with WP5.3 or before it.
   3. The server removes the declared secrets from what `fetch.py` prints (D34,
      `ingest.redact`). The token was printed once in Claude's session of 2026-11-15: rotate it
      if that matters.

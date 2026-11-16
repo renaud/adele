@@ -91,7 +91,9 @@ to 0.2 points); T6 2016, 2017 downward and 2018 (0.07 to 0.13 points). The 2015 
 T6 (37.55 against 37.5) lies 0.004 inside the tolerance: a revision of a few MW would make it
 fail.
 
-These checks fail while `entsoe_generation` is not in the catalog: WP5.3 lands after WP5.2.
+These checks fail in a catalog without `entsoe_generation`. WP5.2 is in `main` since 2026-11-16
+(5e46433); the 25 checks passed that day with `main`'s descriptors on the backfills of the
+worktrees `wp5.3` and `wp5.2`.
 
 ## Left out
 
