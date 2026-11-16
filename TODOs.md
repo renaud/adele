@@ -159,7 +159,7 @@ Next, state at the end of 2026-11-15:
   runs on steacher1 during the week). Production waits for WP1; the poller keeps every version
   meanwhile. Proposed way: a WP4 doc with these points, a critic, Renaud's answers, as for WP3.
 - WP4 (2026-11-15): the doc `docs/work-packages/WP4-files-overwritten-or-revised.md`, Renaud's
-  "all points 1-8 ok", built in the worktree `wp4` (D33): `adele.raw: keep` with
+  "all points 1-8 ok", built and in `main` (D33, 6d213e9): `adele.raw: keep` with
   `download`/`parse`, the archive `_raw/`, `adele-server import`, the datasets `swissgrid_tsi`,
   `swissgrid_balance_daily`, `swissgrid_balance`; tried on the Mac. Before steacher1, Renaud
   confirms the prices in EUR/MWh, the 5-minute stamps as starts, the three ids (the doc, "To

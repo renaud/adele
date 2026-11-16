@@ -11,6 +11,9 @@ P800D. Decision D33.
 - Built in the worktree `wp4` (branch `wp4`, from `13f2b58`), with tests on synthetic data:
   raw answers (G4), the import of kept answers (point 8), the three datasets. G6 needed no code
   (point 5). Decision D33. Reviewed by a fresh agent, 8 findings fixed (log). 374 tests pass.
+- In `main` since 2026-11-15 (6d213e9), after WP2 (D32) and the commit "towards WP5": the
+  rebase moved the window and partition of the import's calls to the table (D32). 408 tests
+  pass in `main`. What a branch from before may hit: `TODOs.md`, "For other sessions".
 - Tried on the Mac, in a data folder of the session's scratchpad: the import of the poller's
   copy of 2026-10-17, one real fetch of TSI and daily files, the backfill of the year files
   (log below). Nothing ran on steacher1.
