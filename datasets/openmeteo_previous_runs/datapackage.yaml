@@ -1,0 +1,208 @@
+# Definitions (titles, descriptions, warnings, licenses, labels) are Renaud's (skills/add-dataset).
+# Every definition below is a draft by Claude (WP5.10, 2026-11-16) until he changes or confirms it.
+# Structure (keys, types, refresh) by Claude. Facts and their sources: the docstring of fetch.py.
+name: openmeteo_previous_runs
+title: Weather forecasts made one and two days ahead, at 79 SwissMetNet stations (Open-Meteo)  # draft by Claude
+# draft by Claude
+description: >-
+  What eight weather models forecast for each hour one day ahead (previous_day1) and two days
+  ahead (previous_day2), and the first hours of their latest runs (day0), at the 43 Plateau and
+  36 Alpine stations of SwissMetNet that measure solar radiation. From Open-Meteo's archive of
+  model runs (Previous Runs API), from 2024-01 for most models (day0 of GFS from 2021-03). The
+  table hourly holds the values over an hour (solar radiation, snowfall); the table instant holds
+  the values at an instant (cloud cover, temperature, snow depth). The positions of the stations
+  and the grid cell that each model uses are in openmeteo_stations.
+licenses:
+  - name: CC-BY-4.0
+    path: https://creativecommons.org/licenses/by/4.0/
+    title: >-
+      CC BY 4.0. Credit "Weather data by Open-Meteo.com" (https://open-meteo.com/) and the weather
+      services whose models it serves (ECMWF, DWD, NOAA, Météo-France, ECCC, MeteoSwiss).
+sources:
+  - title: Open-Meteo Previous Runs API
+    path: https://open-meteo.com/en/docs/previous-runs-api
+resources:
+  - name: hourly
+    # draft by Claude
+    description: >-
+      Values over one hour: one row per station, model, lead and hour.
+    schema:
+      primaryKey: [station, model, lead, delivery_start]
+      fields:
+        - name: station
+          type: string
+          # draft by Claude
+          description: >-
+            Abbreviation of the SwissMetNet station, e.g. PAY. The forecast is taken at the
+            station's position (openmeteo_stations.stations), in the grid cell that the model
+            uses there (openmeteo_stations.cells).
+        - name: model
+          type: string
+          description: The weather model, as Open-Meteo names it.  # draft by Claude
+          categories:  # labels: draft by Claude
+            - {value: ecmwf_ifs025, label: "ECMWF IFS, 0.25 degree"}
+            - {value: ecmwf_aifs025_single, label: "ECMWF AIFS (machine learning), 0.25 degree"}
+            - {value: icon_eu, label: "DWD ICON-EU, 7 km"}
+            - {value: icon_d2, label: "DWD ICON-D2, 2 km"}
+            - {value: gfs_global, label: "NOAA GFS, global"}
+            - {value: meteofrance_arpege_europe, label: "Météo-France ARPEGE Europe"}
+            - {value: gem_global, label: "ECCC GEM, global"}
+            - {value: meteoswiss_icon_ch2, label: "MeteoSwiss ICON-CH2, 2 km"}
+        - name: lead
+          type: string
+          # draft by Claude
+          description: >-
+            How long before the hour the forecast was made. previous_day1: by the latest run
+            started at least 24 h before the hour (24 to 29 h before with 6-hourly runs);
+            previous_day2: at least 48 h before. day0: the first hours of the latest run, close to
+            what happened, not a forecast made the day before.
+          categories:  # labels: draft by Claude
+            - {value: day0, label: first hours of the latest run}
+            - {value: previous_day1, label: run started at least 24 h before}
+            - {value: previous_day2, label: run started at least 48 h before}
+        - name: delivery_start
+          type: datetime
+          # draft by Claude
+          description: >-
+            Start of the hour, UTC. The value covers [delivery_start, delivery_start + 1 h).
+            Open-Meteo stamps it at the end of the hour; adele stores the start.
+        - name: shortwave_radiation
+          type: number
+          unit: W/m2
+          # draft by Claude
+          description: >-
+            Global horizontal irradiance (solar radiation on a horizontal surface), mean over the
+            hour.
+        - name: diffuse_radiation
+          type: number
+          unit: W/m2
+          # draft by Claude
+          description: >-
+            Diffuse part of the global horizontal irradiance, mean over the hour. The direct part
+            is shortwave_radiation - diffuse_radiation. Only ECMWF IFS, ICON-EU, GFS and ICON-D2.
+        - name: snowfall
+          type: number
+          unit: cm
+          # draft by Claude
+          description: >-
+            Fresh snow over the hour (sum). Only ICON-EU, GFS and ICON-D2, at previous_day1 and
+            previous_day2.
+  - name: instant
+    # draft by Claude
+    description: >-
+      Values at an instant: one row per station, model, lead and instant.
+    schema:
+      primaryKey: [station, model, lead, valid_at]
+      fields:
+        - name: station
+          type: string
+          description: Abbreviation of the SwissMetNet station, as in hourly.  # draft by Claude
+        - name: model
+          type: string
+          description: The weather model, as in hourly.  # draft by Claude
+          categories:
+            - {value: ecmwf_ifs025, label: "ECMWF IFS, 0.25 degree"}
+            - {value: ecmwf_aifs025_single, label: "ECMWF AIFS (machine learning), 0.25 degree"}
+            - {value: icon_eu, label: "DWD ICON-EU, 7 km"}
+            - {value: icon_d2, label: "DWD ICON-D2, 2 km"}
+            - {value: gfs_global, label: "NOAA GFS, global"}
+            - {value: meteofrance_arpege_europe, label: "Météo-France ARPEGE Europe"}
+            - {value: gem_global, label: "ECCC GEM, global"}
+            - {value: meteoswiss_icon_ch2, label: "MeteoSwiss ICON-CH2, 2 km"}
+        - name: lead
+          type: string
+          description: How long before the instant the forecast was made, as in hourly.  # draft by Claude
+          categories:
+            - {value: day0, label: first hours of the latest run}
+            - {value: previous_day1, label: run started at least 24 h before}
+            - {value: previous_day2, label: run started at least 48 h before}
+        - name: valid_at
+          type: datetime
+          description: The instant that the values refer to, UTC.  # draft by Claude
+        - name: cloud_cover
+          type: number
+          unit: "%"
+          description: Share of the sky covered by cloud, all levels.  # draft by Claude
+        - name: cloud_cover_low
+          type: number
+          unit: "%"
+          # draft by Claude
+          description: >-
+            Share of the sky covered by low cloud (up to about 2 km). Only at lead day0.
+        - name: cloud_cover_mid
+          type: number
+          unit: "%"
+          description: Share of the sky covered by mid-level cloud (about 2 to 6 km). Only at lead day0.  # draft by Claude
+        - name: cloud_cover_high
+          type: number
+          unit: "%"
+          description: Share of the sky covered by high cloud (above about 6 km). Only at lead day0.  # draft by Claude
+        - name: temperature_2m
+          type: number
+          unit: degC
+          # draft by Claude
+          description: >-
+            Air temperature 2 m above ground. Open-Meteo adapts it to the height of the station
+            (a terrain model of 90 m). Only ECMWF IFS, ICON-EU, GFS and ICON-D2.
+        - name: snow_depth
+          type: number
+          unit: cm
+          # draft by Claude
+          description: >-
+            Depth of the snow on the ground. Only at lead day0, ECMWF IFS, ICON-EU, GFS and
+            ICON-D2. Open-Meteo gives metres; adele stores cm.
+adele:
+  format_version: 1
+  resolution:  # of hourly; instant holds instants (valid_at)
+    - {from: 2021-03-22, value: PT1H}
+  refresh:
+    every: P1D  # the free tier allows 10,000 calls a day for the three openmeteo datasets together
+    # A request costs the same for 1 and 14 days: 7 days re-read for free catch late values of
+    # day0 (a run that comes after the fetch) and a hole that the archive fills later.
+    lookback: P7D
+    horizon: PT0S  # a future value can still change (a later run qualifies); keep only past hours
+    # A longer window costs in proportion. 13 days ask 14 dates (the last radiation hour is
+    # stamped at midnight of the next date): one call per point and series group.
+    max_window: P13D
+    timeout: PT30M
+  revisions: overwrite
+  # drafts by Claude
+  warnings:
+    - >-
+      A value is that of one grid cell of the model, not of the station point, and stations
+      in the same cell have the same series: ECMWF IFS 0.25 has 54 cells for the 79 stations.
+      A mean over stations counts some cells two or three times; count or weight by cell
+      (openmeteo_stations.cells) when it matters.
+    - >-
+      Lead day0 is not a forecast made the day before: it is built from the first hours of the
+      latest runs, close to what happened. Low, mid and high cloud cover and snow depth exist
+      only at day0. A day-ahead forecast of low cloud is in openmeteo_single_runs.
+    - >-
+      previous_day2 comes from runs started 48 to 53 h before the hour, all out before the Swiss
+      day-ahead auction (11:00 local time the day before). previous_day1 (24 to 29 h before)
+      comes mostly from runs after the auction.
+    - >-
+      The archives start on different dates: previous_day1 and previous_day2 of ICON-EU, GFS,
+      ARPEGE, GEM and ICON-D2 from 2024-01-19/20; ECMWF IFS cloud cover from 2024-02-05 and solar
+      radiation from 2024-03-07; ECMWF AIFS from 2025-02-18; ICON-CH2 from 2025-07-05; day0 of
+      GFS from 2021-03 and of ICON-EU from 2022-11 or 12. Compare models over their common
+      period.
+    - >-
+      Holes in the archive, the same at every station: ICON-EU previous_day2 misses 95 hours
+      from 2026-04-07 12:00 UTC, ECMWF IFS cloud cover previous_day2 misses 129 hours from
+      2026-04-17 15:00 UTC. The rows are missing, not filled.
+    - >-
+      Open-Meteo changes some values after the fact: between downloads of 2026-10-31/11-03 and
+      of 2026-11-16, 1 to 2 % of the temperatures of 2026-10-24 to 2026-10-30 changed by 0.1 degC,
+      in every model and lead (radiation, cloud cover and snow did not change). adele keeps the
+      value of its last fetch and reads the last 7 days again at each fetch, not older ones.
+    - >-
+      GFS cloud cover takes the values -1 and 101 in about 0.05 % of its hours. Clip to [0, 100]
+      before use.
+    - >-
+      ICON-D2 has previous_day1 only (its runs reach 48 h). Not every model has every variable:
+      a column is empty for the models that lack it.
+    - >-
+      Solar radiation in hourly is the mean over [delivery_start, delivery_start + 1 h); cloud
+      cover in instant is the value at valid_at. To pair them, choose the instant (the start or
+      the end of the hour, or the mean of both) and say which.

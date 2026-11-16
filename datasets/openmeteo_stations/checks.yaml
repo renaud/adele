@@ -1,0 +1,60 @@
+# Figures that this dataset must reproduce. Collected by Claude on 2026-11-16 (WP5.10) from the
+# analyst's own documentation of the same source: the swissgrid project's
+# `data/nwp/README.md` (SGP), QA C7 "grid cells", computed on 2026-10-31 from the answers of the
+# Previous Runs API at the same 79 points (Renaud keeps it in
+# swissgrid_project/data/nwp/README.md; not online). No figure published by others was found for
+# the cells of Open-Meteo. The checks fail when Open-Meteo moves a model to other cells, which
+# breaks the series of the openmeteo datasets at that date.
+# Tolerance: 0.5 for counts, 0.05 for km published to 0.1.
+checks:
+  - name: ifs025_cells_79_stations
+    question: "Distinct grid cells of ecmwf_ifs025 that serve the 79 stations"
+    sql: |
+      SELECT count(DISTINCT (round(cell_lat, 5), round(cell_lon, 5)))
+      FROM openmeteo_stations.cells WHERE model = 'ecmwf_ifs025'
+    expected: 54
+    tolerance: 0.5
+    source: "SGP data/nwp/README.md, QA C7: 'distinct ecmwf_ifs025 cells: 54 for 79 stations' (run 2026-10-31 15:19 UTC)"
+  - name: ifs025_cells_plateau
+    question: "Distinct grid cells of ecmwf_ifs025 that serve the 43 Plateau stations"
+    sql: |
+      SELECT count(DISTINCT (round(c.cell_lat, 5), round(c.cell_lon, 5)))
+      FROM openmeteo_stations.cells c JOIN openmeteo_stations.stations s USING (station)
+      WHERE c.model = 'ecmwf_ifs025' AND s.region = 'plateau'
+    expected: 29
+    tolerance: 0.5
+    source: "SGP data/nwp/README.md, QA C7 table, group plateau: cells 29"
+  - name: ifs025_stations_sharing_a_cell
+    question: "Stations whose ecmwf_ifs025 cell serves at least one other of the 79 stations"
+    sql: |
+      SELECT count(*) FROM openmeteo_stations.cells WHERE model = 'ecmwf_ifs025' AND stations_in_cell > 1
+    expected: 45
+    tolerance: 0.5
+    source: "SGP data/nwp/README.md, QA C7: '45 stations share their cell with at least one other'"
+  - name: ifs025_mean_distance_alpine_km
+    question: "Mean distance from the 36 Alpine stations to the centre of their ecmwf_ifs025 cell, km"
+    sql: |
+      SELECT avg(c.cell_distance_km)
+      FROM openmeteo_stations.cells c JOIN openmeteo_stations.stations s USING (station)
+      WHERE c.model = 'ecmwf_ifs025' AND s.region = 'alpine'
+    expected: 10.5
+    tolerance: 0.05
+    source: "SGP data/nwp/README.md, QA C7 table, group alpine: dist_km_mean 10.5"
+  - name: icon_eu_cells_79_stations
+    question: "Distinct grid cells of icon_eu that serve the 79 stations"
+    # SGP counted distinct series (a hash of each station's whole series); stations in one cell have
+    # equal series, so 78 distinct series means 78 cells.
+    sql: |
+      SELECT count(DISTINCT (round(cell_lat, 5), round(cell_lon, 5)))
+      FROM openmeteo_stations.cells WHERE model = 'icon_eu'
+    expected: 78
+    tolerance: 0.5
+    source: "SGP data/nwp/README.md, QA C7, distinct station series per model: icon_eu 78"
+  - name: gfs_cells_79_stations
+    question: "Distinct grid cells of gfs_global that serve the 79 stations"
+    sql: |
+      SELECT count(DISTINCT (round(cell_lat, 5), round(cell_lon, 5)))
+      FROM openmeteo_stations.cells WHERE model = 'gfs_global'
+    expected: 75
+    tolerance: 0.5
+    source: "SGP data/nwp/README.md, QA C7, distinct station series per model: gfs_global 75"

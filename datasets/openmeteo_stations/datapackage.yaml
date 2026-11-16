@@ -1,0 +1,121 @@
+# Definitions (titles, descriptions, warnings, licenses, labels) are Renaud's (skills/add-dataset).
+# Every definition below is a draft by Claude (WP5.10, 2026-11-16) until he changes or confirms it.
+# Structure (keys, types, refresh) by Claude. Facts and their sources: the docstring of fetch.py.
+name: openmeteo_stations
+title: The 79 stations of the Open-Meteo datasets and the grid cell of each model  # draft by Claude
+# draft by Claude
+description: >-
+  The 43 Plateau and 36 Alpine stations of SwissMetNet at which the datasets openmeteo_previous_runs,
+  openmeteo_single_runs, openmeteo_era5 and openmeteo_cams take their values (stations), and
+  for each model the centre of the grid cell that Open-Meteo uses at each station (cells). A
+  model gives the value of one cell, without interpolation, so stations in the same cell get the
+  same series. Each fetch replaces both tables.
+licenses:
+  - name: CC-BY-4.0
+    path: https://creativecommons.org/licenses/by/4.0/
+    title: >-
+      CC BY 4.0. Credit "Weather data by Open-Meteo.com" (https://open-meteo.com/) for cells;
+      "Source: MeteoSwiss" for the positions of the stations.
+sources:
+  - title: Open-Meteo APIs (Previous Runs, Single Runs, Historical Weather, Air Quality)
+    path: https://open-meteo.com/en/docs
+resources:
+  - name: stations
+    description: One row per station, the points that the openmeteo datasets ask for.  # draft by Claude
+    schema:
+      primaryKey: [station]
+      fields:
+        - name: station
+          type: string
+          description: Abbreviation of the SwissMetNet station, e.g. PAY.  # draft by Claude
+        - name: region
+          type: string
+          # draft by Claude
+          description: >-
+            plateau or alpine, as the swissgrid project grouped the stations whose measured solar
+            radiation it used.
+          categories:  # labels: draft by Claude
+            - {value: plateau, label: "Swiss Plateau, Jura and their edges (43 stations)"}
+            - {value: alpine, label: "Alps and their valleys (36 stations)"}
+        - name: lat
+          type: number
+          unit: degree_north
+          description: Latitude of the station (WGS84), the point that the openmeteo datasets ask for.  # draft by Claude
+        - name: lon
+          type: number
+          unit: degree_east
+          description: Longitude of the station (WGS84), the point that the openmeteo datasets ask for.  # draft by Claude
+        - name: height
+          type: number
+          unit: m
+          description: Height of the station above sea level, from MeteoSwiss.  # draft by Claude
+  - name: cells
+    description: One row per station and model, the grid cell that Open-Meteo uses.  # draft by Claude
+    schema:
+      primaryKey: [station, model]
+      fields:
+        - name: station
+          type: string
+          description: Abbreviation of the SwissMetNet station, as in stations.  # draft by Claude
+        - name: model
+          type: string
+          # draft by Claude
+          description: >-
+            The model as Open-Meteo names it (for CAMS, the domain), the value of the column model
+            (or domain) in the other openmeteo datasets.
+          categories:  # labels: draft by Claude
+            - {value: ecmwf_ifs025, label: "ECMWF IFS, 0.25 degree"}
+            - {value: ecmwf_aifs025_single, label: "ECMWF AIFS, 0.25 degree"}
+            - {value: icon_eu, label: "DWD ICON-EU"}
+            - {value: icon_d2, label: "DWD ICON-D2"}
+            - {value: gfs_global, label: "NOAA GFS"}
+            - {value: meteofrance_arpege_europe, label: "Météo-France ARPEGE Europe"}
+            - {value: gem_global, label: "ECCC GEM"}
+            - {value: meteoswiss_icon_ch2, label: "MeteoSwiss ICON-CH2"}
+            - {value: ecmwf_ifs, label: "ECMWF IFS HRES, 9 km"}
+            - {value: meteoswiss_icon_ch1, label: "MeteoSwiss ICON-CH1"}
+            - {value: era5, label: "ERA5 reanalysis, 0.25 degree"}
+            - {value: era5_land, label: "ERA5-Land reanalysis, 0.1 degree"}
+            - {value: cams_global, label: "CAMS global, 0.4 degree"}
+            - {value: cams_europe, label: "CAMS European, 0.1 degree"}
+        - name: used_by
+          type: string
+          description: The openmeteo datasets that hold values of this model.  # draft by Claude
+        - name: cell_lat
+          type: number
+          unit: degree_north
+          description: Latitude of the centre of the cell that the model uses at the station.  # draft by Claude
+        - name: cell_lon
+          type: number
+          unit: degree_east
+          description: Longitude of the centre of the cell that the model uses at the station.  # draft by Claude
+        - name: cell_distance_km
+          type: number
+          unit: km
+          description: Distance from the station to the centre of the cell.  # draft by Claude
+        - name: stations_in_cell
+          type: integer
+          # draft by Claude
+          description: >-
+            How many of the 79 stations this model serves from the same cell, this one included.
+            Above 1, those stations have the same series for this model.
+        - name: elevation
+          type: number
+          unit: m
+          # draft by Claude
+          description: >-
+            Height of the station's point in Open-Meteo's terrain model (90 m), with which it
+            adapts temperature. Not the height of the cell; the same for every model.
+adele:
+  format_version: 2
+  refresh:
+    every: P7D  # 1,106 calls per fetch, of the 10,000 a day that the openmeteo datasets share
+    lookback: P1D  # no time column: each fetch returns the whole tables
+    horizon: PT0S
+  revisions: overwrite
+  # drafts by Claude
+  warnings:
+    - >-
+      A cell is chosen by Open-Meteo on land at a similar height (cell_selection=land), not
+      always the nearest one, and it can change when Open-Meteo changes a model's grid. The
+      table holds the cells of the last fetch, not their history.

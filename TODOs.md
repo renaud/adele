@@ -218,6 +218,13 @@ Next, state at the end of 2026-11-15:
   way, for WP4's `swissgrid_balance` (no checks yet): ElCom's yearly counts of quarter-hours per
   bin of 100 MW beyond +-500 MW of Swissgrid's control area balance, 2017-2025, and Swissgrid's
   monthly counts of 2024-2026 (`qa/published_figures_wp52_sources.md`, section 4).
+- WP5.10 built (Claude, 2026-11-16, worktree `wp5.10`): six datasets of weather forecasts at the
+  79 stations of the swissgrid project (`docs/work-packages/WP5.10-weather-forecasts.md`). For
+  Renaud: the definitions (drafts), checks for the forecasts (options given on 2026-11-16), and
+  the swissgrid project's Open-Meteo backfill, stuck since 2026-11-06 (`fetch_openmeteo.py:179`).
+  The backfill on steacher1 (all rows, about 220,000 Open-Meteo calls, about 30 days, and ENS
+  about 140 GB read) is one root script, `deploy/wp5.10-backfill.sh`, after land and push. The
+  openmeteo_* fetches keep their call budget themselves, in a file shared on the machine.
 - WP5 split into datasets (Claude, 2026-11-15, at Renaud's request; a proposal, not decided):
   `docs/work-packages/WP5-datasets.md`. With WP1 to WP3 done: 44 datasets (26 with no build, 9
   need WP3, 9 need WP2), in 10 sub-packages WP5.1 to WP5.10 grouped by what their fetch shares,

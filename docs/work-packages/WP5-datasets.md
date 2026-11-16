@@ -183,6 +183,10 @@ the zone of their days (D26: the author writes the most likely one).
 
 ### WP5.10 Weather forecasts at stations
 
+Built on 2026-11-16 in the worktree `wp5.10`: six datasets (ERA5 and CAMS apart), not backfilled
+(about 220,000 Open-Meteo calls, a month of the free tier; `deploy/wp5.10-backfill.sh` runs it on
+steacher1). See `WP5.10-weather-forecasts.md`.
+
 Shared: the 79 stations and their grid cells (`stations.csv`), and the run and the lead in the
 key. The three Open-Meteo datasets share one budget of 10,000 calls a day: fine with a fetch per
 day. Their backfill (105,000 calls over 11 to 12 days) was a script in Renaud's terminal on
@@ -296,3 +300,13 @@ Built by Claude in the worktree `wp5.2` (2026-11-15/16), landed after WP5.3:
   IT day-ahead of 2025 repeated in quarter-hours, ...): `docs/work-packages/WP5.2-entsoe-revised-series.md`.
 - Left: Renaud's review of the definitions (drafts by Claude, WP7); the checks of the imbalance;
   the backfill on steacher1 after WP1.
+
+### 2026-11-16, WP5.10 in `main`
+
+Built by Claude in the worktree `wp5.10`: `openmeteo_previous_runs`, `openmeteo_single_runs`,
+`openmeteo_era5`, `openmeteo_cams`, `openmeteo_stations` (no time column) and `ecmwf_ifs_ens` (all
+19 variables of the archive). ERA5 and CAMS are two datasets (open question 5, for that row);
+`variables.csv` went into the field descriptions. Values equal to the swissgrid project's
+downloads where it has them. The openmeteo_* fetches keep the call budget of the machine
+themselves. Not backfilled: `deploy/wp5.10-backfill.sh` runs every row on steacher1 (about 30
+days of Open-Meteo's free tier); see `WP5.10-weather-forecasts.md`.

@@ -1,0 +1,75 @@
+# Definitions (titles, descriptions, warnings, licenses, labels) are Renaud's (skills/add-dataset).
+# Every definition below is a draft by Claude (WP5.10, 2026-11-16) until he changes or confirms it.
+# Structure (keys, types, refresh) by Claude. Facts and their sources: the docstring of fetch.py.
+name: openmeteo_cams
+title: Saharan dust and aerosol optical depth from CAMS, at 79 SwissMetNet stations (Open-Meteo)  # draft by Claude
+# draft by Claude
+description: >-
+  Saharan dust near the ground and the aerosol optical depth of the whole atmosphere, as the
+  Copernicus Atmosphere Monitoring Service (CAMS) forecast them, hour by hour, at the 43 Plateau
+  and 36 Alpine stations of SwissMetNet that measure solar radiation. Dust dims solar
+  radiation, and the weather models of the other openmeteo datasets do not forecast it. Two
+  forecasts: the global one (from 2022-08, dust and optical depth) and the European one (from
+  2023-10, dust only). From Open-Meteo's Air Quality API, which keeps the past forecasts.
+licenses:
+  - name: CC-BY-4.0
+    path: https://creativecommons.org/licenses/by/4.0/
+    title: >-
+      CC BY 4.0. Credit "Weather data by Open-Meteo.com" (https://open-meteo.com/) and "Contains
+      modified Copernicus Atmosphere Monitoring Service information".
+sources:
+  - title: Open-Meteo Air Quality API
+    path: https://open-meteo.com/en/docs/air-quality-api
+resources:
+  - name: instant
+    description: Values at an instant, one row per station, CAMS domain and hour.  # draft by Claude
+    schema:
+      primaryKey: [station, domain, valid_at]
+      fields:
+        - name: station
+          type: string
+          # draft by Claude
+          description: >-
+            Abbreviation of the SwissMetNet station, e.g. PAY. The value is that of the CAMS cell
+            at the station's position (openmeteo_stations.cells).
+        - name: domain
+          type: string
+          # draft by Claude
+          description: >-
+            Which CAMS forecast. The two are separate models and may disagree.
+          categories:  # labels: draft by Claude
+            - {value: cams_global, label: "CAMS global, 0.4 degree, every 3 hours, from 2022-08"}
+            - {value: cams_europe, label: "CAMS European, 0.1 degree, hourly, from 2023-10"}
+        - name: valid_at
+          type: datetime
+          description: The instant that the values refer to, UTC.  # draft by Claude
+        - name: dust
+          type: number
+          unit: ug/m3
+          description: Saharan dust particles in the air 10 m above ground.  # draft by Claude
+        - name: aerosol_optical_depth
+          type: number
+          unit: "1"
+          # draft by Claude
+          description: >-
+            Aerosol optical depth at 550 nm, the whole atmosphere: how much the particles dim the
+            sunlight (0.1 clear, above 0.5 hazy). Only cams_global.
+adele:
+  format_version: 1
+  refresh:
+    every: P1D
+    lookback: P7D  # a request costs the same for 1 and 14 days
+    horizon: PT0S  # future hours are forecasts that later runs replace
+    max_window: P14D  # 14 dates: one call per point and domain
+    timeout: PT30M
+  revisions: overwrite
+  # drafts by Claude
+  warnings:
+    - >-
+      These are forecasts, not measurements: a past hour holds the value of the latest CAMS run
+      that covered it. The European reanalysis that CAMS publishes is not here.
+    - >-
+      cams_global is computed every 3 hours; Open-Meteo fills the hours in between.
+    - >-
+      A value is that of a CAMS cell (0.4 degree global, 0.1 degree European), not of the
+      station.

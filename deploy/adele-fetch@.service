@@ -20,6 +20,11 @@ EnvironmentFile=-/etc/adele/env.d/%i
 # fetch.py files run with `uv run --script` (PEP 723); uv in /usr/local/bin, its cache outside the data
 Environment=UV_CACHE_DIR=/var/cache/adele/uv
 Environment=UV_PYTHON_INSTALL_DIR=/opt/uv-python
+# What a fetch.py keeps between fetches, shared by the datasets of one source (WP5.10: the
+# openmeteo_* datasets write their calls in /var/cache/adele/state/adele/openmeteo-calls.tsv, to
+# stay together under Open-Meteo's limits per IP). adele has no home. Lost with the cache: then
+# at most one day may go over the budget, and Open-Meteo refuses the rest of that day (429).
+Environment=XDG_STATE_HOME=/var/cache/adele/state
 CacheDirectory=adele
 # Exits at once, without output, when the dataset is not due (adele.refresh.every).
 ExecStart=/opt/adele/server/.venv/bin/adele-server --config /etc/adele/adele-server.toml fetch %i --if-due

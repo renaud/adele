@@ -1,0 +1,136 @@
+# Definitions (titles, descriptions, warnings, licenses, labels) are Renaud's (skills/add-dataset).
+# Every definition below is a draft by Claude (WP5.10, 2026-11-16) until he changes or confirms it.
+# Structure (keys, types, refresh) by Claude. Facts and their sources: the docstring of fetch.py.
+name: openmeteo_era5
+title: ERA5 and ERA5-Land reanalysis at 79 SwissMetNet stations (Open-Meteo)  # draft by Claude
+# draft by Claude
+description: >-
+  The weather as the ECMWF reanalyses ERA5 (0.25 degree) and ERA5-Land (0.1 degree) reconstruct
+  it, hour by hour from 2015, at the 43 Plateau and 36 Alpine stations of SwissMetNet that
+  measure solar radiation: solar radiation, cloud cover by level, the height of the boundary
+  layer, temperature and snow depth. A reanalysis is a weather model run over the past with the
+  observations of the time; it is not a forecast. From Open-Meteo's Historical Weather API. The
+  table hourly holds the values over an hour (solar radiation); the table instant holds the values
+  at an instant.
+licenses:
+  - name: CC-BY-4.0
+    path: https://creativecommons.org/licenses/by/4.0/
+    title: >-
+      CC BY 4.0. Credit "Weather data by Open-Meteo.com" (https://open-meteo.com/) and "Contains
+      modified Copernicus Climate Change Service information" (ERA5, ERA5-Land).
+sources:
+  - title: Open-Meteo Historical Weather API
+    path: https://open-meteo.com/en/docs/historical-weather-api
+resources:
+  - name: hourly
+    description: Values over one hour, from ERA5, one row per station and hour.  # draft by Claude
+    schema:
+      primaryKey: [station, delivery_start]
+      fields:
+        - name: station
+          type: string
+          # draft by Claude
+          description: >-
+            Abbreviation of the SwissMetNet station, e.g. PAY. The value is that of the
+            reanalysis cell at the station's position (openmeteo_stations.cells, models era5 and
+            era5_land).
+        - name: delivery_start
+          type: datetime
+          # draft by Claude
+          description: >-
+            Start of the hour, UTC. The value covers [delivery_start, delivery_start + 1 h).
+            Open-Meteo stamps it at the end of the hour; adele stores the start.
+        - name: shortwave_radiation
+          type: number
+          unit: W/m2
+          description: Global horizontal irradiance, mean over the hour (ERA5).  # draft by Claude
+        - name: diffuse_radiation
+          type: number
+          unit: W/m2
+          description: Diffuse part of the global horizontal irradiance, mean over the hour (ERA5).  # draft by Claude
+  - name: instant
+    description: Values at an instant, one row per station and instant.  # draft by Claude
+    schema:
+      primaryKey: [station, valid_at]
+      fields:
+        - name: station
+          type: string
+          description: Abbreviation of the SwissMetNet station, as in hourly.  # draft by Claude
+        - name: valid_at
+          type: datetime
+          description: The instant that the values refer to, UTC.  # draft by Claude
+        - name: cloud_cover
+          type: number
+          unit: "%"
+          description: Share of the sky covered by cloud, all levels (ERA5).  # draft by Claude
+        - name: cloud_cover_low
+          type: number
+          unit: "%"
+          description: Share of the sky covered by low cloud, up to about 2 km (ERA5).  # draft by Claude
+        - name: cloud_cover_mid
+          type: number
+          unit: "%"
+          description: Share of the sky covered by mid-level cloud, about 2 to 6 km (ERA5).  # draft by Claude
+        - name: cloud_cover_high
+          type: number
+          unit: "%"
+          description: Share of the sky covered by high cloud, above about 6 km (ERA5).  # draft by Claude
+        - name: boundary_layer_height
+          type: number
+          unit: m
+          # draft by Claude
+          description: >-
+            Height of the atmospheric boundary layer above ground (ERA5): the layer that the
+            ground mixes, low under fog and stratus in winter.
+        - name: temperature_2m
+          type: number
+          unit: degC
+          # draft by Claude
+          description: >-
+            Air temperature 2 m above ground, from ERA5 (0.25 degree), adapted by Open-Meteo to the
+            height of the station.
+        - name: temperature_2m_land
+          type: number
+          unit: degC
+          # draft by Claude
+          description: >-
+            Air temperature 2 m above ground, from ERA5-Land (0.1 degree, closer to the terrain
+            than ERA5), adapted by Open-Meteo to the height of the station.
+        - name: snow_depth
+          type: number
+          unit: cm
+          # draft by Claude
+          description: >-
+            Depth of the snow on the ground, from ERA5-Land. Open-Meteo gives metres; adele
+            stores cm.
+adele:
+  format_version: 1
+  resolution:  # of hourly; instant holds instants (valid_at)
+    - {from: 2015-01-01, value: PT1H}
+  refresh:
+    every: P1D
+    # ERA5 lags about 5.5 days. A request costs the same for 1 and 14 days: 10 days re-read catch
+    # the hours that appear each day.
+    lookback: P10D
+    horizon: PT0S
+    # A longer window costs in proportion. 13 days ask 14 dates (the last radiation hour is
+    # stamped at midnight of the next date): one call per point and model.
+    max_window: P13D
+    timeout: PT30M
+  revisions: overwrite
+  # drafts by Claude
+  warnings:
+    - >-
+      The last hours lag the present by about 5.5 days: on 2026-11-16 the data ended on
+      2026-11-10 at 23:00 UTC.
+    - >-
+      A value is that of a reanalysis cell, not of the station: 0.25 degree for ERA5 (about 19 x
+      28 km), 0.1 degree for ERA5-Land. At an Alpine station the cell is a smoothed mountain.
+      See openmeteo_stations.cells.
+    - >-
+      ERA5 and ERA5-Land use different grids: temperature_2m and temperature_2m_land differ
+      most in the mountains, and snow_depth is from ERA5-Land.
+    - >-
+      Solar radiation in hourly is the mean over [delivery_start, delivery_start + 1 h); cloud
+      cover in instant is the value at valid_at. To pair them, choose the instant (the start or
+      the end of the hour, or the mean of both) and say which.

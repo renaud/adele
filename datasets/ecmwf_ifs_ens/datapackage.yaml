@@ -1,0 +1,233 @@
+# Definitions (titles, descriptions, warnings, licenses, labels) are Renaud's (skills/add-dataset).
+# Every definition below is a draft by Claude (WP5.10, 2026-11-16) until he changes or confirms it.
+# Structure (keys, types, refresh) by Claude. Facts and their sources: the docstring of fetch.py.
+name: ecmwf_ifs_ens
+title: ECMWF IFS ensemble forecasts, 51 members, at 79 SwissMetNet stations (dynamical.org)  # draft by Claude
+# draft by Claude
+description: >-
+  The ensemble forecast of ECMWF's IFS model, all 51 members, at the grid points (0.25 degree)
+  nearest to the 43 Plateau and 36 Alpine stations of SwissMetNet that measure solar radiation:
+  the 00 UTC run of each day from 2024-04-01, its first 48 hours every 3 hours, every variable
+  of dynamical.org's archive. The table three_hourly holds what covers the 3 hours before a lead
+  (solar and long-wave radiation, precipitation, wind gusts); the table instant holds values at
+  an instant (temperature, dew point, cloud cover, wind, pressure, precipitation type, and
+  temperature and height of the 925, 850 and 500 hPa levels); the table stations gives the grid
+  point of each station. From dynamical.org's archive of ECMWF Open Data. The baseline that
+  weathernext3 is compared with.
+licenses:
+  - name: CC-BY-4.0
+    path: https://creativecommons.org/licenses/by/4.0/
+    title: >-
+      CC BY 4.0 and the ECMWF terms of use. Cite "ECMWF IFS ENS forecast data processed by
+      dynamical.org from ECMWF Open Data" (doi:10.5281/zenodo.18777399).
+sources:
+  - title: dynamical.org, ECMWF IFS ENS forecast, 15 day, 0.25 degree (Icechunk store)
+    path: https://dynamical.org/catalog/ecmwf-ifs-ens-forecast-15-day-0-25-degree/
+resources:
+  - name: three_hourly
+    description: Values over 3 hours, one row per run, station, member and 3 hours.  # draft by Claude
+    adele:
+      resolution:
+        - {from: 2024-04-01, value: PT3H}
+    schema:
+      primaryKey: [init_time, station, member, delivery_start]
+      fields:
+        - name: init_time
+          type: datetime
+          # draft by Claude
+          description: >-
+            Start of the run, UTC: 00:00 of each day. dynamical.org writes it around 08:15 UTC.
+        - name: station
+          type: string
+          # draft by Claude
+          description: >-
+            Abbreviation of the SwissMetNet station, e.g. PAY. The value is that of the grid
+            point nearest to the station (table stations).
+        - name: member
+          type: integer
+          # draft by Claude
+          description: >-
+            Ensemble member: 0 is the control run (unperturbed), 1 to 50 the perturbed members.
+        - name: delivery_start
+          type: datetime
+          # draft by Claude
+          description: >-
+            Start of the 3 hours, UTC. The value covers [delivery_start, delivery_start + 3 h).
+        - name: lead_h
+          type: integer
+          unit: h
+          # draft by Claude
+          description: >-
+            Hours from init_time to the end of the 3 hours, 3 to 48. delivery_start = init_time
+            + lead_h - 3 h.
+        - name: shortwave_radiation
+          type: number
+          unit: W/m2
+          # draft by Claude
+          description: >-
+            Global horizontal irradiance (surface downward short-wave radiation), mean over the
+            3 hours.
+        - name: longwave_radiation
+          type: number
+          unit: W/m2
+          description: Surface downward long-wave radiation, mean over the 3 hours.  # draft by Claude
+        - name: precipitation
+          type: number
+          unit: mm
+          # draft by Claude
+          description: >-
+            Precipitation over the 3 hours (rain and the water of snow): the source's mean rate
+            in kg m-2 s-1 times 10,800 s.
+        - name: wind_gust_10m
+          type: number
+          unit: m/s
+          # draft by Claude
+          description: >-
+            Highest wind gust 10 m above ground during the 3 hours. Empty before the run of
+            2024-11-13.
+  - name: instant
+    description: Values at an instant, one row per run, station, member and instant.  # draft by Claude
+    schema:
+      primaryKey: [init_time, station, member, valid_at]
+      fields:
+        - name: init_time
+          type: datetime
+          description: Start of the run, UTC, as in three_hourly.  # draft by Claude
+        - name: station
+          type: string
+          description: Abbreviation of the SwissMetNet station, as in three_hourly.  # draft by Claude
+        - name: member
+          type: integer
+          description: Ensemble member, as in three_hourly.  # draft by Claude
+        - name: valid_at
+          type: datetime
+          description: The instant that the values refer to, UTC, every 3 hours.  # draft by Claude
+        - name: lead_h
+          type: integer
+          unit: h
+          description: Hours from init_time to valid_at, 0 to 48.  # draft by Claude
+        - name: temperature_2m
+          type: number
+          unit: degC
+          description: Air temperature 2 m above ground, in the grid cell (not adapted to the station height).  # draft by Claude
+        - name: dew_point_2m
+          type: number
+          unit: degC
+          description: Dew point 2 m above ground, in the grid cell.  # draft by Claude
+        - name: cloud_cover
+          type: number
+          unit: "%"
+          description: Share of the sky covered by cloud, all levels. Empty before the run of 2025-11-21.  # draft by Claude
+        - name: wind_u_10m
+          type: number
+          unit: m/s
+          # draft by Claude
+          description: >-
+            Wind 10 m above ground, component towards the east. Speed: sqrt(u^2 + v^2);
+            direction the wind comes from: degrees(atan2(-u, -v)), 0 = from the north.
+        - name: wind_v_10m
+          type: number
+          unit: m/s
+          description: Wind 10 m above ground, component towards the north.  # draft by Claude
+        - name: wind_u_100m
+          type: number
+          unit: m/s
+          description: Wind 100 m above ground (hub height of wind turbines), component towards the east.  # draft by Claude
+        - name: wind_v_100m
+          type: number
+          unit: m/s
+          description: Wind 100 m above ground, component towards the north.  # draft by Claude
+        - name: pressure_surface
+          type: number
+          unit: hPa
+          description: Air pressure at the ground of the grid cell (its mean height, not the station's).  # draft by Claude
+        - name: pressure_msl
+          type: number
+          unit: hPa
+          description: Air pressure reduced to sea level.  # draft by Claude
+        - name: precipitation_type
+          type: integer
+          # draft by Claude
+          description: >-
+            Kind of precipitation at the instant, ECMWF's code: 0 none, 1 rain, 3 freezing rain,
+            5 snow, 6 wet snow, 7 rain and snow, 8 ice pellets, 12 freezing drizzle (dynamical.org
+            lists the codes 0 to 14 and 255 for missing). Empty before the run of 2024-11-13.
+        - name: temperature_925hpa
+          type: number
+          unit: degC
+          # draft by Claude
+          description: >-
+            Air temperature at the 925 hPa level (about 750 m above sea level; under the ground
+            at Alpine stations). Warmer than temperature_2m on the Plateau: an inversion, as
+            under high fog.
+        - name: temperature_850hpa
+          type: number
+          unit: degC
+          description: Air temperature at the 850 hPa level (about 1,500 m above sea level).  # draft by Claude
+        - name: geopotential_height_925hpa
+          type: number
+          unit: m
+          description: Height of the 925 hPa level above sea level.  # draft by Claude
+        - name: geopotential_height_850hpa
+          type: number
+          unit: m
+          description: Height of the 850 hPa level above sea level.  # draft by Claude
+        - name: geopotential_height_500hpa
+          type: number
+          unit: m
+          description: Height of the 500 hPa level above sea level (about 5,500 m; high under a ridge, low under a trough).  # draft by Claude
+  - name: stations
+    description: The grid point of each station, one row per station.  # draft by Claude
+    schema:
+      primaryKey: [station]
+      fields:
+        - name: station
+          type: string
+          description: Abbreviation of the SwissMetNet station, as in openmeteo_stations.stations.  # draft by Claude
+        - name: cell_lat
+          type: number
+          unit: degree_north
+          description: Latitude of the grid point nearest to the station.  # draft by Claude
+        - name: cell_lon
+          type: number
+          unit: degree_east
+          description: Longitude of the grid point nearest to the station.  # draft by Claude
+        - name: cell_distance_km
+          type: number
+          unit: km
+          description: Distance from the station to the grid point.  # draft by Claude
+adele:
+  format_version: 2
+  window: init_time  # the fetch window, the [start, end) filter and the partitions use it
+  refresh:
+    every: PT3H  # a run is written around 08:15 UTC
+    lookback: P2D  # a run not written to 48 h 36 h after its init fails the fetch
+    horizon: PT0S
+    max_window: P1D  # one run per call of fetch.py
+    timeout: PT30M  # one run, 19 variables, 79 stations: 2 to 4 minutes from the Mac
+  revisions: none  # a run never changes once written: each run is fetched once
+  # drafts by Claude
+  warnings:
+    - >-
+      Some variables are empty in the early runs, at every station: wind_gust_10m and
+      precipitation_type before the run of 2024-11-13, cloud_cover before the run of 2025-11-21
+      (dynamical.org's archive has them from then on).
+    - >-
+      A value is that of a 0.25-degree grid point (about 19 x 28 km), not of the station: the 79
+      stations share fewer points (see stations), and stations at the same point have the same
+      values. Temperature, dew point and surface pressure are those of the cell at its mean
+      height, so they are far off at Alpine stations.
+    - >-
+      Radiation and precipitation are means over 3 hours: compare them with hourly data only
+      after averaging (radiation) or summing (precipitation) the hourly data over the same 3 hours
+      [delivery_start, delivery_start + 3 h).
+    - >-
+      Radiation and precipitation have isolated empty values, where ECMWF's running total
+      decreases between two leads (dynamical.org's validation report).
+    - >-
+      Only the 00 UTC run is kept: the lead to a given hour of the next day is always the same,
+      so lead time and hour of the day go together.
+    - >-
+      The members are equally likely: the ensemble mean is the average over the 51 members, and
+      a quantile over members is taken per station and 3 hours (a series of hourly quantiles is
+      not the forecast of one member).

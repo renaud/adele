@@ -1,0 +1,150 @@
+# Definitions (titles, descriptions, warnings, licenses, labels) are Renaud's (skills/add-dataset).
+# Every definition below is a draft by Claude (WP5.10, 2026-11-16) until he changes or confirms it.
+# Structure (keys, types, refresh) by Claude. Facts and their sources: the docstring of fetch.py.
+name: openmeteo_single_runs
+title: Whole 00 UTC runs of ECMWF IFS and MeteoSwiss ICON-CH, at 79 SwissMetNet stations (Open-Meteo)  # draft by Claude
+# draft by Claude
+description: >-
+  The 00 UTC run of three weather models, every hour of its first 72 hours, at the 43 Plateau
+  and 36 Alpine stations of SwissMetNet that measure solar radiation: ECMWF IFS at 9 km from
+  2024-03-14, MeteoSwiss ICON-CH1 (1 km, 33 hours) and ICON-CH2 (2 km) from 2026-04-02. From
+  Open-Meteo's archive of model runs (Single Runs API). Unlike openmeteo_previous_runs, every
+  lead of a run is here, with low, mid and high cloud cover: the only free day-ahead forecast of
+  low cloud found so far. The table hourly holds the values over an hour (solar radiation); the
+  table instant holds the values at an instant (cloud cover, temperature).
+licenses:
+  - name: CC-BY-4.0
+    path: https://creativecommons.org/licenses/by/4.0/
+    title: >-
+      CC BY 4.0. Credit "Weather data by Open-Meteo.com" (https://open-meteo.com/), ECMWF, and
+      "Source: MeteoSwiss" for ICON-CH1 and ICON-CH2.
+sources:
+  - title: Open-Meteo Single Runs API
+    path: https://open-meteo.com/en/docs/single-runs-api
+resources:
+  - name: hourly
+    description: Values over one hour of a run, one row per run, station, model and hour.  # draft by Claude
+    schema:
+      primaryKey: [init_time, station, model, delivery_start]
+      fields:
+        - name: init_time
+          type: datetime
+          # draft by Claude
+          description: >-
+            Start of the model run, UTC: 00:00 of each day. Open-Meteo serves a run 4 to 6 hours
+            later for ECMWF IFS and 1 to 3 hours later for ICON-CH.
+        - name: station
+          type: string
+          # draft by Claude
+          description: >-
+            Abbreviation of the SwissMetNet station, e.g. PAY. The forecast is taken at the
+            station's position (openmeteo_stations.stations), in the grid cell that the model
+            uses there (openmeteo_stations.cells).
+        - name: model
+          type: string
+          description: The weather model, as Open-Meteo names it.  # draft by Claude
+          categories:  # labels: draft by Claude
+            - {value: ecmwf_ifs, label: "ECMWF IFS HRES, 9 km"}
+            - {value: meteoswiss_icon_ch1, label: "MeteoSwiss ICON-CH1, 1 km, runs to 33 h"}
+            - {value: meteoswiss_icon_ch2, label: "MeteoSwiss ICON-CH2, 2 km"}
+        - name: delivery_start
+          type: datetime
+          # draft by Claude
+          description: >-
+            Start of the hour, UTC. The value covers [delivery_start, delivery_start + 1 h).
+            Open-Meteo stamps it at the end of the hour; adele stores the start.
+        - name: lead_h
+          type: integer
+          unit: h
+          # draft by Claude
+          description: >-
+            Hours from init_time to the end of the hour: 1 for the hour that starts at init_time,
+            71 for the last. delivery_start = init_time + lead_h - 1 h.
+        - name: shortwave_radiation
+          type: number
+          unit: W/m2
+          description: Global horizontal irradiance, mean over the hour.  # draft by Claude
+        - name: diffuse_radiation
+          type: number
+          unit: W/m2
+          # draft by Claude
+          description: >-
+            Diffuse part of the global horizontal irradiance, mean over the hour. The direct part
+            is shortwave_radiation - diffuse_radiation.
+  - name: instant
+    description: Values at an instant of a run, one row per run, station, model and instant.  # draft by Claude
+    schema:
+      primaryKey: [init_time, station, model, valid_at]
+      fields:
+        - name: init_time
+          type: datetime
+          description: Start of the model run, UTC, as in hourly.  # draft by Claude
+        - name: station
+          type: string
+          description: Abbreviation of the SwissMetNet station, as in hourly.  # draft by Claude
+        - name: model
+          type: string
+          description: The weather model, as in hourly.  # draft by Claude
+          categories:
+            - {value: ecmwf_ifs, label: "ECMWF IFS HRES, 9 km"}
+            - {value: meteoswiss_icon_ch1, label: "MeteoSwiss ICON-CH1, 1 km, runs to 33 h"}
+            - {value: meteoswiss_icon_ch2, label: "MeteoSwiss ICON-CH2, 2 km"}
+        - name: valid_at
+          type: datetime
+          description: The instant that the values refer to, UTC.  # draft by Claude
+        - name: lead_h
+          type: integer
+          unit: h
+          description: Hours from init_time to valid_at, 0 to 71 (0 to 33 for ICON-CH1).  # draft by Claude
+        - name: cloud_cover
+          type: number
+          unit: "%"
+          description: Share of the sky covered by cloud, all levels.  # draft by Claude
+        - name: cloud_cover_low
+          type: number
+          unit: "%"
+          description: Share of the sky covered by low cloud (up to about 2 km).  # draft by Claude
+        - name: cloud_cover_mid
+          type: number
+          unit: "%"
+          description: Share of the sky covered by mid-level cloud (about 2 to 6 km).  # draft by Claude
+        - name: cloud_cover_high
+          type: number
+          unit: "%"
+          description: Share of the sky covered by high cloud (above about 6 km).  # draft by Claude
+        - name: temperature_2m
+          type: number
+          unit: degC
+          # draft by Claude
+          description: >-
+            Air temperature 2 m above ground, adapted by Open-Meteo to the height of the station.
+adele:
+  format_version: 1
+  window: init_time  # the fetch window, the [start, end) filter and the partitions use it
+  resolution:  # of hourly; instant holds instants (valid_at)
+    - {from: 2024-03-14, value: PT1H}
+  refresh:
+    every: PT3H  # a run appears 1 to 6 h after its init time
+    lookback: P2D  # a run that is not whole is skipped for 18 h; then it is kept as it is
+    horizon: PT0S
+    max_window: P1D  # one run per call of fetch.py
+    timeout: PT30M
+  revisions: none  # a run never changes once written: each run is fetched once, whole
+  # drafts by Claude
+  warnings:
+    - >-
+      A value is that of one grid cell of the model, not of the station point; stations close
+      to each other can share a cell. See openmeteo_stations.cells.
+    - >-
+      ECMWF IFS starts on 2024-03-14, ICON-CH1 and ICON-CH2 on 2026-04-02: a comparison of the
+      three models covers the runs from 2026-04-02 only, and no winter before 2026-27.
+    - >-
+      ICON-CH1 runs to 33 hours: from the 00 UTC run it covers the next day only until 09:00
+      UTC. It gives no forecast of a whole next day.
+    - >-
+      Only the 00 UTC run is kept. Its lead to an hour of the next day is 24 to 47 hours, so
+      lead time and hour of the day go together: a lead of 36 h is always noon UTC.
+    - >-
+      Solar radiation in hourly is the mean over [delivery_start, delivery_start + 1 h); cloud
+      cover in instant is the value at valid_at. To pair them, choose the instant (the start or
+      the end of the hour, or the mean of both) and say which.
