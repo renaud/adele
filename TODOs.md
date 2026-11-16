@@ -205,6 +205,10 @@ Next, state at the end of 2026-11-15:
   swissgrid project 96 to 99 % of the quarter-hours of each month agreed within 1 MW), e.g. the
   share of quarter-hours within 1 MW per month. It would test the sign, the stamps and the unit
   at once.
+- `server/tests/test_window_and_runner.py::test_script_fetch_is_stopped_at_the_time_limit`
+  failed once in the full suite (WP5.2's landing, 2026-11-16, load average 49.7 from other
+  sessions' backfills) and passed alone and in the next full run: a timing test that fails under
+  load. Rerun it alone before looking for a bug.
 - What WP4 needs before a build (Claude, 2026-11-15, asked "what prevents us from doing WP4
   first"): nothing is missing in the server (WP3 is in `main`, G5 was built with D27), but no
   WP4 doc exists. Its design points: where raw answers are kept (G4: place, retention, one copy
