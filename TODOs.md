@@ -29,6 +29,24 @@
   CH and 16 neighbouring areas, `append-only`, 125 published figures as checks; backfilled on
   the Mac. `forecast_versions` not built. Next: Renaud's review of the drafts; backfill on
   steacher1. `docs/work-packages/WP5-datasets.md`"
+- WP5.5 (in `main`, 53fc780): review the drafts of `pronovo_production` (WP7: titles,
+  descriptions, labels, 9 warnings, 3 examples without `verified_at`) and the choices 1, 3, 4
+  and 7 of `docs/work-packages/WP5.5-pronovo.md`; send any report of yours with figures from
+  Pronovo (they become checks).
+- PLAN.md, row WP5.5 (proposal): "built and in `main`: `pronovo_production` (production per
+  technology and PV per canton at 15 minutes, capacity per month), `append-only`, 168 published
+  figures as checks (156 of them BFE's reference market prices, computed from the same files);
+  backfilled on the Mac. Next: Renaud's review of the drafts; backfill on steacher1.
+  `docs/work-packages/WP5.5-pronovo.md`"
+
+## For other sessions: an empty table by day or month no longer fails the fetch (2026-11-16)
+
+- `ingest._window_filter` casts a date column to DATE before it adds the interval. Before, a
+  fetch that returned no row for a table by day or month failed: pandas gives an empty column
+  of dates as objects, DuckDB reads it as type NULL, and `NULL + INTERVAL 1 MONTH` has no
+  single meaning (found by WP5.5 on the backfill of 2020-2022). A `fetch.py` that works around
+  it (an Arrow date type, a dummy row) can drop the workaround. Test:
+  `test_an_answer_without_periods_stores_nothing_and_succeeds` in `server/tests/test_table_shapes.py`.
 
 ## For other sessions: WP5.3 landed (2026-11-16)
 

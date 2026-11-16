@@ -1,6 +1,6 @@
 # /// script
 # requires-python = ">=3.12"
-# dependencies = ["pandas>=2.2", "pyarrow>=15", "requests>=2.31"]
+# dependencies = ["pandas>=2.2", "requests>=2.31"]
 # ///
 """Fetch Pronovo's "Lastgangprofile nach Technologien": the measured production of Swiss plants
 per technology at 15 minutes (table by_technology), the PV per canton (pv_by_canton), and the
@@ -555,12 +555,7 @@ def month_rows(chosen: dict, y: int, m: int) -> dict[str, list]:
 def _frame(table: str, parts: list) -> pd.DataFrame:
     cols = COLUMNS[table]
     if not parts:
-        # An empty column of dates must still read as DATE: an empty object column is typed NULL,
-        # and the server's window filter (ingest._window_filter) fails on NULL + INTERVAL 1 MONTH
-        # (2026-11-15, the backfill windows of 2020-2022, which have no capacity).
-        import pyarrow as pa
-        return pd.DataFrame({c: pd.Series(dtype=pd.ArrowDtype(pa.date32()) if c == "delivery_month" else t)
-                             for c, t in cols.items()})
+        return pd.DataFrame({c: pd.Series(dtype=t) for c, t in cols.items()})
     df = pd.concat(parts, ignore_index=True)
     if table == "by_technology":
         df["suspect"] = _suspect(df)

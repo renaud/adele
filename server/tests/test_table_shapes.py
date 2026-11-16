@@ -95,6 +95,9 @@ def fetch(start, end):
         monthly["delivery_month"] = monthly["delivery_month"].map(lambda d: d.replace(day=15))
     if fault == "ts":
         monthly["delivery_month"] = pd.to_datetime(monthly["delivery_month"])
+    if fault == "empty_periods":  # no period in this answer: an empty column of objects reads as type NULL
+        daily, monthly = daily.iloc[:0], monthly.iloc[:0]
+        prices = prices.iloc[:0].astype({"delivery_start": object})
     return {"prices": prices, "daily": daily, "monthly": monthly, "stations": stations}
 """
 
@@ -244,6 +247,17 @@ def test_an_empty_answer_for_a_table_without_a_time_column_fails_and_writes_noth
     assert not o.ok and "no row for this table without a time column" in o.error
     assert rows(cfg, catalog, "SELECT count(*) FROM test_shapes.stations") == [[3]]
     assert rows(cfg, catalog, "SELECT count(*) FROM test_shapes.prices") == [[4 * 2]]  # the second hour was not written
+
+
+def test_an_answer_without_periods_stores_nothing_and_succeeds(shapes, monkeypatch):
+    # pandas returns an empty column of dates or timestamps as objects, which DuckDB reads as type
+    # NULL; the window filter added an interval to it and failed (pronovo_production, 2026-11-15)
+    cfg, catalog, ds = shapes
+    monkeypatch.setenv("ADELE_TEST_FAULT", "empty_periods")
+    o = ingest.fetch_window(cfg, catalog, ds, t("2026-03-30 00:00"), t("2026-03-30 01:00"))
+    assert o.ok, o.error
+    assert files(cfg, "prices") == files(cfg, "daily") == files(cfg, "monthly") == []
+    assert files(cfg, "stations") == ["table.parquet"]
 
 
 @pytest.mark.parametrize("fault, message", [

@@ -49,8 +49,9 @@ steacher1 (WP1's week, then WP3 there).
    stamp that isn't the UTC stamp, and on a month older than 40 days without any file.
 9. **No `adele.raw: keep` (D33):** Pronovo keeps every file in its archive, so a missed answer can
    be fetched again, and `append-only` keeps each version of a row.
-10. **Workaround for a server bug** (below): an empty table by month returns its date column with
-    an Arrow date type, so `fetch.py` declares pyarrow.
+10. **A server bug fixed rather than worked around** (below): `fetch.py` first returned an empty
+    table by month with an Arrow date type (and declared pyarrow); after the fix of 2026-11-16 it
+    returns plain pandas columns.
 
 ## Findings
 
@@ -69,10 +70,11 @@ steacher1 (WP1's week, then WP3 there).
   gross production.
 - **Pronovo's hydro files by size class** (from 2026-08) break down the same meter data: three
   hydro types match the definitive September 2026 to the kWh; they list more plants.
-- **Server bug, not fixed:** `server/src/adele_server/ingest.py`, `_window_filter`: when a fetch
-  returns no row for a table by month or day, DuckDB types the empty date column as NULL, and
-  `NULL + INTERVAL 1 MONTH` fails the fetch (the first backfill of 2020-2022, which has no
-  capacity, failed so). Fix: a cast to DATE. Offered to Renaud.
+- **Server bug, fixed on 2026-11-16 at Renaud's request:** `server/src/adele_server/ingest.py`,
+  `_window_filter`: when a fetch returned no row for a table by month or day, DuckDB typed the
+  empty date column as NULL, and `NULL + INTERVAL 1 MONTH` failed the fetch (the first backfill
+  of 2020-2022, which has no capacity, failed so). The column is now cast to DATE first; test
+  `test_an_answer_without_periods_stores_nothing_and_succeeds` in `server/tests/test_table_shapes.py`.
 
 ## Open
 
@@ -81,5 +83,4 @@ steacher1 (WP1's week, then WP3 there).
 3. Pronovo's raw data of issued guarantees of origin (2024, 2025): larger than WebFetch can load;
    a download script in the main session, then a comparison (another set of plants: net, every
    registered plant).
-4. The server bug above; then pyarrow can leave `fetch.py`.
-5. Backfill on steacher1 after WP1's week and WP3 there, and `review-dataset` before publishing.
+4. Backfill on steacher1 after WP1's week and WP3 there, and `review-dataset` before publishing.

@@ -795,14 +795,18 @@ def _window_filter(t: Table, s: dt.datetime, e: dt.datetime) -> str:
     period (D26): the period overlaps [s, e), its start and end taken at midnight in the zone of
     the table. With "first instant inside", a table by month fetched with a lookback of 3 days
     kept no row.
+
+    The date column is cast to DATE first: pandas returns an empty column of dates as objects,
+    which DuckDB reads as type NULL, and NULL + INTERVAL has no single meaning (the fetch failed).
     """
     w = ident(t.window)
     lo, hi = storage.ts_literal(s), storage.ts_literal(e)
     if not t.window_is_date:
         return f"{w} >= {lo} AND {w} < {hi}"
     tz = storage.sql_str(t.timezone)
-    return (f"timezone({tz}, CAST({w} AS TIMESTAMP)) < {hi} AND "
-            f"timezone({tz}, CAST({w} + INTERVAL 1 {t.period.upper()} AS TIMESTAMP)) > {lo}")
+    d = f"CAST({w} AS DATE)"
+    return (f"timezone({tz}, CAST({d} AS TIMESTAMP)) < {hi} AND "
+            f"timezone({tz}, CAST({d} + INTERVAL 1 {t.period.upper()} AS TIMESTAMP)) > {lo}")
 
 
 def _stage(con: duckdb.DuckDBPyConnection, t: Table, files: list[Path], windows: list[tuple]) -> int:

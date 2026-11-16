@@ -170,8 +170,7 @@ def local_end_stamps(y: int, m: int) -> list[str]:
 
 
 def archive_month(pf, monkeypatch, y: int, m: int, rows: list[tuple[str, str]]) -> dict[str, list]:
-    """The rows of one month of 2020-2022, below fetch(): its tables of capacity are empty, and an
-    empty table of dates needs pyarrow (see _frame)."""
+    """The rows of one month of 2020-2022 (no capacity, no canton), below fetch()."""
     data = archive_csv(rows)
     serve(pf, monkeypatch, {f"Archiv/{y}/DE/": {f"Lastgangprofile_{m:02d}.{y}.csv": data}})
     return pf.month_rows(pf.choose(pf.Files(), y, m), y, m)
@@ -220,11 +219,9 @@ def test_a_late_month_without_a_file_fails(pf, monkeypatch):
         pf.fetch(dt.datetime(2024, 5, 10, tzinfo=UTC), dt.datetime(2024, 5, 11, tzinfo=UTC))
 
 
-def test_an_empty_window_returns_typed_empty_tables(pf, monkeypatch):
-    pytest.importorskip("pyarrow")  # fetch.py declares it; the server's environment doesn't have it
+def test_an_empty_window_returns_every_table_empty(pf, monkeypatch):
     serve(pf, monkeypatch, {})
     now = dt.datetime.now(UTC)
     out = pf.fetch(now - dt.timedelta(days=1), now + dt.timedelta(days=1))
     assert set(out) == {"by_technology", "pv_by_canton", "capacity_by_technology", "pv_capacity_by_canton"}
-    assert all(df.empty for df in out.values())
-    assert str(out["capacity_by_technology"]["delivery_month"].dtype) == "date32[day][pyarrow]"
+    assert all(df.empty and list(df.columns) == list(pf.COLUMNS[t]) for t, df in out.items())
