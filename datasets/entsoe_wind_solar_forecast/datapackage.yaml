@@ -1,0 +1,128 @@
+# Definitions (titles, descriptions, labels, warnings, questions) are Renaud's (skills/add-dataset).
+# Every definition below is a draft by Claude (WP5.3, 2026-11-15) until he changes or confirms it.
+# Structure (keys, types, refresh) by Claude. Sources of the facts: the docstring of fetch.py;
+# ENTSO-E, Detailed Data Descriptions v3r4, pp. 65-67 (article 14.1.D); and
+# swissgrid_project/data/entsoe/README.md ("Known problems and breaks"), checked again on adele's
+# backfill (fetch.py).
+name: entsoe_wind_solar_forecast
+title: Wind and solar generation forecasts for Switzerland, day-ahead and intraday (ENTSO-E)  # draft by Claude
+# draft by Claude
+description: >-
+  Forecasts of the wind and solar generation of the Swiss bidding zone as published on the
+  ENTSO-E Transparency Platform (document A69, article 14.1.D of Regulation (EU) 543/2013): the
+  day-ahead forecast (the latest forecast at 18:00 Brussels time the day before delivery), the
+  intraday forecast (the latest at 08:00 Brussels time on the day of delivery, from 2025-04-01)
+  and the current forecast (the latest update; never served for CH). For CH the data comes from
+  Swissgrid. The platform serves only the latest version of each value; adele keeps every
+  version that a fetch saw (revisions: append-only). The neighbours of Switzerland are in
+  entsoe_wind_solar_forecast_neighbours, with the same columns.
+# The same platform as entsoe_day_ahead_prices: Renaud's licence entry there, copied by Claude.
+licenses:
+  - name: CC-BY-4.0
+    path: https://creativecommons.org/licenses/by/4.0/
+    title: Creative Commons Attribution 4.0 International License
+resources:
+  - name: forecast
+    description: One forecast value per area, forecast type, production type and delivery interval.  # draft by Claude
+    schema:
+      primaryKey: [area, forecast_type, production_type, delivery_start]
+      fields:
+        - name: area
+          type: string
+          # draft by Claude
+          description: >-
+            Short area name. For CH it is the bidding zone, the same code as `bidding_zone` in
+            entsoe_load and entsoe_day_ahead_prices.
+          categories:
+            - {value: CH, label: Switzerland}
+        - name: forecast_type
+          type: string
+          # draft by Claude
+          description: >-
+            Which forecast. day_ahead and intraday are fixed once published; current is updated
+            during the day, and each update replaces the last one on the platform (ENTSO-E,
+            Detailed Data Descriptions v3r4, p. 66).
+          categories:
+            - {value: day_ahead, label: "Day-ahead: the latest forecast at 18:00 Brussels time the day before delivery (process type A01)"}
+            - {value: intraday, label: "Intraday: the latest forecast at 08:00 Brussels time on the day of delivery (process type A40)"}
+            - {value: current, label: "Current: the latest update of the forecast (process type A18)"}
+        - name: production_type
+          type: string
+          description: The production type that the forecast is for.  # draft by Claude
+          categories:
+            - {value: solar, label: Solar (B16)}
+            - {value: wind_onshore, label: Wind onshore (B19)}
+            - {value: wind_offshore, label: Wind offshore (B18)}
+        - name: delivery_start
+          type: datetime
+          description: Start of the delivery interval, UTC.
+        - name: resolution
+          type: duration
+          description: Length of the delivery interval, as published (PT60M for CH).  # draft by Claude
+        - name: generation
+          type: number
+          unit: MW
+          # draft by Claude
+          description: >-
+            Forecast of the net generation, mean power over the delivery interval, as published.
+adele:
+  format_version: 1
+  secrets: [ENTSO_TOKEN]
+  refresh:
+    every: PT1H
+    # Three values changed in 15 days, 2 to 7 days after delivery (qa/revisions_entsoe_ch.md);
+    # 14 days catch them and cost three small requests per hour. Also the time for which a failed
+    # stretch is retried. Proposal by Claude, as for entsoe_load.
+    lookback: P14D
+    horizon: P2D    # the day-ahead forecast of the next day
+  revisions: append-only
+  # drafts by Claude; each figure measured on adele's backfill of 2026-11-15 (fetch.py), the
+  # ratios against ENTSO-E's actual generation (A75) of swissgrid_project/data/entsoe/.
+  warnings:
+    - >-
+      CH: until 2023-12-31 the day-ahead solar forecast covers only part of the Swiss PV fleet: its
+      yearly mean is 30 to 56 MW in 2015-2023 and 696 MW in 2024 (daily maximum 42 MW on
+      2023-12-31, 1,096 MW on 2024-01-01). In October-December 2023 ENTSO-E's actual solar
+      generation was 9 to 12 times the forecast.
+    - >-
+      CH: the day-ahead solar forecast changes scale twice against ENTSO-E's actual solar
+      generation (A75). The actual is 0.40 to 0.79 times the forecast (monthly means) from January
+      2024 to March 2025, about 1 from 2025-04-01 (0.87 to 1.10 in April-November 2025), 1.22 to
+      1.32 in February-April 2026, and about 1 again from 2026-04-25. The intraday forecast
+      follows the same steps from its start.
+    - >-
+      CH: the day-ahead wind forecast is unusable in 2020-2023 (local years): exactly 0 MW in 64 %
+      (2020) to 100 % (2023) of the hours and never above 0.34 MW, against a yearly mean of 6 to
+      10 MW in 2015-2019 and 11 to 13 MW from 2024.
+    - >-
+      CH: the day-ahead solar forecast of January to October 2015 is late: its output-weighted mean
+      hour is 0.2 to 0.9 h later than in the same month of 2016-2019 (January: 12.46 h UTC against
+      11.55 h); the change falls in November 2015. Not corrected: drop 2015, or shift it
+      knowingly.
+    - >-
+      CH: holes, as published. Day-ahead: the local days 2015-07-28 (wind only), 2015-08-31 and
+      2015-09-25 (both), 2016-10-11 (solar only); 2025-10-25 22:00 and 23:00 UTC and 2025-10-27
+      22:00 UTC (both). Intraday: 2026-06-27 22:00 and 23:00 UTC.
+  examples:
+    # D31: a check as an example; chosen by Claude (2026-11-16): the actual is in another
+    # dataset (entsoe_generation, D34), joined on production type and delivery start
+    - check: ch_2019_solar_day_ahead_upward_need_pct
+    # drafts by Claude, not yet confirmed by a person
+    - question: Energy of the Swiss day-ahead solar forecast per local year, GWh
+      sql: |
+        SELECT year(delivery_start AT TIME ZONE 'Europe/Zurich') AS local_year,
+               sum(generation * epoch(resolution) / 3600) / 1e3 AS forecast_gwh
+        FROM entsoe_wind_solar_forecast.forecast
+        WHERE area = 'CH' AND forecast_type = 'day_ahead' AND production_type = 'solar'
+        GROUP BY 1
+        ORDER BY 1
+    - question: How many values of the Swiss forecasts has adele seen change after it first fetched them, and by how much at most?
+      sql: |
+        WITH v AS (
+          SELECT generation,
+                 lag(generation) OVER (PARTITION BY area, forecast_type, production_type, delivery_start
+                                       ORDER BY fetched_at) AS previous
+          FROM entsoe_wind_solar_forecast.forecast_versions)
+        SELECT count(*) AS changes, max(abs(generation - previous)) AS largest_change_mw
+        FROM v
+        WHERE previous IS NOT NULL

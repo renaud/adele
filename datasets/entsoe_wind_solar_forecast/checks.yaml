@@ -1,0 +1,359 @@
+# Published figures that this dataset must reproduce (Renaud 2026-11-13: "the figures ARE the QA").
+# Collected 2026-11-15 by Claude: two web searches by research agents and the literature PDFs of
+# predico_enlab (docs/literature_review/pdfs/); compared with adele the same day
+# (qa/tools/published_check_entsoe_wind_solar_forecast.py; qa/published_figures_entsoe_wind_solar_forecast.md
+# lists the figures left out and why). The checks at the end read entsoe_generation too (D34).
+#
+# Zsiborács et al. 2022, Table 3: "the completeness of the databases of the DA and ID onshore wind farm
+# forecasts" (%), CH, 60-min data, per year. Their share also drops the hours without an actual value
+# (2017: 99.7 % there, 100 % of the hours with a forecast); the years below have no hole in the actual,
+# so the share of the year's time with a forecast reproduces them. Years in local time (CET/CEST); UTC
+# years give the same values. Tolerance 0.05: the figures have one decimal.
+# Zsiborács et al. 2023, Table 2: the same for the day-ahead solar forecast (an image in the PDF, read by
+# eye at 300 dpi; PDF downloaded by Renaud, adele/tmp/ on 2026-11-15). 2016 (99.5) and 2017 (99.7) differ,
+# as for wind: see the notes.
+checks:
+  - name: ch_2015_wind_day_ahead_completeness_pct
+    question: "Share of 2015 (local year) covered by the Swiss day-ahead wind forecast, %"
+    sql: |
+      SELECT 100 * sum(epoch(resolution))
+             / epoch(TIMESTAMPTZ '2016-01-01 00:00:00 Europe/Zurich' - TIMESTAMPTZ '2015-01-01 00:00:00 Europe/Zurich')
+      FROM entsoe_wind_solar_forecast.forecast
+      WHERE area = 'CH' AND forecast_type = 'day_ahead' AND production_type = 'wind_onshore'
+        AND delivery_start >= TIMESTAMPTZ '2015-01-01 00:00:00 Europe/Zurich'
+        AND delivery_start <  TIMESTAMPTZ '2016-01-01 00:00:00 Europe/Zurich'
+    expected: 99.2
+    tolerance: 0.05
+    source: "Zsiborács, Pintér, Vincze & Baranyai 2022, Wind Power Generation Scheduling Accuracy in Europe: An Overview of ENTSO-E Countries, Sustainability 14(24):16446, Table 3, CH, 2015 DA, https://www.mdpi.com/2071-1050/14/24/16446"
+  - name: ch_2018_wind_day_ahead_completeness_pct
+    question: "Share of 2018 (local year) covered by the Swiss day-ahead wind forecast, %"
+    sql: |
+      SELECT 100 * sum(epoch(resolution))
+             / epoch(TIMESTAMPTZ '2019-01-01 00:00:00 Europe/Zurich' - TIMESTAMPTZ '2018-01-01 00:00:00 Europe/Zurich')
+      FROM entsoe_wind_solar_forecast.forecast
+      WHERE area = 'CH' AND forecast_type = 'day_ahead' AND production_type = 'wind_onshore'
+        AND delivery_start >= TIMESTAMPTZ '2018-01-01 00:00:00 Europe/Zurich'
+        AND delivery_start <  TIMESTAMPTZ '2019-01-01 00:00:00 Europe/Zurich'
+    expected: 100
+    tolerance: 0.05
+    source: "Zsiborács, Pintér, Vincze & Baranyai 2022, Sustainability 14(24):16446, Table 3, CH, 2018 DA, https://www.mdpi.com/2071-1050/14/24/16446"
+  - name: ch_2019_wind_day_ahead_completeness_pct
+    question: "Share of 2019 (local year) covered by the Swiss day-ahead wind forecast, %"
+    sql: |
+      SELECT 100 * sum(epoch(resolution))
+             / epoch(TIMESTAMPTZ '2020-01-01 00:00:00 Europe/Zurich' - TIMESTAMPTZ '2019-01-01 00:00:00 Europe/Zurich')
+      FROM entsoe_wind_solar_forecast.forecast
+      WHERE area = 'CH' AND forecast_type = 'day_ahead' AND production_type = 'wind_onshore'
+        AND delivery_start >= TIMESTAMPTZ '2019-01-01 00:00:00 Europe/Zurich'
+        AND delivery_start <  TIMESTAMPTZ '2020-01-01 00:00:00 Europe/Zurich'
+    expected: 100
+    tolerance: 0.05
+    source: "Zsiborács, Pintér, Vincze & Baranyai 2022, Sustainability 14(24):16446, Table 3, CH, 2019 DA, https://www.mdpi.com/2071-1050/14/24/16446"
+  - name: ch_2020_wind_day_ahead_completeness_pct
+    question: "Share of 2020 (local year) covered by the Swiss day-ahead wind forecast, %"
+    sql: |
+      SELECT 100 * sum(epoch(resolution))
+             / epoch(TIMESTAMPTZ '2021-01-01 00:00:00 Europe/Zurich' - TIMESTAMPTZ '2020-01-01 00:00:00 Europe/Zurich')
+      FROM entsoe_wind_solar_forecast.forecast
+      WHERE area = 'CH' AND forecast_type = 'day_ahead' AND production_type = 'wind_onshore'
+        AND delivery_start >= TIMESTAMPTZ '2020-01-01 00:00:00 Europe/Zurich'
+        AND delivery_start <  TIMESTAMPTZ '2021-01-01 00:00:00 Europe/Zurich'
+    expected: 100
+    tolerance: 0.05
+    source: "Zsiborács, Pintér, Vincze & Baranyai 2022, Sustainability 14(24):16446, Table 3, CH, 2020 DA, https://www.mdpi.com/2071-1050/14/24/16446"
+  - name: ch_2021_wind_day_ahead_completeness_pct
+    question: "Share of 2021 (local year) covered by the Swiss day-ahead wind forecast, %"
+    sql: |
+      SELECT 100 * sum(epoch(resolution))
+             / epoch(TIMESTAMPTZ '2022-01-01 00:00:00 Europe/Zurich' - TIMESTAMPTZ '2021-01-01 00:00:00 Europe/Zurich')
+      FROM entsoe_wind_solar_forecast.forecast
+      WHERE area = 'CH' AND forecast_type = 'day_ahead' AND production_type = 'wind_onshore'
+        AND delivery_start >= TIMESTAMPTZ '2021-01-01 00:00:00 Europe/Zurich'
+        AND delivery_start <  TIMESTAMPTZ '2022-01-01 00:00:00 Europe/Zurich'
+    expected: 100
+    tolerance: 0.05
+    source: "Zsiborács, Pintér, Vincze & Baranyai 2022, Sustainability 14(24):16446, Table 3, CH, 2021 DA, https://www.mdpi.com/2071-1050/14/24/16446"
+  - name: ch_2015_solar_day_ahead_completeness_pct
+    question: "Share of 2015 (local year) covered by the Swiss day-ahead solar forecast, %"
+    sql: |
+      SELECT 100 * sum(epoch(resolution))
+             / epoch(TIMESTAMPTZ '2016-01-01 00:00:00 Europe/Zurich' - TIMESTAMPTZ '2015-01-01 00:00:00 Europe/Zurich')
+      FROM entsoe_wind_solar_forecast.forecast
+      WHERE area = 'CH' AND forecast_type = 'day_ahead' AND production_type = 'solar'
+        AND delivery_start >= TIMESTAMPTZ '2015-01-01 00:00:00 Europe/Zurich'
+        AND delivery_start <  TIMESTAMPTZ '2016-01-01 00:00:00 Europe/Zurich'
+    expected: 99.5
+    tolerance: 0.05
+    source: "Zsiborács, Vincze, Pintér & Hegedűsné Baranyai 2023, The Accuracy of PV Power Plant Scheduling in Europe: An Overview of ENTSO-E Countries, IEEE Access 11, Table 2 (p. 74959), CH, 2015 DA, https://doi.org/10.1109/ACCESS.2023.3297494"
+  - name: ch_2018_solar_day_ahead_completeness_pct
+    question: "Share of 2018 (local year) covered by the Swiss day-ahead solar forecast, %"
+    sql: |
+      SELECT 100 * sum(epoch(resolution))
+             / epoch(TIMESTAMPTZ '2019-01-01 00:00:00 Europe/Zurich' - TIMESTAMPTZ '2018-01-01 00:00:00 Europe/Zurich')
+      FROM entsoe_wind_solar_forecast.forecast
+      WHERE area = 'CH' AND forecast_type = 'day_ahead' AND production_type = 'solar'
+        AND delivery_start >= TIMESTAMPTZ '2018-01-01 00:00:00 Europe/Zurich'
+        AND delivery_start <  TIMESTAMPTZ '2019-01-01 00:00:00 Europe/Zurich'
+    expected: 100
+    tolerance: 0.05
+    source: "Zsiborács, Vincze, Pintér & Hegedűsné Baranyai 2023, The Accuracy of PV Power Plant Scheduling in Europe: An Overview of ENTSO-E Countries, IEEE Access 11, Table 2 (p. 74959), CH, 2018 DA, https://doi.org/10.1109/ACCESS.2023.3297494"
+  - name: ch_2019_solar_day_ahead_completeness_pct
+    question: "Share of 2019 (local year) covered by the Swiss day-ahead solar forecast, %"
+    sql: |
+      SELECT 100 * sum(epoch(resolution))
+             / epoch(TIMESTAMPTZ '2020-01-01 00:00:00 Europe/Zurich' - TIMESTAMPTZ '2019-01-01 00:00:00 Europe/Zurich')
+      FROM entsoe_wind_solar_forecast.forecast
+      WHERE area = 'CH' AND forecast_type = 'day_ahead' AND production_type = 'solar'
+        AND delivery_start >= TIMESTAMPTZ '2019-01-01 00:00:00 Europe/Zurich'
+        AND delivery_start <  TIMESTAMPTZ '2020-01-01 00:00:00 Europe/Zurich'
+    expected: 100
+    tolerance: 0.05
+    source: "Zsiborács, Vincze, Pintér & Hegedűsné Baranyai 2023, The Accuracy of PV Power Plant Scheduling in Europe: An Overview of ENTSO-E Countries, IEEE Access 11, Table 2 (p. 74959), CH, 2019 DA, https://doi.org/10.1109/ACCESS.2023.3297494"
+  - name: ch_2020_solar_day_ahead_completeness_pct
+    question: "Share of 2020 (local year) covered by the Swiss day-ahead solar forecast, %"
+    sql: |
+      SELECT 100 * sum(epoch(resolution))
+             / epoch(TIMESTAMPTZ '2021-01-01 00:00:00 Europe/Zurich' - TIMESTAMPTZ '2020-01-01 00:00:00 Europe/Zurich')
+      FROM entsoe_wind_solar_forecast.forecast
+      WHERE area = 'CH' AND forecast_type = 'day_ahead' AND production_type = 'solar'
+        AND delivery_start >= TIMESTAMPTZ '2020-01-01 00:00:00 Europe/Zurich'
+        AND delivery_start <  TIMESTAMPTZ '2021-01-01 00:00:00 Europe/Zurich'
+    expected: 100
+    tolerance: 0.05
+    source: "Zsiborács, Vincze, Pintér & Hegedűsné Baranyai 2023, The Accuracy of PV Power Plant Scheduling in Europe: An Overview of ENTSO-E Countries, IEEE Access 11, Table 2 (p. 74959), CH, 2020 DA, https://doi.org/10.1109/ACCESS.2023.3297494"
+  - name: ch_2021_solar_day_ahead_completeness_pct
+    question: "Share of 2021 (local year) covered by the Swiss day-ahead solar forecast, %"
+    sql: |
+      SELECT 100 * sum(epoch(resolution))
+             / epoch(TIMESTAMPTZ '2022-01-01 00:00:00 Europe/Zurich' - TIMESTAMPTZ '2021-01-01 00:00:00 Europe/Zurich')
+      FROM entsoe_wind_solar_forecast.forecast
+      WHERE area = 'CH' AND forecast_type = 'day_ahead' AND production_type = 'solar'
+        AND delivery_start >= TIMESTAMPTZ '2021-01-01 00:00:00 Europe/Zurich'
+        AND delivery_start <  TIMESTAMPTZ '2022-01-01 00:00:00 Europe/Zurich'
+    expected: 100
+    tolerance: 0.05
+    source: "Zsiborács, Vincze, Pintér & Hegedűsné Baranyai 2023, The Accuracy of PV Power Plant Scheduling in Europe: An Overview of ENTSO-E Countries, IEEE Access 11, Table 2 (p. 74959), CH, 2021 DA, https://doi.org/10.1109/ACCESS.2023.3297494"
+  - name: ch_2022_solar_day_ahead_completeness_pct
+    question: "Share of 2022 (local year) covered by the Swiss day-ahead solar forecast, %"
+    sql: |
+      SELECT 100 * sum(epoch(resolution))
+             / epoch(TIMESTAMPTZ '2023-01-01 00:00:00 Europe/Zurich' - TIMESTAMPTZ '2022-01-01 00:00:00 Europe/Zurich')
+      FROM entsoe_wind_solar_forecast.forecast
+      WHERE area = 'CH' AND forecast_type = 'day_ahead' AND production_type = 'solar'
+        AND delivery_start >= TIMESTAMPTZ '2022-01-01 00:00:00 Europe/Zurich'
+        AND delivery_start <  TIMESTAMPTZ '2023-01-01 00:00:00 Europe/Zurich'
+    expected: 100
+    tolerance: 0.05
+    source: "Zsiborács, Vincze, Pintér & Hegedűsné Baranyai 2023, The Accuracy of PV Power Plant Scheduling in Europe: An Overview of ENTSO-E Countries, IEEE Access 11, Table 2 (p. 74959), CH, 2022 DA, https://doi.org/10.1109/ACCESS.2023.3297494"
+  #
+  # The checks below read another dataset: the actual generation of CH, entsoe_generation.generation
+  # (D34, Renaud 2026-11-16). They fail while that dataset is missing or holds other values; its own
+  # checks say which of the two datasets moved. Compared on 2026-11-16 with the backfill of the
+  # worktree wp5.2 (WP5.2); figures that differ are in qa/published_figures_entsoe_wind_solar_forecast.md.
+  # Zsiborács 2022 Table 3 and 2023 Table 2, 2017: their share counts an hour only when the actual has a
+  # value too; the actual misses 23 hours from 2017-10-28, the forecast none. Tolerance 0.05.
+  # Zsiborács 2022 Table A5 (wind) and 2023 Table 6 (PV): "downward regulation need" = the energy
+  # produced above the day-ahead forecast, "upward" = the forecast energy not produced, each as a share
+  # of the year's actual energy, over the hours with both values. Local years (UTC years give the same
+  # matches). Tolerance 0.05: one decimal.
+  # Kazmi & Tao 2022, Tables 2 and 3: R2 of the day-ahead forecast against the actual, hourly, 2017-2021
+  # (UTC). Their ME and MAE differ by up to 6 MW (an undescribed filter of 5-10 % of the values): left
+  # out. R2 tolerance 0.005: two decimals.
+  - name: ch_2017_wind_day_ahead_completeness_with_actual_pct
+    question: "Share of 2017 (local year) with both a Swiss day-ahead wind forecast and an actual value (entsoe_generation), %"
+    sql: |
+      SELECT 100 * sum(epoch(f.resolution))
+             / epoch(TIMESTAMPTZ '2018-01-01 00:00:00 Europe/Zurich' - TIMESTAMPTZ '2017-01-01 00:00:00 Europe/Zurich')
+      FROM entsoe_wind_solar_forecast.forecast f
+      JOIN entsoe_generation.generation a
+        ON a.bidding_zone = 'CH' AND a.production_type = f.production_type AND a.delivery_start = f.delivery_start
+      WHERE f.area = 'CH' AND f.forecast_type = 'day_ahead' AND f.production_type = 'wind_onshore'
+        AND a.generation IS NOT NULL
+        AND f.delivery_start >= TIMESTAMPTZ '2017-01-01 00:00:00 Europe/Zurich'
+        AND f.delivery_start <  TIMESTAMPTZ '2018-01-01 00:00:00 Europe/Zurich'
+    expected: 99.7
+    tolerance: 0.05
+    source: "Zsiborács, Pintér, Vincze & Baranyai 2022, Wind Power Generation Scheduling Accuracy in Europe: An Overview of ENTSO-E Countries, Sustainability 14(24):16446, Table 3, CH, 2017 DA, https://www.mdpi.com/2071-1050/14/24/16446"
+  - name: ch_2017_solar_day_ahead_completeness_with_actual_pct
+    question: "Share of 2017 (local year) with both a Swiss day-ahead solar forecast and an actual value (entsoe_generation), %"
+    sql: |
+      SELECT 100 * sum(epoch(f.resolution))
+             / epoch(TIMESTAMPTZ '2018-01-01 00:00:00 Europe/Zurich' - TIMESTAMPTZ '2017-01-01 00:00:00 Europe/Zurich')
+      FROM entsoe_wind_solar_forecast.forecast f
+      JOIN entsoe_generation.generation a
+        ON a.bidding_zone = 'CH' AND a.production_type = f.production_type AND a.delivery_start = f.delivery_start
+      WHERE f.area = 'CH' AND f.forecast_type = 'day_ahead' AND f.production_type = 'solar'
+        AND a.generation IS NOT NULL
+        AND f.delivery_start >= TIMESTAMPTZ '2017-01-01 00:00:00 Europe/Zurich'
+        AND f.delivery_start <  TIMESTAMPTZ '2018-01-01 00:00:00 Europe/Zurich'
+    expected: 99.7
+    tolerance: 0.05
+    source: "Zsiborács, Vincze, Pintér & Hegedűsné Baranyai 2023, The Accuracy of PV Power Plant Scheduling in Europe: An Overview of ENTSO-E Countries, IEEE Access 11, Table 2 (p. 74959), CH, 2017 DA, https://doi.org/10.1109/ACCESS.2023.3297494"
+  - name: ch_2015_wind_day_ahead_downward_need_pct
+    question: "Swiss wind in 2015 (local year): energy produced above the day-ahead forecast, % of the actual energy (entsoe_generation; downward regulation need)"
+    sql: |
+      SELECT 100 * sum(greatest(a.generation - f.generation, 0)) / sum(a.generation)
+      FROM entsoe_wind_solar_forecast.forecast f
+      JOIN entsoe_generation.generation a
+        ON a.bidding_zone = 'CH' AND a.production_type = f.production_type AND a.delivery_start = f.delivery_start
+      WHERE f.area = 'CH' AND f.forecast_type = 'day_ahead' AND f.production_type = 'wind_onshore'
+        AND a.generation IS NOT NULL
+        AND f.delivery_start >= TIMESTAMPTZ '2015-01-01 00:00:00 Europe/Zurich'
+        AND f.delivery_start <  TIMESTAMPTZ '2016-01-01 00:00:00 Europe/Zurich'
+    expected: 18.9
+    tolerance: 0.05
+    source: "Zsiborács, Pintér, Vincze & Baranyai 2022, Wind Power Generation Scheduling Accuracy in Europe: An Overview of ENTSO-E Countries, Sustainability 14(24):16446, Table A5, CH, 2015, downward regulation need, https://www.mdpi.com/2071-1050/14/24/16446"
+  - name: ch_2016_wind_day_ahead_downward_need_pct
+    question: "Swiss wind in 2016 (local year): energy produced above the day-ahead forecast, % of the actual energy (entsoe_generation; downward regulation need)"
+    sql: |
+      SELECT 100 * sum(greatest(a.generation - f.generation, 0)) / sum(a.generation)
+      FROM entsoe_wind_solar_forecast.forecast f
+      JOIN entsoe_generation.generation a
+        ON a.bidding_zone = 'CH' AND a.production_type = f.production_type AND a.delivery_start = f.delivery_start
+      WHERE f.area = 'CH' AND f.forecast_type = 'day_ahead' AND f.production_type = 'wind_onshore'
+        AND a.generation IS NOT NULL
+        AND f.delivery_start >= TIMESTAMPTZ '2016-01-01 00:00:00 Europe/Zurich'
+        AND f.delivery_start <  TIMESTAMPTZ '2017-01-01 00:00:00 Europe/Zurich'
+    expected: 22.8
+    tolerance: 0.05
+    source: "Zsiborács, Pintér, Vincze & Baranyai 2022, Wind Power Generation Scheduling Accuracy in Europe: An Overview of ENTSO-E Countries, Sustainability 14(24):16446, Table A5, CH, 2016, downward regulation need, https://www.mdpi.com/2071-1050/14/24/16446"
+  - name: ch_2017_wind_day_ahead_downward_need_pct
+    question: "Swiss wind in 2017 (local year): energy produced above the day-ahead forecast, % of the actual energy (entsoe_generation; downward regulation need)"
+    sql: |
+      SELECT 100 * sum(greatest(a.generation - f.generation, 0)) / sum(a.generation)
+      FROM entsoe_wind_solar_forecast.forecast f
+      JOIN entsoe_generation.generation a
+        ON a.bidding_zone = 'CH' AND a.production_type = f.production_type AND a.delivery_start = f.delivery_start
+      WHERE f.area = 'CH' AND f.forecast_type = 'day_ahead' AND f.production_type = 'wind_onshore'
+        AND a.generation IS NOT NULL
+        AND f.delivery_start >= TIMESTAMPTZ '2017-01-01 00:00:00 Europe/Zurich'
+        AND f.delivery_start <  TIMESTAMPTZ '2018-01-01 00:00:00 Europe/Zurich'
+    expected: 17.6
+    tolerance: 0.05
+    source: "Zsiborács, Pintér, Vincze & Baranyai 2022, Wind Power Generation Scheduling Accuracy in Europe: An Overview of ENTSO-E Countries, Sustainability 14(24):16446, Table A5, CH, 2017, downward regulation need, https://www.mdpi.com/2071-1050/14/24/16446"
+  - name: ch_2018_wind_day_ahead_downward_need_pct
+    question: "Swiss wind in 2018 (local year): energy produced above the day-ahead forecast, % of the actual energy (entsoe_generation; downward regulation need)"
+    sql: |
+      SELECT 100 * sum(greatest(a.generation - f.generation, 0)) / sum(a.generation)
+      FROM entsoe_wind_solar_forecast.forecast f
+      JOIN entsoe_generation.generation a
+        ON a.bidding_zone = 'CH' AND a.production_type = f.production_type AND a.delivery_start = f.delivery_start
+      WHERE f.area = 'CH' AND f.forecast_type = 'day_ahead' AND f.production_type = 'wind_onshore'
+        AND a.generation IS NOT NULL
+        AND f.delivery_start >= TIMESTAMPTZ '2018-01-01 00:00:00 Europe/Zurich'
+        AND f.delivery_start <  TIMESTAMPTZ '2019-01-01 00:00:00 Europe/Zurich'
+    expected: 15.5
+    tolerance: 0.05
+    source: "Zsiborács, Pintér, Vincze & Baranyai 2022, Wind Power Generation Scheduling Accuracy in Europe: An Overview of ENTSO-E Countries, Sustainability 14(24):16446, Table A5, CH, 2018, downward regulation need, https://www.mdpi.com/2071-1050/14/24/16446"
+  - name: ch_2016_wind_day_ahead_upward_need_pct
+    question: "Swiss wind in 2016 (local year): forecast energy not produced by the day-ahead forecast, % of the actual energy (entsoe_generation; upward regulation need)"
+    sql: |
+      SELECT 100 * sum(greatest(f.generation - a.generation, 0)) / sum(a.generation)
+      FROM entsoe_wind_solar_forecast.forecast f
+      JOIN entsoe_generation.generation a
+        ON a.bidding_zone = 'CH' AND a.production_type = f.production_type AND a.delivery_start = f.delivery_start
+      WHERE f.area = 'CH' AND f.forecast_type = 'day_ahead' AND f.production_type = 'wind_onshore'
+        AND a.generation IS NOT NULL
+        AND f.delivery_start >= TIMESTAMPTZ '2016-01-01 00:00:00 Europe/Zurich'
+        AND f.delivery_start <  TIMESTAMPTZ '2017-01-01 00:00:00 Europe/Zurich'
+    expected: 36.1
+    tolerance: 0.05
+    source: "Zsiborács, Pintér, Vincze & Baranyai 2022, Wind Power Generation Scheduling Accuracy in Europe: An Overview of ENTSO-E Countries, Sustainability 14(24):16446, Table A5, CH, 2016, upward regulation need, https://www.mdpi.com/2071-1050/14/24/16446"
+  - name: ch_2015_solar_day_ahead_downward_need_pct
+    question: "Swiss solar in 2015 (local year): energy produced above the day-ahead forecast, % of the actual energy (entsoe_generation; downward regulation need)"
+    sql: |
+      SELECT 100 * sum(greatest(a.generation - f.generation, 0)) / sum(a.generation)
+      FROM entsoe_wind_solar_forecast.forecast f
+      JOIN entsoe_generation.generation a
+        ON a.bidding_zone = 'CH' AND a.production_type = f.production_type AND a.delivery_start = f.delivery_start
+      WHERE f.area = 'CH' AND f.forecast_type = 'day_ahead' AND f.production_type = 'solar'
+        AND a.generation IS NOT NULL
+        AND f.delivery_start >= TIMESTAMPTZ '2015-01-01 00:00:00 Europe/Zurich'
+        AND f.delivery_start <  TIMESTAMPTZ '2016-01-01 00:00:00 Europe/Zurich'
+    expected: 9.4
+    tolerance: 0.05
+    source: "Zsiborács, Vincze, Pintér & Hegedűsné Baranyai 2023, The Accuracy of PV Power Plant Scheduling in Europe: An Overview of ENTSO-E Countries, IEEE Access 11, Table 6 (p. 74965), CH, 2015, downward regulation need, https://doi.org/10.1109/ACCESS.2023.3297494"
+  - name: ch_2015_solar_day_ahead_upward_need_pct
+    question: "Swiss solar in 2015 (local year): forecast energy not produced by the day-ahead forecast, % of the actual energy (entsoe_generation; upward regulation need)"
+    sql: |
+      SELECT 100 * sum(greatest(f.generation - a.generation, 0)) / sum(a.generation)
+      FROM entsoe_wind_solar_forecast.forecast f
+      JOIN entsoe_generation.generation a
+        ON a.bidding_zone = 'CH' AND a.production_type = f.production_type AND a.delivery_start = f.delivery_start
+      WHERE f.area = 'CH' AND f.forecast_type = 'day_ahead' AND f.production_type = 'solar'
+        AND a.generation IS NOT NULL
+        AND f.delivery_start >= TIMESTAMPTZ '2015-01-01 00:00:00 Europe/Zurich'
+        AND f.delivery_start <  TIMESTAMPTZ '2016-01-01 00:00:00 Europe/Zurich'
+    expected: 37.5
+    tolerance: 0.05
+    source: "Zsiborács, Vincze, Pintér & Hegedűsné Baranyai 2023, The Accuracy of PV Power Plant Scheduling in Europe: An Overview of ENTSO-E Countries, IEEE Access 11, Table 6 (p. 74965), CH, 2015, upward regulation need, https://doi.org/10.1109/ACCESS.2023.3297494"
+  - name: ch_2017_solar_day_ahead_upward_need_pct
+    question: "Swiss solar in 2017 (local year): forecast energy not produced by the day-ahead forecast, % of the actual energy (entsoe_generation; upward regulation need)"
+    sql: |
+      SELECT 100 * sum(greatest(f.generation - a.generation, 0)) / sum(a.generation)
+      FROM entsoe_wind_solar_forecast.forecast f
+      JOIN entsoe_generation.generation a
+        ON a.bidding_zone = 'CH' AND a.production_type = f.production_type AND a.delivery_start = f.delivery_start
+      WHERE f.area = 'CH' AND f.forecast_type = 'day_ahead' AND f.production_type = 'solar'
+        AND a.generation IS NOT NULL
+        AND f.delivery_start >= TIMESTAMPTZ '2017-01-01 00:00:00 Europe/Zurich'
+        AND f.delivery_start <  TIMESTAMPTZ '2018-01-01 00:00:00 Europe/Zurich'
+    expected: 16.6
+    tolerance: 0.05
+    source: "Zsiborács, Vincze, Pintér & Hegedűsné Baranyai 2023, The Accuracy of PV Power Plant Scheduling in Europe: An Overview of ENTSO-E Countries, IEEE Access 11, Table 6 (p. 74965), CH, 2017, upward regulation need, https://doi.org/10.1109/ACCESS.2023.3297494"
+  - name: ch_2019_solar_day_ahead_downward_need_pct
+    question: "Swiss solar in 2019 (local year): energy produced above the day-ahead forecast, % of the actual energy (entsoe_generation; downward regulation need)"
+    sql: |
+      SELECT 100 * sum(greatest(a.generation - f.generation, 0)) / sum(a.generation)
+      FROM entsoe_wind_solar_forecast.forecast f
+      JOIN entsoe_generation.generation a
+        ON a.bidding_zone = 'CH' AND a.production_type = f.production_type AND a.delivery_start = f.delivery_start
+      WHERE f.area = 'CH' AND f.forecast_type = 'day_ahead' AND f.production_type = 'solar'
+        AND a.generation IS NOT NULL
+        AND f.delivery_start >= TIMESTAMPTZ '2019-01-01 00:00:00 Europe/Zurich'
+        AND f.delivery_start <  TIMESTAMPTZ '2020-01-01 00:00:00 Europe/Zurich'
+    expected: 5.3
+    tolerance: 0.05
+    source: "Zsiborács, Vincze, Pintér & Hegedűsné Baranyai 2023, The Accuracy of PV Power Plant Scheduling in Europe: An Overview of ENTSO-E Countries, IEEE Access 11, Table 6 (p. 74965), CH, 2019, downward regulation need, https://doi.org/10.1109/ACCESS.2023.3297494"
+  - name: ch_2019_solar_day_ahead_upward_need_pct
+    question: "Swiss solar in 2019 (local year): forecast energy not produced by the day-ahead forecast, % of the actual energy (entsoe_generation; upward regulation need)"
+    sql: |
+      SELECT 100 * sum(greatest(f.generation - a.generation, 0)) / sum(a.generation)
+      FROM entsoe_wind_solar_forecast.forecast f
+      JOIN entsoe_generation.generation a
+        ON a.bidding_zone = 'CH' AND a.production_type = f.production_type AND a.delivery_start = f.delivery_start
+      WHERE f.area = 'CH' AND f.forecast_type = 'day_ahead' AND f.production_type = 'solar'
+        AND a.generation IS NOT NULL
+        AND f.delivery_start >= TIMESTAMPTZ '2019-01-01 00:00:00 Europe/Zurich'
+        AND f.delivery_start <  TIMESTAMPTZ '2020-01-01 00:00:00 Europe/Zurich'
+    expected: 12
+    tolerance: 0.05
+    source: "Zsiborács, Vincze, Pintér & Hegedűsné Baranyai 2023, The Accuracy of PV Power Plant Scheduling in Europe: An Overview of ENTSO-E Countries, IEEE Access 11, Table 6 (p. 74965), CH, 2019, upward regulation need, https://doi.org/10.1109/ACCESS.2023.3297494"
+  - name: ch_2017_2021_wind_day_ahead_r2
+    question: "R2 of the Swiss day-ahead wind forecast against the actual (entsoe_generation), hourly, 2017-2021 (UTC years)"
+    sql: |
+      SELECT corr(a.generation, f.generation) ^ 2
+      FROM entsoe_wind_solar_forecast.forecast f
+      JOIN entsoe_generation.generation a
+        ON a.bidding_zone = 'CH' AND a.production_type = f.production_type AND a.delivery_start = f.delivery_start
+      WHERE f.area = 'CH' AND f.forecast_type = 'day_ahead' AND f.production_type = 'wind_onshore'
+        AND a.generation IS NOT NULL
+        AND f.delivery_start >= TIMESTAMPTZ '2017-01-01 00:00:00+00'
+        AND f.delivery_start <  TIMESTAMPTZ '2022-01-01 00:00:00+00'
+    expected: 0
+    tolerance: 0.005
+    source: "Kazmi & Tao 2022, How good are TSO load and renewable generation forecasts ..., Applied Energy 323:119565, Table 2, CH, R2, https://lirias.kuleuven.be/retrieve/672627"
+  - name: ch_2017_2021_solar_day_ahead_r2
+    question: "R2 of the Swiss day-ahead solar forecast against the actual (entsoe_generation), hourly, 2017-2021 (UTC years)"
+    sql: |
+      SELECT corr(a.generation, f.generation) ^ 2
+      FROM entsoe_wind_solar_forecast.forecast f
+      JOIN entsoe_generation.generation a
+        ON a.bidding_zone = 'CH' AND a.production_type = f.production_type AND a.delivery_start = f.delivery_start
+      WHERE f.area = 'CH' AND f.forecast_type = 'day_ahead' AND f.production_type = 'solar'
+        AND a.generation IS NOT NULL
+        AND f.delivery_start >= TIMESTAMPTZ '2017-01-01 00:00:00+00'
+        AND f.delivery_start <  TIMESTAMPTZ '2022-01-01 00:00:00+00'
+    expected: 0.27
+    tolerance: 0.005
+    source: "Kazmi & Tao 2022, How good are TSO load and renewable generation forecasts ..., Applied Energy 323:119565, Table 3, CH, R2, https://lirias.kuleuven.be/retrieve/672627"

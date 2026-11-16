@@ -7,6 +7,7 @@ import os
 import shutil
 import sys
 import textwrap
+from urllib.parse import quote
 
 import duckdb
 import pytest
@@ -185,6 +186,37 @@ def test_script_fetch_error_sets_failing(script_env, monkeypatch):
                             dt.datetime(2026, 1, 2, tzinfo=UTC))
     assert not o.ok and "exited with code 1" in o.error and "RuntimeError: source down" in o.error
     assert state.load(cfg.data_dir, "test_script")["status"] == "failing"
+
+
+LEAKY_FETCH = """\
+import os
+from urllib.parse import quote
+
+
+def fetch(start, end):
+    token = os.environ["ADELE_TEST_BUMP"]
+    print(f"GET https://source/api?securityToken={token}")
+    raise RuntimeError(f"599 Server Error for url: https://source/api?securityToken={quote(token, safe='')}&x=1")
+"""
+
+
+def test_a_fetch_error_never_shows_a_secret(env, monkeypatch):
+    cfg, _, _ = env
+    token = "a1b2/c3d4+e5f6 g7"  # URL-encoded, it reads a1b2%2Fc3d4%2Be5f6%20g7
+    monkeypatch.setenv("ADELE_TEST_BUMP", token)
+    descriptor = (cfg.datasets_dir / "test_prices" / "datapackage.yaml").read_text()
+    shutil.rmtree(cfg.datasets_dir / "test_prices")
+    descriptor = descriptor.replace("name: test_prices", "name: test_leaky").replace("test_prices.prices", "test_leaky.prices")
+    catalog = add_dataset(cfg, "test_leaky", descriptor, LEAKY_FETCH)
+    o = ingest.fetch_window(cfg, catalog, catalog["test_leaky"], dt.datetime(2026, 1, 1, tzinfo=UTC),
+                            dt.datetime(2026, 1, 2, tzinfo=UTC))
+    assert not o.ok and "599 Server Error" in o.error
+    assert "securityToken=***ADELE_TEST_BUMP***&x=1" in o.error
+    forms = (token, quote(token, safe=""), "a1b2", "c3d4")
+    assert not any(f in o.error for f in forms)
+    for p in cfg.data_dir.rglob("*"):  # state.json, alerts.log
+        if p.is_file():
+            assert not any(f in p.read_text(errors="replace") for f in forms), p
 
 
 def test_script_fetch_is_stopped_at_the_time_limit(script_env, monkeypatch):

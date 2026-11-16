@@ -35,6 +35,13 @@ When a review or a QA question finds a trap that is not listed here, add it.
   request for 2024; measured 2026-11-13) and includes the row at the requested end.
 - Does the source publish several series for one key? ENTSO-E DE_LU has two day-ahead
   series (sequence 1 and 2); without a filter, each timestamp comes twice.
+- Does an error message hold a secret? requests writes the URL in its errors, and ENTSO-E's
+  token is in the URL (2026-11-15, `datasets/entsoe_wind_solar_forecast/fetch.py`, `_redact`).
+  The server removes the declared secrets from what `fetch.py` prints (D34), but not from a
+  file that `fetch.py` writes, such as the URL of a kept answer (D33): keep the token out of it.
+- Does the source refuse requests when it is busy? ENTSO-E answered HTTP 599 ("Unable to access
+  service within time limit") to one request in about 300 while four backfills shared one token
+  (2026-11-15): retry an answer 5xx before failing the window.
 
 ## Values
 
@@ -52,10 +59,20 @@ When a review or a QA question finds a trap that is not listed here, add it.
 - Did codes change over time (bidding zones split or merged, production types renamed)?
 - Does one name mean different things at different sources (DE, DE_LU, DE_AT_LU)?
 - Does a total row sit among the detail rows (e.g. a zone "EU" next to the countries)?
+- Is the total the sum of its parts? ENTSO-E wind and solar forecasts (measured 2026-11-15): IT
+  equals the sum of its zones, but DE_LU's day-ahead solar and onshore wind exceed the sum of
+  the four German TSO areas (Luxembourg; Austria in DE_AT_LU), while its intraday forecast
+  equals it. A published "Germany" can be either.
 
 ## Revisions and coverage
 
 - Does the source revise past values? Until how long after delivery?
 - Gaps: periods without data, and whether the source fills them later.
 - Did the definition or the method change at some date (a break in the series)?
+- Is a value stuck? ENTSO-E's FR offshore wind forecast holds exactly 240 MW for five days
+  (2023-12-30 to 2024-01-04): long runs of one value are often a frozen feed.
+- Is a forecast really a forecast? ENTSO-E's Italian day-ahead solar "forecast" at 2015-03-20
+  11:00 UTC equals the real infeed that ENTSO-E published for that hour, not the forecast it
+  published (`entsoe_wind_solar_forecast_neighbours`); the Swiss load forecast is a copy of the
+  actual load in 2021-2022 (`entsoe_load`).
 - Does the dataset cover what its title says (all plants, or only those above a size limit)?

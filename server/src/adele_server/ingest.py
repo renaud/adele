@@ -18,6 +18,7 @@ import stat
 import subprocess
 import sys
 import tempfile
+import urllib.parse
 from contextlib import contextmanager
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -125,6 +126,22 @@ def fetch_env(ds: Dataset) -> dict[str, str]:
     env = {k: v for k, v in os.environ.items() if k in BASE_ENV or k.startswith(BASE_ENV_PREFIXES)}
     env.update({k: os.environ[k] for k in ds.secrets if k in os.environ})
     return env
+
+
+SECRET_MIN_LEN = 8  # a shorter value is a setting, not a credential: replacing it would garble the text
+
+
+def redact(text: str, ds: Dataset) -> str:
+    """`text` without the values of the dataset's secrets, as they are and URL-encoded (D34). What
+    a fetch.py prints can hold them: requests writes the URL of a failed request in its error, and
+    the ENTSO-E token is a parameter of the URL (2026-11-15, WP5.3: the error of an answer 599
+    reached the console of a backfill with the token)."""
+    for k in ds.secrets:
+        v = os.environ.get(k)
+        if v and len(v) >= SECRET_MIN_LEN:
+            for form in sorted({v, urllib.parse.quote(v, safe=""), urllib.parse.quote_plus(v)}, key=len, reverse=True):
+                text = text.replace(form, f"***{k}***")
+    return text
 
 
 def call_fetch(ds: Dataset, windows: list[tuple], timeout_s: float, workdir: Path,
@@ -394,7 +411,7 @@ def _run_child(ds: Dataset, cmd: list[str], timeout_s: float, workdir: Path) -> 
             _running.remove(proc)
     if rc != 0 and stopped():
         raise Interrupted(f"interrupted by {stopped()}: fetch.py was stopped")
-    text = log_path.read_text(errors="replace")
+    text = redact(log_path.read_text(errors="replace"), ds)  # it goes to the error, state.json, alerts.log and the log
     if rc != 0:
         tail = " | ".join(ln.strip() for ln in text.strip().splitlines()[-3:] if ln.strip()) or "no output"
         raise FetchError(f"fetch.py exited with code {rc}: {tail[-800:]}")

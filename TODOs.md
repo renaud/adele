@@ -22,6 +22,24 @@
   CH and neighbours, activated balancing prices, balancing state, neighbours' imbalance volume,
   installed capacity), 79 published figures as checks; backfilled on the Mac. Next: Renaud's
   review of the drafts; install on steacher1. `docs/work-packages/WP5.1-entsoe.md`"
+- WP5.3 (in `main`, 2026-11-16): review the drafts of `entsoe_wind_solar_forecast` and
+  `entsoe_wind_solar_forecast_neighbours` (WP7: titles, descriptions, labels, 13 warnings,
+  examples). On steacher1, install WP5.2 (`entsoe_generation`) with WP5.3 or before it (D34).
+- PLAN.md, row WP5.3 (proposal): "built and in `main`: ENTSO-E wind and solar forecasts (A69),
+  CH and 16 neighbouring areas, `append-only`, 125 published figures as checks; backfilled on
+  the Mac. `forecast_versions` not built. Next: Renaud's review of the drafts; backfill on
+  steacher1. `docs/work-packages/WP5-datasets.md`"
+
+## For other sessions: WP5.3 landed (2026-11-16)
+
+- D34 is WP5.3; the next is D35.
+- `ingest.py`: `redact(text, ds)` and `SECRET_MIN_LEN`; `_run_child` passes what `fetch.py`
+  printed through `redact` before the error and the log. Secrets shorter than 8 characters are
+  left as they are.
+- A check can read another dataset (D34). `entsoe_wind_solar_forecast` has 14 checks that read
+  `entsoe_generation.generation` (WP5.2): a change to its columns (`bidding_zone`,
+  `production_type`, `delivery_start`, `generation`) or to its codes (`CH`, `solar`,
+  `wind_onshore`) breaks them.
 
 ## For other sessions: WP4 landed after WP2 (2026-11-15)
 
@@ -155,6 +173,24 @@ Next, state at the end of 2026-11-15:
   still puts the 18 WP2/WP3 datasets in WP6: Renaud's edit. The Claude Doc "adele: WP5 by
   dataset" (https://claude.ai/artifact/Jg2jVRVd4AW9URE7iJtsBY) has the same list without the
   sub-packages; the file is the one to keep up to date.
+- WP5.3, ENTSO-E wind and solar forecasts (A69), built 2026-11-15 in the worktree `wp5.3`, in
+  `main` since 2026-11-16:
+  `entsoe_wind_solar_forecast` (CH, 236,584 rows) and `entsoe_wind_solar_forecast_neighbours`
+  (16 areas, 22.6 million rows), `append-only`, backfilled on the Mac; 11 and 100 published
+  figures as checks (`qa/published_figures_entsoe_wind_solar_forecast*.md`), and 14 more for
+  CH that read `entsoe_generation` (D34). Definitions are drafts by Claude (WP7). Renaud's
+  answers of 2026-11-16:
+  1. `forecast_versions` (WP5 open question 6): no dataset. Its collector saw one version of
+     each hour; its 438 A69 values equal adele's except 3 (the older values of three revised
+     night values of 2026-10-26/27); the rest is in `entsoe_load` and `entsoe_generation`.
+     Written in `docs/work-packages/WP5-datasets.md` (open question 6).
+  2. Checks that read another dataset: yes (D34). WP5.3 landed before WP5.2 (Renaud,
+     2026-11-16): where the forecast data exists without `entsoe_generation`, the 14 checks fail
+     and the CH forecast is `failing`. On steacher1, install WP5.2 with WP5.3 or before it.
+  3. The server removes the declared secrets from what `fetch.py` prints (D34,
+     `ingest.redact`). The token was printed once in Claude's session of 2026-11-15: rotate it
+     if that matters.
+  Next: the backfill on steacher1 after WP1 (the neighbours: 12 windows of about 5 min).
 - What WP4 needs before a build (Claude, 2026-11-15, asked "what prevents us from doing WP4
   first"): nothing is missing in the server (WP3 is in `main`, G5 was built with D27), but no
   WP4 doc exists. Its design points: where raw answers are kept (G4: place, retention, one copy

@@ -1,0 +1,150 @@
+# Definitions (titles, descriptions, labels, warnings, questions) are Renaud's (skills/add-dataset).
+# Every definition below is a draft by Claude (WP5.3, 2026-11-15) until he changes or confirms it.
+# Structure (keys, types, refresh) by Claude. The columns are those of entsoe_wind_solar_forecast
+# (CH), so that the two tables can be stacked with UNION ALL. Sources of the facts: the docstring
+# of fetch.py; ENTSO-E, Detailed Data Descriptions v3r4, pp. 65-67 (article 14.1.D); and
+# swissgrid_project/data/entsoe_neighbours/README.md ("Known problems"), checked again on adele's
+# backfill (fetch.py).
+name: entsoe_wind_solar_forecast_neighbours
+title: Wind and solar generation forecasts for the neighbours of Switzerland (ENTSO-E)  # draft by Claude
+# draft by Claude
+description: >-
+  Forecasts of the wind and solar generation of Germany, France, Austria and Italy as published
+  on the ENTSO-E Transparency Platform (document A69, article 14.1.D of Regulation (EU)
+  543/2013): the day-ahead forecast (the latest forecast at 18:00 Brussels time the day before
+  delivery), the intraday forecast (the latest at 08:00 Brussels time on the day of delivery) and
+  the current forecast (the latest update). Germany is served as a bidding zone (DE_AT_LU until
+  2018-09-30, DE_LU from 2018-10-01) and as its four TSO control areas; Italy as the whole country
+  and as its bidding zones. The platform serves only the latest version of each value; adele
+  keeps every version that a fetch saw (revisions: append-only). Switzerland is in
+  entsoe_wind_solar_forecast, with the same columns.
+# The same platform as entsoe_day_ahead_prices: Renaud's licence entry there, copied by Claude.
+licenses:
+  - name: CC-BY-4.0
+    path: https://creativecommons.org/licenses/by/4.0/
+    title: Creative Commons Attribution 4.0 International License
+resources:
+  - name: forecast
+    description: One forecast value per area, forecast type, production type and delivery interval.  # draft by Claude
+    schema:
+      primaryKey: [area, forecast_type, production_type, delivery_start]
+      fields:
+        - name: area
+          type: string
+          # draft by Claude
+          description: >-
+            Short area name, as in entsoe-py. The areas overlap: DE_LU (DE_AT_LU before) holds the
+            four German TSO areas, and IT holds the Italian bidding zones. The codes of the
+            bidding zones are those of `bidding_zone` in entsoe_day_ahead_prices.
+          categories:
+            - {value: DE_LU, label: "Germany-Luxembourg, bidding zone, from 2018-10-01"}
+            - {value: DE_AT_LU, label: "Germany-Austria-Luxembourg, bidding zone, until 2018-09-30"}
+            - {value: DE_50HZ, label: "50Hertz, German TSO control area"}
+            - {value: DE_AMPRION, label: "Amprion, German TSO control area"}
+            - {value: DE_TENNET, label: "TenneT Germany, German TSO control area"}
+            - {value: DE_TRANSNETBW, label: "TransnetBW, German TSO control area"}
+            - {value: FR, label: France}
+            - {value: AT, label: Austria}
+            - {value: IT, label: "Italy, the whole country (control area)"}
+            - {value: IT_NORD, label: "Italy North, bidding zone"}
+            - {value: IT_CNOR, label: "Italy Centre-North, bidding zone"}
+            - {value: IT_CSUD, label: "Italy Centre-South, bidding zone"}
+            - {value: IT_SUD, label: "Italy South, bidding zone"}
+            - {value: IT_SICI, label: "Italy Sicily, bidding zone"}
+            - {value: IT_SARD, label: "Italy Sardinia, bidding zone"}
+            - {value: IT_CALA, label: "Italy Calabria, bidding zone"}
+        - name: forecast_type
+          type: string
+          # draft by Claude
+          description: >-
+            Which forecast. day_ahead and intraday are fixed once published; current is updated
+            during the day, and each update replaces the last one on the platform (ENTSO-E,
+            Detailed Data Descriptions v3r4, p. 66).
+          categories:
+            - {value: day_ahead, label: "Day-ahead: the latest forecast at 18:00 Brussels time the day before delivery (process type A01)"}
+            - {value: intraday, label: "Intraday: the latest forecast at 08:00 Brussels time on the day of delivery (process type A40)"}
+            - {value: current, label: "Current: the latest update of the forecast (process type A18)"}
+        - name: production_type
+          type: string
+          description: The production type that the forecast is for.  # draft by Claude
+          categories:
+            - {value: solar, label: Solar (B16)}
+            - {value: wind_onshore, label: Wind onshore (B19)}
+            - {value: wind_offshore, label: Wind offshore (B18)}
+        - name: delivery_start
+          type: datetime
+          description: Start of the delivery interval, UTC.
+        - name: resolution
+          type: duration
+          # draft by Claude
+          description: >-
+            Length of the delivery interval, as published: PT15M for Germany and Austria; FR
+            PT60M until 2026-01-08, then PT15M; IT PT60M until 2024-12-31, then PT15M.
+        - name: generation
+          type: number
+          unit: MW
+          # draft by Claude
+          description: >-
+            Forecast of the net generation, mean power over the delivery interval, as published.
+adele:
+  format_version: 1
+  secrets: [ENTSO_TOKEN]
+  refresh:
+    every: PT1H
+    lookback: P14D  # as for CH (entsoe_wind_solar_forecast); 48 requests per hour. Proposal by Claude.
+    horizon: P2D    # the day-ahead forecast of the next day
+  revisions: append-only
+  # drafts by Claude; each figure measured on adele's backfill of 2026-11-15 (fetch.py), unless it
+  # names another source.
+  warnings:
+    - >-
+      The areas overlap: a sum over all areas counts Germany and Italy twice. IT equals the sum of
+      the Italian zones (every interval, 2019-2026, except the day-ahead wind of 2020). DE_AT_LU and
+      DE_LU equal the sum of the four German TSO areas for intraday, current and offshore wind; their
+      day-ahead solar and onshore wind are higher, by 94 to 141 MW and 467 to 756 MW in 2015-2018
+      (yearly means; Austria was in the zone), equal in 2019-2021, higher by 23 to 92 MW from 2022.
+    - >-
+      DE_LU starts on 2018-10-01, except its intraday wind forecasts, which start on 2018-01-01 and
+      overlap those of DE_AT_LU until 2018-09-30.
+    - >-
+      FR: the solar forecast is one hour late from April to October 2021 (output-weighted mean hour
+      of the day-ahead forecast 13.3 h UTC, against 12.3 h in the other months of 2020-2021; the
+      swissgrid project found the same in the intraday and current forecasts), and about 0.35 h
+      late from July to December 2025 (12.6 to 12.7 h, against 12.2 to 12.3 h in January-June
+      2025). Not corrected.
+    - >-
+      AT: the day-ahead solar forecast covers only part of the fleet until 2023: 0.8 to 2.0 TWh a
+      year in 2015-2022, 2.4 TWh in 2023, 5.9 TWh in 2024.
+    - >-
+      FR: the offshore wind forecasts (day-ahead, intraday, current) hold exactly 240 MW from
+      2023-12-30 08:00 to 2024-01-04 03:00 UTC, and in shorter runs from 2023-12-24: a value stuck
+      in the source.
+    - >-
+      DE_50HZ and DE_AT_LU: the day-ahead solar forecast is 1,630 to 1,641 MW at night, from
+      2015-07-31 22:00 to 2015-08-01 00:45 UTC, as published.
+    - >-
+      IT zones, 2015: at the solar eclipse (2015-03-20 11:00 UTC) the zones' day-ahead solar
+      forecast sums to 9,650 MW, the real infeed that ENTSO-E published for that hour (9,653 MW),
+      not the day-ahead forecast it published (7,500 MW; ENTSO-E and SolarPower Europe 2015, p.
+      14). The Italian "forecast" of 2015 may hold actual values.
+    - >-
+      Holes, as published: FR intraday misses about 10,400 hours of 2018-2026; IT and the Italian
+      zones' intraday about 2,760 hours; the zones' day-ahead solar 1,971 hours; FR day-ahead about
+      600 hours.
+  # D31: checks of checks.yaml as examples, one per trap; chosen by Claude (2026-11-15)
+  examples:
+    - check: de_2018_2021_wind_mean_gw  # Germany = the four TSO areas; hours as the mean of their quarter-hours
+    - check: de_tso4_2015_03_20_eclipse_solar_day_ahead_mw  # "12:00 CET" = the interval that starts at 11:00 UTC
+    - check: fr_2019_onshore_intraday_completeness_pct  # coverage as a sum of durations: holes, mixed resolutions
+    - check: fr_2023_12_30_offshore_constant_mw  # a value stuck in the source
+    # draft by Claude, not yet confirmed by a person
+    - question: German day-ahead solar forecast per local year, the bidding zone against the sum of the four TSO areas, TWh
+      sql: |
+        SELECT year(delivery_start AT TIME ZONE 'Europe/Berlin') AS local_year,
+               sum(generation * epoch(resolution) / 3600) FILTER (WHERE area IN ('DE_AT_LU', 'DE_LU')) / 1e6 AS zone_twh,
+               sum(generation * epoch(resolution) / 3600)
+                 FILTER (WHERE area IN ('DE_50HZ', 'DE_AMPRION', 'DE_TENNET', 'DE_TRANSNETBW')) / 1e6 AS tso_areas_twh
+        FROM entsoe_wind_solar_forecast_neighbours.forecast
+        WHERE forecast_type = 'day_ahead' AND production_type = 'solar'
+        GROUP BY 1
+        ORDER BY 1

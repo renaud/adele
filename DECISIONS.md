@@ -861,3 +861,47 @@ later). Skipping an answer equal to any answer of the last 24 h (hides that the 
 older file). `lookback: all` (a key and code for the files with the whole history, WP6). The
 year file in the table of the daily file (one refresh per dataset). Keeping the poller as the
 downloader. Importing the poller's answers as a backfill (loses the first published values).
+
+## D34 - A check can read another dataset; the server removes the secrets from what fetch.py prints (2026-11-16)
+
+**Decision.**
+
+- A check of `checks.yaml` can read the tables of other datasets of the catalog: its SQL names
+  them (`<dataset>.<table>`), as any query does. No new key. The check fails, and its dataset
+  turns `failing`, when the other dataset is missing from the catalog or holds other values. A
+  comment in `checks.yaml` names the other dataset above such checks.
+- The server replaces the values of the secrets that the descriptor declares (`adele.secrets`),
+  as they are and URL-encoded, by `***<NAME>***` in what `fetch.py` prints, before the text goes
+  to the error of the fetch (`state.json`, `alerts.log`, the console) or to the log
+  (`ingest.redact`). Only values of 8 characters or more: a shorter value is a setting, not a
+  credential (the tests pass flags such as `env` through `adele.secrets`), and replacing it
+  would garble the text.
+
+First use: 14 checks of `entsoe_wind_solar_forecast` join `entsoe_generation.generation` (the
+errors of the Swiss day-ahead forecasts and the completeness of 2017, from Zsiborács et al. 2022
+and 2023 and Kazmi & Tao 2022). Built: `server/src/adele_server/ingest.py` (`redact`),
+`server/tests/test_window_and_runner.py`, `datasets/entsoe_wind_solar_forecast/checks.yaml`.
+Numbered D34 because `main` holds D33 (WP4).
+
+**Why.** Renaud, 2026-11-16, to the questions of the WP5.3 report: "good idea" (checks across
+datasets) and "fine" (the redaction in the server). Most published figures about a forecast are
+its errors, which need the actual values; without such checks they stay in the notes of `qa/`
+and nothing runs them again. The engine already runs each check against the whole catalog
+(`engine.run`): no code. The redaction: requests writes the URL of a failed request in its
+error, and the ENTSO-E token is a parameter of the URL. On 2026-11-15 an answer 599 printed the
+token on the console of a backfill. `datasets/entsoe_load/fetch.py` and the prices' `fetch.py`
+let such errors through; one fix in the server covers every dataset.
+
+**Limits.** The status of a dataset depends on another's: when `entsoe_generation` is revised
+or fails, the checks of the forecast can fail too, and the other dataset's own checks tell which
+of the two moved. The checks run after a fetch of their own dataset only, so a change of the
+other dataset shows at the next fetch of this one (every hour for the CH forecast). WP5.3 lands
+after WP5.2, else `entsoe_wind_solar_forecast` is `failing` in `main` until `entsoe_generation`
+is there. The redaction covers only the declared secrets, and only the text that `fetch.py`
+prints; a secret written to a file by `fetch.py` (an answer kept with its URL, D33) is not
+covered.
+
+**Rejected.** Skipping a check whose other dataset is missing: a misspelt dataset name would
+skip the check without a word. A key in `checks.yaml` that lists the other datasets: the SQL
+names them already, and nothing would read the key. Redacting in each `fetch.py` only (done in
+the two A69 datasets, `_redact`): the next dataset would forget it.

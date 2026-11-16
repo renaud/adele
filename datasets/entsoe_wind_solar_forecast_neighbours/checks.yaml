@@ -1,0 +1,1360 @@
+# Published figures that this dataset must reproduce (Renaud 2026-11-13: "the figures ARE the QA").
+# Collected 2026-11-15 by Claude: two web searches by research agents and the literature PDFs of
+# predico_enlab (docs/literature_review/pdfs/); compared with adele the same day
+# (qa/tools/published_check_entsoe_wind_solar_forecast_neighbours.py;
+# qa/published_figures_entsoe_wind_solar_forecast_neighbours.md lists the figures left out and why).
+# Written by a one-off generator (gen_checks_neighbours.py, session scratchpad); edit this file directly.
+#
+# Conventions:
+# - Germany in Ben Amor & Ziel and in the eclipse brief = the sum of the four TSO areas: it reproduces
+#   their figures, DE_LU does not from 2022 (it holds Luxembourg too). Germany in Zsiborács = the
+#   bidding zone, DE_AT_LU until 2018-09-30, then DE_LU.
+# - Ben Amor & Ziel: hours are the mean of their quarter-hours; their periods read as local days, the
+#   end included. Their unit is written MWh, the values are GW.
+# - Zsiborács 2022 (wind) and 2023 (PV; its Table 2 is an image, read by eye at 300 dpi), completeness: the share of the local year (Brussels) with a forecast value. Their share
+#   also drops the intervals without an actual value, which this dataset can't check: only the
+#   figures that match are here (AT intraday 2018 matches in local years only).
+# - The eclipse brief's "12:00 CET" = the interval that starts at 11:00 UTC.
+# Tolerances: half the last digit of the published value (0.05 for one decimal, 0.5 for whole MW);
+# the eclipse values are rounded to 1,000 MW (Germany) and 100 MW (France, Austria): 500 and 50.
+checks:
+  - name: de_2018_2021_wind_mean_gw
+    question: "Mean of the hourly German day-ahead wind (onshore + offshore) forecast, sum of the four TSO areas, local days 01.10.2018-14.01.2022, GW"
+    sql: |
+      WITH q AS (
+        SELECT delivery_start, sum(generation) AS mw
+        FROM entsoe_wind_solar_forecast_neighbours.forecast
+        WHERE area IN ('DE_50HZ', 'DE_AMPRION', 'DE_TENNET', 'DE_TRANSNETBW') AND forecast_type = 'day_ahead' AND production_type IN ('wind_onshore', 'wind_offshore')
+          AND delivery_start >= TIMESTAMPTZ '2018-10-01 00:00:00 Europe/Berlin'
+          AND delivery_start <  TIMESTAMPTZ '2022-01-15 00:00:00 Europe/Berlin'
+        GROUP BY delivery_start),
+      h AS (SELECT date_trunc('hour', delivery_start) AS hour_start, avg(mw) / 1e3 AS gw FROM q GROUP BY 1)
+      SELECT avg(gw) FROM h
+    expected: 14.1
+    tolerance: 0.05
+    source: "Ben Amor & Ziel 2026, Recurrent Neural Networks with Linear Structures for Electricity Price Forecasting, arXiv 2512.04690v2, Appendix, Table 7, 01.10.2018-14.01.2022 (calibration window), https://arxiv.org/html/2512.04690"
+  - name: de_2018_2021_wind_std_gw
+    question: "Standard deviation of the hourly German day-ahead wind (onshore + offshore) forecast, sum of the four TSO areas, local days 01.10.2018-14.01.2022, GW"
+    sql: |
+      WITH q AS (
+        SELECT delivery_start, sum(generation) AS mw
+        FROM entsoe_wind_solar_forecast_neighbours.forecast
+        WHERE area IN ('DE_50HZ', 'DE_AMPRION', 'DE_TENNET', 'DE_TRANSNETBW') AND forecast_type = 'day_ahead' AND production_type IN ('wind_onshore', 'wind_offshore')
+          AND delivery_start >= TIMESTAMPTZ '2018-10-01 00:00:00 Europe/Berlin'
+          AND delivery_start <  TIMESTAMPTZ '2022-01-15 00:00:00 Europe/Berlin'
+        GROUP BY delivery_start),
+      h AS (SELECT date_trunc('hour', delivery_start) AS hour_start, avg(mw) / 1e3 AS gw FROM q GROUP BY 1)
+      SELECT stddev_samp(gw) FROM h
+    expected: 10.1
+    tolerance: 0.05
+    source: "Ben Amor & Ziel 2026, Recurrent Neural Networks with Linear Structures for Electricity Price Forecasting, arXiv 2512.04690v2, Appendix, Table 7, 01.10.2018-14.01.2022 (calibration window), https://arxiv.org/html/2512.04690"
+  - name: de_2018_2021_wind_min_gw
+    question: "Minimum of the hourly German day-ahead wind (onshore + offshore) forecast, sum of the four TSO areas, local days 01.10.2018-14.01.2022, GW"
+    sql: |
+      WITH q AS (
+        SELECT delivery_start, sum(generation) AS mw
+        FROM entsoe_wind_solar_forecast_neighbours.forecast
+        WHERE area IN ('DE_50HZ', 'DE_AMPRION', 'DE_TENNET', 'DE_TRANSNETBW') AND forecast_type = 'day_ahead' AND production_type IN ('wind_onshore', 'wind_offshore')
+          AND delivery_start >= TIMESTAMPTZ '2018-10-01 00:00:00 Europe/Berlin'
+          AND delivery_start <  TIMESTAMPTZ '2022-01-15 00:00:00 Europe/Berlin'
+        GROUP BY delivery_start),
+      h AS (SELECT date_trunc('hour', delivery_start) AS hour_start, avg(mw) / 1e3 AS gw FROM q GROUP BY 1)
+      SELECT min(gw) FROM h
+    expected: 0.2
+    tolerance: 0.05
+    source: "Ben Amor & Ziel 2026, Recurrent Neural Networks with Linear Structures for Electricity Price Forecasting, arXiv 2512.04690v2, Appendix, Table 7, 01.10.2018-14.01.2022 (calibration window), https://arxiv.org/html/2512.04690"
+  - name: de_2018_2021_wind_q25_gw
+    question: "First quartile of the hourly German day-ahead wind (onshore + offshore) forecast, sum of the four TSO areas, local days 01.10.2018-14.01.2022, GW"
+    sql: |
+      WITH q AS (
+        SELECT delivery_start, sum(generation) AS mw
+        FROM entsoe_wind_solar_forecast_neighbours.forecast
+        WHERE area IN ('DE_50HZ', 'DE_AMPRION', 'DE_TENNET', 'DE_TRANSNETBW') AND forecast_type = 'day_ahead' AND production_type IN ('wind_onshore', 'wind_offshore')
+          AND delivery_start >= TIMESTAMPTZ '2018-10-01 00:00:00 Europe/Berlin'
+          AND delivery_start <  TIMESTAMPTZ '2022-01-15 00:00:00 Europe/Berlin'
+        GROUP BY delivery_start),
+      h AS (SELECT date_trunc('hour', delivery_start) AS hour_start, avg(mw) / 1e3 AS gw FROM q GROUP BY 1)
+      SELECT quantile_cont(gw, 0.25) FROM h
+    expected: 6.1
+    tolerance: 0.05
+    source: "Ben Amor & Ziel 2026, Recurrent Neural Networks with Linear Structures for Electricity Price Forecasting, arXiv 2512.04690v2, Appendix, Table 7, 01.10.2018-14.01.2022 (calibration window), https://arxiv.org/html/2512.04690"
+  - name: de_2018_2021_wind_median_gw
+    question: "Median of the hourly German day-ahead wind (onshore + offshore) forecast, sum of the four TSO areas, local days 01.10.2018-14.01.2022, GW"
+    sql: |
+      WITH q AS (
+        SELECT delivery_start, sum(generation) AS mw
+        FROM entsoe_wind_solar_forecast_neighbours.forecast
+        WHERE area IN ('DE_50HZ', 'DE_AMPRION', 'DE_TENNET', 'DE_TRANSNETBW') AND forecast_type = 'day_ahead' AND production_type IN ('wind_onshore', 'wind_offshore')
+          AND delivery_start >= TIMESTAMPTZ '2018-10-01 00:00:00 Europe/Berlin'
+          AND delivery_start <  TIMESTAMPTZ '2022-01-15 00:00:00 Europe/Berlin'
+        GROUP BY delivery_start),
+      h AS (SELECT date_trunc('hour', delivery_start) AS hour_start, avg(mw) / 1e3 AS gw FROM q GROUP BY 1)
+      SELECT median(gw) FROM h
+    expected: 11.5
+    tolerance: 0.05
+    source: "Ben Amor & Ziel 2026, Recurrent Neural Networks with Linear Structures for Electricity Price Forecasting, arXiv 2512.04690v2, Appendix, Table 7, 01.10.2018-14.01.2022 (calibration window), https://arxiv.org/html/2512.04690"
+  - name: de_2018_2021_wind_q75_gw
+    question: "Third quartile of the hourly German day-ahead wind (onshore + offshore) forecast, sum of the four TSO areas, local days 01.10.2018-14.01.2022, GW"
+    sql: |
+      WITH q AS (
+        SELECT delivery_start, sum(generation) AS mw
+        FROM entsoe_wind_solar_forecast_neighbours.forecast
+        WHERE area IN ('DE_50HZ', 'DE_AMPRION', 'DE_TENNET', 'DE_TRANSNETBW') AND forecast_type = 'day_ahead' AND production_type IN ('wind_onshore', 'wind_offshore')
+          AND delivery_start >= TIMESTAMPTZ '2018-10-01 00:00:00 Europe/Berlin'
+          AND delivery_start <  TIMESTAMPTZ '2022-01-15 00:00:00 Europe/Berlin'
+        GROUP BY delivery_start),
+      h AS (SELECT date_trunc('hour', delivery_start) AS hour_start, avg(mw) / 1e3 AS gw FROM q GROUP BY 1)
+      SELECT quantile_cont(gw, 0.75) FROM h
+    expected: 19.9
+    tolerance: 0.05
+    source: "Ben Amor & Ziel 2026, Recurrent Neural Networks with Linear Structures for Electricity Price Forecasting, arXiv 2512.04690v2, Appendix, Table 7, 01.10.2018-14.01.2022 (calibration window), https://arxiv.org/html/2512.04690"
+  - name: de_2018_2021_wind_max_gw
+    question: "Maximum of the hourly German day-ahead wind (onshore + offshore) forecast, sum of the four TSO areas, local days 01.10.2018-14.01.2022, GW"
+    sql: |
+      WITH q AS (
+        SELECT delivery_start, sum(generation) AS mw
+        FROM entsoe_wind_solar_forecast_neighbours.forecast
+        WHERE area IN ('DE_50HZ', 'DE_AMPRION', 'DE_TENNET', 'DE_TRANSNETBW') AND forecast_type = 'day_ahead' AND production_type IN ('wind_onshore', 'wind_offshore')
+          AND delivery_start >= TIMESTAMPTZ '2018-10-01 00:00:00 Europe/Berlin'
+          AND delivery_start <  TIMESTAMPTZ '2022-01-15 00:00:00 Europe/Berlin'
+        GROUP BY delivery_start),
+      h AS (SELECT date_trunc('hour', delivery_start) AS hour_start, avg(mw) / 1e3 AS gw FROM q GROUP BY 1)
+      SELECT max(gw) FROM h
+    expected: 47.2
+    tolerance: 0.05
+    source: "Ben Amor & Ziel 2026, Recurrent Neural Networks with Linear Structures for Electricity Price Forecasting, arXiv 2512.04690v2, Appendix, Table 7, 01.10.2018-14.01.2022 (calibration window), https://arxiv.org/html/2512.04690"
+  - name: de_2018_2021_pv_mean_gw
+    question: "Mean of the hourly German day-ahead solar forecast, sum of the four TSO areas, local days 01.10.2018-14.01.2022, GW"
+    sql: |
+      WITH q AS (
+        SELECT delivery_start, sum(generation) AS mw
+        FROM entsoe_wind_solar_forecast_neighbours.forecast
+        WHERE area IN ('DE_50HZ', 'DE_AMPRION', 'DE_TENNET', 'DE_TRANSNETBW') AND forecast_type = 'day_ahead' AND production_type = 'solar'
+          AND delivery_start >= TIMESTAMPTZ '2018-10-01 00:00:00 Europe/Berlin'
+          AND delivery_start <  TIMESTAMPTZ '2022-01-15 00:00:00 Europe/Berlin'
+        GROUP BY delivery_start),
+      h AS (SELECT date_trunc('hour', delivery_start) AS hour_start, avg(mw) / 1e3 AS gw FROM q GROUP BY 1)
+      SELECT avg(gw) FROM h
+    expected: 4.8
+    tolerance: 0.05
+    source: "Ben Amor & Ziel 2026, Recurrent Neural Networks with Linear Structures for Electricity Price Forecasting, arXiv 2512.04690v2, Appendix, Table 7, 01.10.2018-14.01.2022 (calibration window), https://arxiv.org/html/2512.04690"
+  - name: de_2018_2021_pv_std_gw
+    question: "Standard deviation of the hourly German day-ahead solar forecast, sum of the four TSO areas, local days 01.10.2018-14.01.2022, GW"
+    sql: |
+      WITH q AS (
+        SELECT delivery_start, sum(generation) AS mw
+        FROM entsoe_wind_solar_forecast_neighbours.forecast
+        WHERE area IN ('DE_50HZ', 'DE_AMPRION', 'DE_TENNET', 'DE_TRANSNETBW') AND forecast_type = 'day_ahead' AND production_type = 'solar'
+          AND delivery_start >= TIMESTAMPTZ '2018-10-01 00:00:00 Europe/Berlin'
+          AND delivery_start <  TIMESTAMPTZ '2022-01-15 00:00:00 Europe/Berlin'
+        GROUP BY delivery_start),
+      h AS (SELECT date_trunc('hour', delivery_start) AS hour_start, avg(mw) / 1e3 AS gw FROM q GROUP BY 1)
+      SELECT stddev_samp(gw) FROM h
+    expected: 7.6
+    tolerance: 0.05
+    source: "Ben Amor & Ziel 2026, Recurrent Neural Networks with Linear Structures for Electricity Price Forecasting, arXiv 2512.04690v2, Appendix, Table 7, 01.10.2018-14.01.2022 (calibration window), https://arxiv.org/html/2512.04690"
+  - name: de_2018_2021_pv_median_gw
+    question: "Median of the hourly German day-ahead solar forecast, sum of the four TSO areas, local days 01.10.2018-14.01.2022, GW"
+    sql: |
+      WITH q AS (
+        SELECT delivery_start, sum(generation) AS mw
+        FROM entsoe_wind_solar_forecast_neighbours.forecast
+        WHERE area IN ('DE_50HZ', 'DE_AMPRION', 'DE_TENNET', 'DE_TRANSNETBW') AND forecast_type = 'day_ahead' AND production_type = 'solar'
+          AND delivery_start >= TIMESTAMPTZ '2018-10-01 00:00:00 Europe/Berlin'
+          AND delivery_start <  TIMESTAMPTZ '2022-01-15 00:00:00 Europe/Berlin'
+        GROUP BY delivery_start),
+      h AS (SELECT date_trunc('hour', delivery_start) AS hour_start, avg(mw) / 1e3 AS gw FROM q GROUP BY 1)
+      SELECT median(gw) FROM h
+    expected: 0.1
+    tolerance: 0.05
+    source: "Ben Amor & Ziel 2026, Recurrent Neural Networks with Linear Structures for Electricity Price Forecasting, arXiv 2512.04690v2, Appendix, Table 7, 01.10.2018-14.01.2022 (calibration window), https://arxiv.org/html/2512.04690"
+  - name: de_2018_2021_pv_q75_gw
+    question: "Third quartile of the hourly German day-ahead solar forecast, sum of the four TSO areas, local days 01.10.2018-14.01.2022, GW"
+    sql: |
+      WITH q AS (
+        SELECT delivery_start, sum(generation) AS mw
+        FROM entsoe_wind_solar_forecast_neighbours.forecast
+        WHERE area IN ('DE_50HZ', 'DE_AMPRION', 'DE_TENNET', 'DE_TRANSNETBW') AND forecast_type = 'day_ahead' AND production_type = 'solar'
+          AND delivery_start >= TIMESTAMPTZ '2018-10-01 00:00:00 Europe/Berlin'
+          AND delivery_start <  TIMESTAMPTZ '2022-01-15 00:00:00 Europe/Berlin'
+        GROUP BY delivery_start),
+      h AS (SELECT date_trunc('hour', delivery_start) AS hour_start, avg(mw) / 1e3 AS gw FROM q GROUP BY 1)
+      SELECT quantile_cont(gw, 0.75) FROM h
+    expected: 7.4
+    tolerance: 0.05
+    source: "Ben Amor & Ziel 2026, Recurrent Neural Networks with Linear Structures for Electricity Price Forecasting, arXiv 2512.04690v2, Appendix, Table 7, 01.10.2018-14.01.2022 (calibration window), https://arxiv.org/html/2512.04690"
+  - name: de_2018_2021_pv_max_gw
+    question: "Maximum of the hourly German day-ahead solar forecast, sum of the four TSO areas, local days 01.10.2018-14.01.2022, GW"
+    sql: |
+      WITH q AS (
+        SELECT delivery_start, sum(generation) AS mw
+        FROM entsoe_wind_solar_forecast_neighbours.forecast
+        WHERE area IN ('DE_50HZ', 'DE_AMPRION', 'DE_TENNET', 'DE_TRANSNETBW') AND forecast_type = 'day_ahead' AND production_type = 'solar'
+          AND delivery_start >= TIMESTAMPTZ '2018-10-01 00:00:00 Europe/Berlin'
+          AND delivery_start <  TIMESTAMPTZ '2022-01-15 00:00:00 Europe/Berlin'
+        GROUP BY delivery_start),
+      h AS (SELECT date_trunc('hour', delivery_start) AS hour_start, avg(mw) / 1e3 AS gw FROM q GROUP BY 1)
+      SELECT max(gw) FROM h
+    expected: 36.4
+    tolerance: 0.05
+    source: "Ben Amor & Ziel 2026, Recurrent Neural Networks with Linear Structures for Electricity Price Forecasting, arXiv 2512.04690v2, Appendix, Table 7, 01.10.2018-14.01.2022 (calibration window), https://arxiv.org/html/2512.04690"
+  - name: de_2022_2024_wind_mean_gw
+    question: "Mean of the hourly German day-ahead wind (onshore + offshore) forecast, sum of the four TSO areas, local days 15.01.2022-13.01.2025, GW"
+    sql: |
+      WITH q AS (
+        SELECT delivery_start, sum(generation) AS mw
+        FROM entsoe_wind_solar_forecast_neighbours.forecast
+        WHERE area IN ('DE_50HZ', 'DE_AMPRION', 'DE_TENNET', 'DE_TRANSNETBW') AND forecast_type = 'day_ahead' AND production_type IN ('wind_onshore', 'wind_offshore')
+          AND delivery_start >= TIMESTAMPTZ '2022-01-15 00:00:00 Europe/Berlin'
+          AND delivery_start <  TIMESTAMPTZ '2025-01-14 00:00:00 Europe/Berlin'
+        GROUP BY delivery_start),
+      h AS (SELECT date_trunc('hour', delivery_start) AS hour_start, avg(mw) / 1e3 AS gw FROM q GROUP BY 1)
+      SELECT avg(gw) FROM h
+    expected: 15.4
+    tolerance: 0.05
+    source: "Ben Amor & Ziel 2026, Recurrent Neural Networks with Linear Structures for Electricity Price Forecasting, arXiv 2512.04690v2, Appendix, Table 7, 15.01.2022-13.01.2025 (test period), https://arxiv.org/html/2512.04690"
+  - name: de_2022_2024_wind_std_gw
+    question: "Standard deviation of the hourly German day-ahead wind (onshore + offshore) forecast, sum of the four TSO areas, local days 15.01.2022-13.01.2025, GW"
+    sql: |
+      WITH q AS (
+        SELECT delivery_start, sum(generation) AS mw
+        FROM entsoe_wind_solar_forecast_neighbours.forecast
+        WHERE area IN ('DE_50HZ', 'DE_AMPRION', 'DE_TENNET', 'DE_TRANSNETBW') AND forecast_type = 'day_ahead' AND production_type IN ('wind_onshore', 'wind_offshore')
+          AND delivery_start >= TIMESTAMPTZ '2022-01-15 00:00:00 Europe/Berlin'
+          AND delivery_start <  TIMESTAMPTZ '2025-01-14 00:00:00 Europe/Berlin'
+        GROUP BY delivery_start),
+      h AS (SELECT date_trunc('hour', delivery_start) AS hour_start, avg(mw) / 1e3 AS gw FROM q GROUP BY 1)
+      SELECT stddev_samp(gw) FROM h
+    expected: 11.5
+    tolerance: 0.05
+    source: "Ben Amor & Ziel 2026, Recurrent Neural Networks with Linear Structures for Electricity Price Forecasting, arXiv 2512.04690v2, Appendix, Table 7, 15.01.2022-13.01.2025 (test period), https://arxiv.org/html/2512.04690"
+  - name: de_2022_2024_wind_min_gw
+    question: "Minimum of the hourly German day-ahead wind (onshore + offshore) forecast, sum of the four TSO areas, local days 15.01.2022-13.01.2025, GW"
+    sql: |
+      WITH q AS (
+        SELECT delivery_start, sum(generation) AS mw
+        FROM entsoe_wind_solar_forecast_neighbours.forecast
+        WHERE area IN ('DE_50HZ', 'DE_AMPRION', 'DE_TENNET', 'DE_TRANSNETBW') AND forecast_type = 'day_ahead' AND production_type IN ('wind_onshore', 'wind_offshore')
+          AND delivery_start >= TIMESTAMPTZ '2022-01-15 00:00:00 Europe/Berlin'
+          AND delivery_start <  TIMESTAMPTZ '2025-01-14 00:00:00 Europe/Berlin'
+        GROUP BY delivery_start),
+      h AS (SELECT date_trunc('hour', delivery_start) AS hour_start, avg(mw) / 1e3 AS gw FROM q GROUP BY 1)
+      SELECT min(gw) FROM h
+    expected: 0.2
+    tolerance: 0.05
+    source: "Ben Amor & Ziel 2026, Recurrent Neural Networks with Linear Structures for Electricity Price Forecasting, arXiv 2512.04690v2, Appendix, Table 7, 15.01.2022-13.01.2025 (test period), https://arxiv.org/html/2512.04690"
+  - name: de_2022_2024_wind_q25_gw
+    question: "First quartile of the hourly German day-ahead wind (onshore + offshore) forecast, sum of the four TSO areas, local days 15.01.2022-13.01.2025, GW"
+    sql: |
+      WITH q AS (
+        SELECT delivery_start, sum(generation) AS mw
+        FROM entsoe_wind_solar_forecast_neighbours.forecast
+        WHERE area IN ('DE_50HZ', 'DE_AMPRION', 'DE_TENNET', 'DE_TRANSNETBW') AND forecast_type = 'day_ahead' AND production_type IN ('wind_onshore', 'wind_offshore')
+          AND delivery_start >= TIMESTAMPTZ '2022-01-15 00:00:00 Europe/Berlin'
+          AND delivery_start <  TIMESTAMPTZ '2025-01-14 00:00:00 Europe/Berlin'
+        GROUP BY delivery_start),
+      h AS (SELECT date_trunc('hour', delivery_start) AS hour_start, avg(mw) / 1e3 AS gw FROM q GROUP BY 1)
+      SELECT quantile_cont(gw, 0.25) FROM h
+    expected: 6
+    tolerance: 0.05
+    source: "Ben Amor & Ziel 2026, Recurrent Neural Networks with Linear Structures for Electricity Price Forecasting, arXiv 2512.04690v2, Appendix, Table 7, 15.01.2022-13.01.2025 (test period), https://arxiv.org/html/2512.04690"
+  - name: de_2022_2024_wind_median_gw
+    question: "Median of the hourly German day-ahead wind (onshore + offshore) forecast, sum of the four TSO areas, local days 15.01.2022-13.01.2025, GW"
+    sql: |
+      WITH q AS (
+        SELECT delivery_start, sum(generation) AS mw
+        FROM entsoe_wind_solar_forecast_neighbours.forecast
+        WHERE area IN ('DE_50HZ', 'DE_AMPRION', 'DE_TENNET', 'DE_TRANSNETBW') AND forecast_type = 'day_ahead' AND production_type IN ('wind_onshore', 'wind_offshore')
+          AND delivery_start >= TIMESTAMPTZ '2022-01-15 00:00:00 Europe/Berlin'
+          AND delivery_start <  TIMESTAMPTZ '2025-01-14 00:00:00 Europe/Berlin'
+        GROUP BY delivery_start),
+      h AS (SELECT date_trunc('hour', delivery_start) AS hour_start, avg(mw) / 1e3 AS gw FROM q GROUP BY 1)
+      SELECT median(gw) FROM h
+    expected: 12.3
+    tolerance: 0.05
+    source: "Ben Amor & Ziel 2026, Recurrent Neural Networks with Linear Structures for Electricity Price Forecasting, arXiv 2512.04690v2, Appendix, Table 7, 15.01.2022-13.01.2025 (test period), https://arxiv.org/html/2512.04690"
+  - name: de_2022_2024_wind_q75_gw
+    question: "Third quartile of the hourly German day-ahead wind (onshore + offshore) forecast, sum of the four TSO areas, local days 15.01.2022-13.01.2025, GW"
+    sql: |
+      WITH q AS (
+        SELECT delivery_start, sum(generation) AS mw
+        FROM entsoe_wind_solar_forecast_neighbours.forecast
+        WHERE area IN ('DE_50HZ', 'DE_AMPRION', 'DE_TENNET', 'DE_TRANSNETBW') AND forecast_type = 'day_ahead' AND production_type IN ('wind_onshore', 'wind_offshore')
+          AND delivery_start >= TIMESTAMPTZ '2022-01-15 00:00:00 Europe/Berlin'
+          AND delivery_start <  TIMESTAMPTZ '2025-01-14 00:00:00 Europe/Berlin'
+        GROUP BY delivery_start),
+      h AS (SELECT date_trunc('hour', delivery_start) AS hour_start, avg(mw) / 1e3 AS gw FROM q GROUP BY 1)
+      SELECT quantile_cont(gw, 0.75) FROM h
+    expected: 22.7
+    tolerance: 0.05
+    source: "Ben Amor & Ziel 2026, Recurrent Neural Networks with Linear Structures for Electricity Price Forecasting, arXiv 2512.04690v2, Appendix, Table 7, 15.01.2022-13.01.2025 (test period), https://arxiv.org/html/2512.04690"
+  - name: de_2022_2024_wind_max_gw
+    question: "Maximum of the hourly German day-ahead wind (onshore + offshore) forecast, sum of the four TSO areas, local days 15.01.2022-13.01.2025, GW"
+    sql: |
+      WITH q AS (
+        SELECT delivery_start, sum(generation) AS mw
+        FROM entsoe_wind_solar_forecast_neighbours.forecast
+        WHERE area IN ('DE_50HZ', 'DE_AMPRION', 'DE_TENNET', 'DE_TRANSNETBW') AND forecast_type = 'day_ahead' AND production_type IN ('wind_onshore', 'wind_offshore')
+          AND delivery_start >= TIMESTAMPTZ '2022-01-15 00:00:00 Europe/Berlin'
+          AND delivery_start <  TIMESTAMPTZ '2025-01-14 00:00:00 Europe/Berlin'
+        GROUP BY delivery_start),
+      h AS (SELECT date_trunc('hour', delivery_start) AS hour_start, avg(mw) / 1e3 AS gw FROM q GROUP BY 1)
+      SELECT max(gw) FROM h
+    expected: 50.3
+    tolerance: 0.05
+    source: "Ben Amor & Ziel 2026, Recurrent Neural Networks with Linear Structures for Electricity Price Forecasting, arXiv 2512.04690v2, Appendix, Table 7, 15.01.2022-13.01.2025 (test period), https://arxiv.org/html/2512.04690"
+  - name: de_2022_2024_pv_mean_gw
+    question: "Mean of the hourly German day-ahead solar forecast, sum of the four TSO areas, local days 15.01.2022-13.01.2025, GW"
+    sql: |
+      WITH q AS (
+        SELECT delivery_start, sum(generation) AS mw
+        FROM entsoe_wind_solar_forecast_neighbours.forecast
+        WHERE area IN ('DE_50HZ', 'DE_AMPRION', 'DE_TENNET', 'DE_TRANSNETBW') AND forecast_type = 'day_ahead' AND production_type = 'solar'
+          AND delivery_start >= TIMESTAMPTZ '2022-01-15 00:00:00 Europe/Berlin'
+          AND delivery_start <  TIMESTAMPTZ '2025-01-14 00:00:00 Europe/Berlin'
+        GROUP BY delivery_start),
+      h AS (SELECT date_trunc('hour', delivery_start) AS hour_start, avg(mw) / 1e3 AS gw FROM q GROUP BY 1)
+      SELECT avg(gw) FROM h
+    expected: 6.7
+    tolerance: 0.05
+    source: "Ben Amor & Ziel 2026, Recurrent Neural Networks with Linear Structures for Electricity Price Forecasting, arXiv 2512.04690v2, Appendix, Table 7, 15.01.2022-13.01.2025 (test period), https://arxiv.org/html/2512.04690"
+  - name: de_2022_2024_pv_std_gw
+    question: "Standard deviation of the hourly German day-ahead solar forecast, sum of the four TSO areas, local days 15.01.2022-13.01.2025, GW"
+    sql: |
+      WITH q AS (
+        SELECT delivery_start, sum(generation) AS mw
+        FROM entsoe_wind_solar_forecast_neighbours.forecast
+        WHERE area IN ('DE_50HZ', 'DE_AMPRION', 'DE_TENNET', 'DE_TRANSNETBW') AND forecast_type = 'day_ahead' AND production_type = 'solar'
+          AND delivery_start >= TIMESTAMPTZ '2022-01-15 00:00:00 Europe/Berlin'
+          AND delivery_start <  TIMESTAMPTZ '2025-01-14 00:00:00 Europe/Berlin'
+        GROUP BY delivery_start),
+      h AS (SELECT date_trunc('hour', delivery_start) AS hour_start, avg(mw) / 1e3 AS gw FROM q GROUP BY 1)
+      SELECT stddev_samp(gw) FROM h
+    expected: 10.2
+    tolerance: 0.05
+    source: "Ben Amor & Ziel 2026, Recurrent Neural Networks with Linear Structures for Electricity Price Forecasting, arXiv 2512.04690v2, Appendix, Table 7, 15.01.2022-13.01.2025 (test period), https://arxiv.org/html/2512.04690"
+  - name: de_2022_2024_pv_median_gw
+    question: "Median of the hourly German day-ahead solar forecast, sum of the four TSO areas, local days 15.01.2022-13.01.2025, GW"
+    sql: |
+      WITH q AS (
+        SELECT delivery_start, sum(generation) AS mw
+        FROM entsoe_wind_solar_forecast_neighbours.forecast
+        WHERE area IN ('DE_50HZ', 'DE_AMPRION', 'DE_TENNET', 'DE_TRANSNETBW') AND forecast_type = 'day_ahead' AND production_type = 'solar'
+          AND delivery_start >= TIMESTAMPTZ '2022-01-15 00:00:00 Europe/Berlin'
+          AND delivery_start <  TIMESTAMPTZ '2025-01-14 00:00:00 Europe/Berlin'
+        GROUP BY delivery_start),
+      h AS (SELECT date_trunc('hour', delivery_start) AS hour_start, avg(mw) / 1e3 AS gw FROM q GROUP BY 1)
+      SELECT median(gw) FROM h
+    expected: 0.2
+    tolerance: 0.05
+    source: "Ben Amor & Ziel 2026, Recurrent Neural Networks with Linear Structures for Electricity Price Forecasting, arXiv 2512.04690v2, Appendix, Table 7, 15.01.2022-13.01.2025 (test period), https://arxiv.org/html/2512.04690"
+  - name: de_2022_2024_pv_q75_gw
+    question: "Third quartile of the hourly German day-ahead solar forecast, sum of the four TSO areas, local days 15.01.2022-13.01.2025, GW"
+    sql: |
+      WITH q AS (
+        SELECT delivery_start, sum(generation) AS mw
+        FROM entsoe_wind_solar_forecast_neighbours.forecast
+        WHERE area IN ('DE_50HZ', 'DE_AMPRION', 'DE_TENNET', 'DE_TRANSNETBW') AND forecast_type = 'day_ahead' AND production_type = 'solar'
+          AND delivery_start >= TIMESTAMPTZ '2022-01-15 00:00:00 Europe/Berlin'
+          AND delivery_start <  TIMESTAMPTZ '2025-01-14 00:00:00 Europe/Berlin'
+        GROUP BY delivery_start),
+      h AS (SELECT date_trunc('hour', delivery_start) AS hour_start, avg(mw) / 1e3 AS gw FROM q GROUP BY 1)
+      SELECT quantile_cont(gw, 0.75) FROM h
+    expected: 10.7
+    tolerance: 0.05
+    source: "Ben Amor & Ziel 2026, Recurrent Neural Networks with Linear Structures for Electricity Price Forecasting, arXiv 2512.04690v2, Appendix, Table 7, 15.01.2022-13.01.2025 (test period), https://arxiv.org/html/2512.04690"
+  - name: de_2022_2024_pv_max_gw
+    question: "Maximum of the hourly German day-ahead solar forecast, sum of the four TSO areas, local days 15.01.2022-13.01.2025, GW"
+    sql: |
+      WITH q AS (
+        SELECT delivery_start, sum(generation) AS mw
+        FROM entsoe_wind_solar_forecast_neighbours.forecast
+        WHERE area IN ('DE_50HZ', 'DE_AMPRION', 'DE_TENNET', 'DE_TRANSNETBW') AND forecast_type = 'day_ahead' AND production_type = 'solar'
+          AND delivery_start >= TIMESTAMPTZ '2022-01-15 00:00:00 Europe/Berlin'
+          AND delivery_start <  TIMESTAMPTZ '2025-01-14 00:00:00 Europe/Berlin'
+        GROUP BY delivery_start),
+      h AS (SELECT date_trunc('hour', delivery_start) AS hour_start, avg(mw) / 1e3 AS gw FROM q GROUP BY 1)
+      SELECT max(gw) FROM h
+    expected: 48.2
+    tolerance: 0.05
+    source: "Ben Amor & Ziel 2026, Recurrent Neural Networks with Linear Structures for Electricity Price Forecasting, arXiv 2512.04690v2, Appendix, Table 7, 15.01.2022-13.01.2025 (test period), https://arxiv.org/html/2512.04690"
+  - name: de_tso4_2015_03_20_eclipse_solar_day_ahead_mw
+    question: "Day-ahead solar forecast of Germany (the four TSO areas) at 12:00 CET on 2015-03-20 (the solar eclipse), MW"
+    sql: |
+      SELECT sum(generation)
+      FROM entsoe_wind_solar_forecast_neighbours.forecast
+      WHERE area IN ('DE_50HZ', 'DE_AMPRION', 'DE_TENNET', 'DE_TRANSNETBW') AND forecast_type = 'day_ahead' AND production_type = 'solar'
+        AND delivery_start = TIMESTAMPTZ '2015-03-20 11:00:00Z'
+    expected: 22000
+    tolerance: 500
+    source: "ENTSO-E and SolarPower Europe 2015, Solar eclipse March 2015: the successful stress test of Europe's power grid, policy brief, p. 14, column D, Germany (the four TSO areas), https://eepublicdownloads.entsoe.eu/clean-documents/Publications/ENTSO-E%20general%20publications/entsoe_spe_pp_solar_eclipse_2015_web.pdf"
+  - name: fr_2015_03_20_eclipse_solar_day_ahead_mw
+    question: "Day-ahead solar forecast of France (RTE) at 12:00 CET on 2015-03-20 (the solar eclipse), MW"
+    sql: |
+      SELECT sum(generation)
+      FROM entsoe_wind_solar_forecast_neighbours.forecast
+      WHERE area = 'FR' AND forecast_type = 'day_ahead' AND production_type = 'solar'
+        AND delivery_start = TIMESTAMPTZ '2015-03-20 11:00:00Z'
+    expected: 2300
+    tolerance: 50
+    source: "ENTSO-E and SolarPower Europe 2015, Solar eclipse March 2015: the successful stress test of Europe's power grid, policy brief, p. 14, column D, France (RTE), https://eepublicdownloads.entsoe.eu/clean-documents/Publications/ENTSO-E%20general%20publications/entsoe_spe_pp_solar_eclipse_2015_web.pdf"
+  - name: at_2015_03_20_eclipse_solar_day_ahead_mw
+    question: "Day-ahead solar forecast of Austria (APG) at 12:00 CET on 2015-03-20 (the solar eclipse), MW"
+    sql: |
+      SELECT sum(generation)
+      FROM entsoe_wind_solar_forecast_neighbours.forecast
+      WHERE area = 'AT' AND forecast_type = 'day_ahead' AND production_type = 'solar'
+        AND delivery_start = TIMESTAMPTZ '2015-03-20 11:00:00Z'
+    expected: 400
+    tolerance: 50
+    source: "ENTSO-E and SolarPower Europe 2015, Solar eclipse March 2015: the successful stress test of Europe's power grid, policy brief, p. 14, column D, Austria (APG), https://eepublicdownloads.entsoe.eu/clean-documents/Publications/ENTSO-E%20general%20publications/entsoe_spe_pp_solar_eclipse_2015_web.pdf"
+  - name: fr_2023_12_30_offshore_constant_mw
+    question: "Most frequent value of the French day-ahead offshore wind forecast, local days 2023-12-30 to 2024-01-04, MW"
+    sql: |
+      SELECT mode(generation)
+      FROM entsoe_wind_solar_forecast_neighbours.forecast
+      WHERE area = 'FR' AND forecast_type = 'day_ahead' AND production_type = 'wind_offshore'
+        AND delivery_start >= TIMESTAMPTZ '2023-12-30 00:00:00 Europe/Paris'
+        AND delivery_start <  TIMESTAMPTZ '2024-01-05 00:00:00 Europe/Paris'
+    expected: 240
+    tolerance: 0.5
+    source: "Canaydin, Mascarenhas & Kazmi 2025, Transparency++: Bringing more transparency to the ENTSO-E TP data and forecasts, EFC 2025 slides, slide 15, https://efc.pwr.edu.pl/assets/EFC25/Canaydin.pdf"
+  - name: at_2015_onshore_day_ahead_completeness_pct
+    question: "Share of 2015 (local year, Brussels) covered by the day-ahead onshore wind forecast of Austria, %"
+    sql: |
+      SELECT 100 * coalesce(sum(epoch(resolution)), 0)
+             / epoch(TIMESTAMPTZ '2016-01-01 00:00:00 Europe/Brussels' - TIMESTAMPTZ '2015-01-01 00:00:00 Europe/Brussels')
+      FROM entsoe_wind_solar_forecast_neighbours.forecast
+      WHERE area = 'AT'
+        AND forecast_type = 'day_ahead' AND production_type = 'wind_onshore'
+        AND delivery_start >= TIMESTAMPTZ '2015-01-01 00:00:00 Europe/Brussels'
+        AND delivery_start <  TIMESTAMPTZ '2016-01-01 00:00:00 Europe/Brussels'
+    expected: 100
+    tolerance: 0.05
+    source: "Zsiborács, Pintér, Vincze & Baranyai 2022, Wind Power Generation Scheduling Accuracy in Europe: An Overview of ENTSO-E Countries, Sustainability 14(24):16446, Table 3, AT, 2015 DA, https://www.mdpi.com/2071-1050/14/24/16446"
+  - name: at_2017_onshore_day_ahead_completeness_pct
+    question: "Share of 2017 (local year, Brussels) covered by the day-ahead onshore wind forecast of Austria, %"
+    sql: |
+      SELECT 100 * coalesce(sum(epoch(resolution)), 0)
+             / epoch(TIMESTAMPTZ '2018-01-01 00:00:00 Europe/Brussels' - TIMESTAMPTZ '2017-01-01 00:00:00 Europe/Brussels')
+      FROM entsoe_wind_solar_forecast_neighbours.forecast
+      WHERE area = 'AT'
+        AND forecast_type = 'day_ahead' AND production_type = 'wind_onshore'
+        AND delivery_start >= TIMESTAMPTZ '2017-01-01 00:00:00 Europe/Brussels'
+        AND delivery_start <  TIMESTAMPTZ '2018-01-01 00:00:00 Europe/Brussels'
+    expected: 100
+    tolerance: 0.05
+    source: "Zsiborács, Pintér, Vincze & Baranyai 2022, Wind Power Generation Scheduling Accuracy in Europe: An Overview of ENTSO-E Countries, Sustainability 14(24):16446, Table 3, AT, 2017 DA, https://www.mdpi.com/2071-1050/14/24/16446"
+  - name: at_2018_onshore_day_ahead_completeness_pct
+    question: "Share of 2018 (local year, Brussels) covered by the day-ahead onshore wind forecast of Austria, %"
+    sql: |
+      SELECT 100 * coalesce(sum(epoch(resolution)), 0)
+             / epoch(TIMESTAMPTZ '2019-01-01 00:00:00 Europe/Brussels' - TIMESTAMPTZ '2018-01-01 00:00:00 Europe/Brussels')
+      FROM entsoe_wind_solar_forecast_neighbours.forecast
+      WHERE area = 'AT'
+        AND forecast_type = 'day_ahead' AND production_type = 'wind_onshore'
+        AND delivery_start >= TIMESTAMPTZ '2018-01-01 00:00:00 Europe/Brussels'
+        AND delivery_start <  TIMESTAMPTZ '2019-01-01 00:00:00 Europe/Brussels'
+    expected: 100
+    tolerance: 0.05
+    source: "Zsiborács, Pintér, Vincze & Baranyai 2022, Wind Power Generation Scheduling Accuracy in Europe: An Overview of ENTSO-E Countries, Sustainability 14(24):16446, Table 3, AT, 2018 DA, https://www.mdpi.com/2071-1050/14/24/16446"
+  - name: at_2019_onshore_day_ahead_completeness_pct
+    question: "Share of 2019 (local year, Brussels) covered by the day-ahead onshore wind forecast of Austria, %"
+    sql: |
+      SELECT 100 * coalesce(sum(epoch(resolution)), 0)
+             / epoch(TIMESTAMPTZ '2020-01-01 00:00:00 Europe/Brussels' - TIMESTAMPTZ '2019-01-01 00:00:00 Europe/Brussels')
+      FROM entsoe_wind_solar_forecast_neighbours.forecast
+      WHERE area = 'AT'
+        AND forecast_type = 'day_ahead' AND production_type = 'wind_onshore'
+        AND delivery_start >= TIMESTAMPTZ '2019-01-01 00:00:00 Europe/Brussels'
+        AND delivery_start <  TIMESTAMPTZ '2020-01-01 00:00:00 Europe/Brussels'
+    expected: 100
+    tolerance: 0.05
+    source: "Zsiborács, Pintér, Vincze & Baranyai 2022, Wind Power Generation Scheduling Accuracy in Europe: An Overview of ENTSO-E Countries, Sustainability 14(24):16446, Table 3, AT, 2019 DA, https://www.mdpi.com/2071-1050/14/24/16446"
+  - name: at_2020_onshore_day_ahead_completeness_pct
+    question: "Share of 2020 (local year, Brussels) covered by the day-ahead onshore wind forecast of Austria, %"
+    sql: |
+      SELECT 100 * coalesce(sum(epoch(resolution)), 0)
+             / epoch(TIMESTAMPTZ '2021-01-01 00:00:00 Europe/Brussels' - TIMESTAMPTZ '2020-01-01 00:00:00 Europe/Brussels')
+      FROM entsoe_wind_solar_forecast_neighbours.forecast
+      WHERE area = 'AT'
+        AND forecast_type = 'day_ahead' AND production_type = 'wind_onshore'
+        AND delivery_start >= TIMESTAMPTZ '2020-01-01 00:00:00 Europe/Brussels'
+        AND delivery_start <  TIMESTAMPTZ '2021-01-01 00:00:00 Europe/Brussels'
+    expected: 100
+    tolerance: 0.05
+    source: "Zsiborács, Pintér, Vincze & Baranyai 2022, Wind Power Generation Scheduling Accuracy in Europe: An Overview of ENTSO-E Countries, Sustainability 14(24):16446, Table 3, AT, 2020 DA, https://www.mdpi.com/2071-1050/14/24/16446"
+  - name: at_2021_onshore_day_ahead_completeness_pct
+    question: "Share of 2021 (local year, Brussels) covered by the day-ahead onshore wind forecast of Austria, %"
+    sql: |
+      SELECT 100 * coalesce(sum(epoch(resolution)), 0)
+             / epoch(TIMESTAMPTZ '2022-01-01 00:00:00 Europe/Brussels' - TIMESTAMPTZ '2021-01-01 00:00:00 Europe/Brussels')
+      FROM entsoe_wind_solar_forecast_neighbours.forecast
+      WHERE area = 'AT'
+        AND forecast_type = 'day_ahead' AND production_type = 'wind_onshore'
+        AND delivery_start >= TIMESTAMPTZ '2021-01-01 00:00:00 Europe/Brussels'
+        AND delivery_start <  TIMESTAMPTZ '2022-01-01 00:00:00 Europe/Brussels'
+    expected: 100
+    tolerance: 0.05
+    source: "Zsiborács, Pintér, Vincze & Baranyai 2022, Wind Power Generation Scheduling Accuracy in Europe: An Overview of ENTSO-E Countries, Sustainability 14(24):16446, Table 3, AT, 2021 DA, https://www.mdpi.com/2071-1050/14/24/16446"
+  - name: at_2018_onshore_intraday_completeness_pct
+    question: "Share of 2018 (local year, Brussels) covered by the intraday onshore wind forecast of Austria, %"
+    sql: |
+      SELECT 100 * coalesce(sum(epoch(resolution)), 0)
+             / epoch(TIMESTAMPTZ '2019-01-01 00:00:00 Europe/Brussels' - TIMESTAMPTZ '2018-01-01 00:00:00 Europe/Brussels')
+      FROM entsoe_wind_solar_forecast_neighbours.forecast
+      WHERE area = 'AT'
+        AND forecast_type = 'intraday' AND production_type = 'wind_onshore'
+        AND delivery_start >= TIMESTAMPTZ '2018-01-01 00:00:00 Europe/Brussels'
+        AND delivery_start <  TIMESTAMPTZ '2019-01-01 00:00:00 Europe/Brussels'
+    expected: 58.2
+    tolerance: 0.05
+    source: "Zsiborács, Pintér, Vincze & Baranyai 2022, Wind Power Generation Scheduling Accuracy in Europe: An Overview of ENTSO-E Countries, Sustainability 14(24):16446, Table 3, AT, 2018 ID, https://www.mdpi.com/2071-1050/14/24/16446"
+  - name: at_2019_onshore_intraday_completeness_pct
+    question: "Share of 2019 (local year, Brussels) covered by the intraday onshore wind forecast of Austria, %"
+    sql: |
+      SELECT 100 * coalesce(sum(epoch(resolution)), 0)
+             / epoch(TIMESTAMPTZ '2020-01-01 00:00:00 Europe/Brussels' - TIMESTAMPTZ '2019-01-01 00:00:00 Europe/Brussels')
+      FROM entsoe_wind_solar_forecast_neighbours.forecast
+      WHERE area = 'AT'
+        AND forecast_type = 'intraday' AND production_type = 'wind_onshore'
+        AND delivery_start >= TIMESTAMPTZ '2019-01-01 00:00:00 Europe/Brussels'
+        AND delivery_start <  TIMESTAMPTZ '2020-01-01 00:00:00 Europe/Brussels'
+    expected: 100
+    tolerance: 0.05
+    source: "Zsiborács, Pintér, Vincze & Baranyai 2022, Wind Power Generation Scheduling Accuracy in Europe: An Overview of ENTSO-E Countries, Sustainability 14(24):16446, Table 3, AT, 2019 ID, https://www.mdpi.com/2071-1050/14/24/16446"
+  - name: at_2020_onshore_intraday_completeness_pct
+    question: "Share of 2020 (local year, Brussels) covered by the intraday onshore wind forecast of Austria, %"
+    sql: |
+      SELECT 100 * coalesce(sum(epoch(resolution)), 0)
+             / epoch(TIMESTAMPTZ '2021-01-01 00:00:00 Europe/Brussels' - TIMESTAMPTZ '2020-01-01 00:00:00 Europe/Brussels')
+      FROM entsoe_wind_solar_forecast_neighbours.forecast
+      WHERE area = 'AT'
+        AND forecast_type = 'intraday' AND production_type = 'wind_onshore'
+        AND delivery_start >= TIMESTAMPTZ '2020-01-01 00:00:00 Europe/Brussels'
+        AND delivery_start <  TIMESTAMPTZ '2021-01-01 00:00:00 Europe/Brussels'
+    expected: 100
+    tolerance: 0.05
+    source: "Zsiborács, Pintér, Vincze & Baranyai 2022, Wind Power Generation Scheduling Accuracy in Europe: An Overview of ENTSO-E Countries, Sustainability 14(24):16446, Table 3, AT, 2020 ID, https://www.mdpi.com/2071-1050/14/24/16446"
+  - name: at_2021_onshore_intraday_completeness_pct
+    question: "Share of 2021 (local year, Brussels) covered by the intraday onshore wind forecast of Austria, %"
+    sql: |
+      SELECT 100 * coalesce(sum(epoch(resolution)), 0)
+             / epoch(TIMESTAMPTZ '2022-01-01 00:00:00 Europe/Brussels' - TIMESTAMPTZ '2021-01-01 00:00:00 Europe/Brussels')
+      FROM entsoe_wind_solar_forecast_neighbours.forecast
+      WHERE area = 'AT'
+        AND forecast_type = 'intraday' AND production_type = 'wind_onshore'
+        AND delivery_start >= TIMESTAMPTZ '2021-01-01 00:00:00 Europe/Brussels'
+        AND delivery_start <  TIMESTAMPTZ '2022-01-01 00:00:00 Europe/Brussels'
+    expected: 100
+    tolerance: 0.05
+    source: "Zsiborács, Pintér, Vincze & Baranyai 2022, Wind Power Generation Scheduling Accuracy in Europe: An Overview of ENTSO-E Countries, Sustainability 14(24):16446, Table 3, AT, 2021 ID, https://www.mdpi.com/2071-1050/14/24/16446"
+  - name: de_2015_onshore_day_ahead_completeness_pct
+    question: "Share of 2015 (local year, Brussels) covered by the day-ahead onshore wind forecast of Germany (DE_AT_LU), %"
+    sql: |
+      SELECT 100 * coalesce(sum(epoch(resolution)), 0)
+             / epoch(TIMESTAMPTZ '2016-01-01 00:00:00 Europe/Brussels' - TIMESTAMPTZ '2015-01-01 00:00:00 Europe/Brussels')
+      FROM entsoe_wind_solar_forecast_neighbours.forecast
+      WHERE area = 'DE_AT_LU'
+        AND forecast_type = 'day_ahead' AND production_type = 'wind_onshore'
+        AND delivery_start >= TIMESTAMPTZ '2015-01-01 00:00:00 Europe/Brussels'
+        AND delivery_start <  TIMESTAMPTZ '2016-01-01 00:00:00 Europe/Brussels'
+    expected: 100
+    tolerance: 0.05
+    source: "Zsiborács, Pintér, Vincze & Baranyai 2022, Wind Power Generation Scheduling Accuracy in Europe: An Overview of ENTSO-E Countries, Sustainability 14(24):16446, Table 3, DE, 2015 DA, https://www.mdpi.com/2071-1050/14/24/16446"
+  - name: de_2016_onshore_day_ahead_completeness_pct
+    question: "Share of 2016 (local year, Brussels) covered by the day-ahead onshore wind forecast of Germany (DE_AT_LU), %"
+    sql: |
+      SELECT 100 * coalesce(sum(epoch(resolution)), 0)
+             / epoch(TIMESTAMPTZ '2017-01-01 00:00:00 Europe/Brussels' - TIMESTAMPTZ '2016-01-01 00:00:00 Europe/Brussels')
+      FROM entsoe_wind_solar_forecast_neighbours.forecast
+      WHERE area = 'DE_AT_LU'
+        AND forecast_type = 'day_ahead' AND production_type = 'wind_onshore'
+        AND delivery_start >= TIMESTAMPTZ '2016-01-01 00:00:00 Europe/Brussels'
+        AND delivery_start <  TIMESTAMPTZ '2017-01-01 00:00:00 Europe/Brussels'
+    expected: 100
+    tolerance: 0.05
+    source: "Zsiborács, Pintér, Vincze & Baranyai 2022, Wind Power Generation Scheduling Accuracy in Europe: An Overview of ENTSO-E Countries, Sustainability 14(24):16446, Table 3, DE, 2016 DA, https://www.mdpi.com/2071-1050/14/24/16446"
+  - name: de_2017_onshore_day_ahead_completeness_pct
+    question: "Share of 2017 (local year, Brussels) covered by the day-ahead onshore wind forecast of Germany (DE_AT_LU), %"
+    sql: |
+      SELECT 100 * coalesce(sum(epoch(resolution)), 0)
+             / epoch(TIMESTAMPTZ '2018-01-01 00:00:00 Europe/Brussels' - TIMESTAMPTZ '2017-01-01 00:00:00 Europe/Brussels')
+      FROM entsoe_wind_solar_forecast_neighbours.forecast
+      WHERE area = 'DE_AT_LU'
+        AND forecast_type = 'day_ahead' AND production_type = 'wind_onshore'
+        AND delivery_start >= TIMESTAMPTZ '2017-01-01 00:00:00 Europe/Brussels'
+        AND delivery_start <  TIMESTAMPTZ '2018-01-01 00:00:00 Europe/Brussels'
+    expected: 100
+    tolerance: 0.05
+    source: "Zsiborács, Pintér, Vincze & Baranyai 2022, Wind Power Generation Scheduling Accuracy in Europe: An Overview of ENTSO-E Countries, Sustainability 14(24):16446, Table 3, DE, 2017 DA, https://www.mdpi.com/2071-1050/14/24/16446"
+  - name: de_2018_onshore_day_ahead_completeness_pct
+    question: "Share of 2018 (local year, Brussels) covered by the day-ahead onshore wind forecast of Germany (DE_AT_LU until 2018-09-30, then DE_LU), %"
+    sql: |
+      SELECT 100 * coalesce(sum(epoch(resolution)), 0)
+             / epoch(TIMESTAMPTZ '2019-01-01 00:00:00 Europe/Brussels' - TIMESTAMPTZ '2018-01-01 00:00:00 Europe/Brussels')
+      FROM entsoe_wind_solar_forecast_neighbours.forecast
+      WHERE ((area = 'DE_AT_LU' AND delivery_start <  TIMESTAMPTZ '2018-09-30 22:00:00Z')
+             OR (area = 'DE_LU' AND delivery_start >= TIMESTAMPTZ '2018-09-30 22:00:00Z'))
+        AND forecast_type = 'day_ahead' AND production_type = 'wind_onshore'
+        AND delivery_start >= TIMESTAMPTZ '2018-01-01 00:00:00 Europe/Brussels'
+        AND delivery_start <  TIMESTAMPTZ '2019-01-01 00:00:00 Europe/Brussels'
+    expected: 100
+    tolerance: 0.05
+    source: "Zsiborács, Pintér, Vincze & Baranyai 2022, Wind Power Generation Scheduling Accuracy in Europe: An Overview of ENTSO-E Countries, Sustainability 14(24):16446, Table 3, DE, 2018 DA, https://www.mdpi.com/2071-1050/14/24/16446"
+  - name: de_2019_onshore_day_ahead_completeness_pct
+    question: "Share of 2019 (local year, Brussels) covered by the day-ahead onshore wind forecast of Germany (DE_LU), %"
+    sql: |
+      SELECT 100 * coalesce(sum(epoch(resolution)), 0)
+             / epoch(TIMESTAMPTZ '2020-01-01 00:00:00 Europe/Brussels' - TIMESTAMPTZ '2019-01-01 00:00:00 Europe/Brussels')
+      FROM entsoe_wind_solar_forecast_neighbours.forecast
+      WHERE area = 'DE_LU'
+        AND forecast_type = 'day_ahead' AND production_type = 'wind_onshore'
+        AND delivery_start >= TIMESTAMPTZ '2019-01-01 00:00:00 Europe/Brussels'
+        AND delivery_start <  TIMESTAMPTZ '2020-01-01 00:00:00 Europe/Brussels'
+    expected: 100
+    tolerance: 0.05
+    source: "Zsiborács, Pintér, Vincze & Baranyai 2022, Wind Power Generation Scheduling Accuracy in Europe: An Overview of ENTSO-E Countries, Sustainability 14(24):16446, Table 3, DE, 2019 DA, https://www.mdpi.com/2071-1050/14/24/16446"
+  - name: de_2020_onshore_day_ahead_completeness_pct
+    question: "Share of 2020 (local year, Brussels) covered by the day-ahead onshore wind forecast of Germany (DE_LU), %"
+    sql: |
+      SELECT 100 * coalesce(sum(epoch(resolution)), 0)
+             / epoch(TIMESTAMPTZ '2021-01-01 00:00:00 Europe/Brussels' - TIMESTAMPTZ '2020-01-01 00:00:00 Europe/Brussels')
+      FROM entsoe_wind_solar_forecast_neighbours.forecast
+      WHERE area = 'DE_LU'
+        AND forecast_type = 'day_ahead' AND production_type = 'wind_onshore'
+        AND delivery_start >= TIMESTAMPTZ '2020-01-01 00:00:00 Europe/Brussels'
+        AND delivery_start <  TIMESTAMPTZ '2021-01-01 00:00:00 Europe/Brussels'
+    expected: 100
+    tolerance: 0.05
+    source: "Zsiborács, Pintér, Vincze & Baranyai 2022, Wind Power Generation Scheduling Accuracy in Europe: An Overview of ENTSO-E Countries, Sustainability 14(24):16446, Table 3, DE, 2020 DA, https://www.mdpi.com/2071-1050/14/24/16446"
+  - name: de_2021_onshore_day_ahead_completeness_pct
+    question: "Share of 2021 (local year, Brussels) covered by the day-ahead onshore wind forecast of Germany (DE_LU), %"
+    sql: |
+      SELECT 100 * coalesce(sum(epoch(resolution)), 0)
+             / epoch(TIMESTAMPTZ '2022-01-01 00:00:00 Europe/Brussels' - TIMESTAMPTZ '2021-01-01 00:00:00 Europe/Brussels')
+      FROM entsoe_wind_solar_forecast_neighbours.forecast
+      WHERE area = 'DE_LU'
+        AND forecast_type = 'day_ahead' AND production_type = 'wind_onshore'
+        AND delivery_start >= TIMESTAMPTZ '2021-01-01 00:00:00 Europe/Brussels'
+        AND delivery_start <  TIMESTAMPTZ '2022-01-01 00:00:00 Europe/Brussels'
+    expected: 100
+    tolerance: 0.05
+    source: "Zsiborács, Pintér, Vincze & Baranyai 2022, Wind Power Generation Scheduling Accuracy in Europe: An Overview of ENTSO-E Countries, Sustainability 14(24):16446, Table 3, DE, 2021 DA, https://www.mdpi.com/2071-1050/14/24/16446"
+  - name: de_2015_onshore_intraday_completeness_pct
+    question: "Share of 2015 (local year, Brussels) covered by the intraday onshore wind forecast of Germany (DE_AT_LU), %"
+    sql: |
+      SELECT 100 * coalesce(sum(epoch(resolution)), 0)
+             / epoch(TIMESTAMPTZ '2016-01-01 00:00:00 Europe/Brussels' - TIMESTAMPTZ '2015-01-01 00:00:00 Europe/Brussels')
+      FROM entsoe_wind_solar_forecast_neighbours.forecast
+      WHERE area = 'DE_AT_LU'
+        AND forecast_type = 'intraday' AND production_type = 'wind_onshore'
+        AND delivery_start >= TIMESTAMPTZ '2015-01-01 00:00:00 Europe/Brussels'
+        AND delivery_start <  TIMESTAMPTZ '2016-01-01 00:00:00 Europe/Brussels'
+    expected: 100
+    tolerance: 0.05
+    source: "Zsiborács, Pintér, Vincze & Baranyai 2022, Wind Power Generation Scheduling Accuracy in Europe: An Overview of ENTSO-E Countries, Sustainability 14(24):16446, Table 3, DE, 2015 ID, https://www.mdpi.com/2071-1050/14/24/16446"
+  - name: de_2016_onshore_intraday_completeness_pct
+    question: "Share of 2016 (local year, Brussels) covered by the intraday onshore wind forecast of Germany (DE_AT_LU), %"
+    sql: |
+      SELECT 100 * coalesce(sum(epoch(resolution)), 0)
+             / epoch(TIMESTAMPTZ '2017-01-01 00:00:00 Europe/Brussels' - TIMESTAMPTZ '2016-01-01 00:00:00 Europe/Brussels')
+      FROM entsoe_wind_solar_forecast_neighbours.forecast
+      WHERE area = 'DE_AT_LU'
+        AND forecast_type = 'intraday' AND production_type = 'wind_onshore'
+        AND delivery_start >= TIMESTAMPTZ '2016-01-01 00:00:00 Europe/Brussels'
+        AND delivery_start <  TIMESTAMPTZ '2017-01-01 00:00:00 Europe/Brussels'
+    expected: 100
+    tolerance: 0.05
+    source: "Zsiborács, Pintér, Vincze & Baranyai 2022, Wind Power Generation Scheduling Accuracy in Europe: An Overview of ENTSO-E Countries, Sustainability 14(24):16446, Table 3, DE, 2016 ID, https://www.mdpi.com/2071-1050/14/24/16446"
+  - name: de_2017_onshore_intraday_completeness_pct
+    question: "Share of 2017 (local year, Brussels) covered by the intraday onshore wind forecast of Germany (DE_AT_LU), %"
+    sql: |
+      SELECT 100 * coalesce(sum(epoch(resolution)), 0)
+             / epoch(TIMESTAMPTZ '2018-01-01 00:00:00 Europe/Brussels' - TIMESTAMPTZ '2017-01-01 00:00:00 Europe/Brussels')
+      FROM entsoe_wind_solar_forecast_neighbours.forecast
+      WHERE area = 'DE_AT_LU'
+        AND forecast_type = 'intraday' AND production_type = 'wind_onshore'
+        AND delivery_start >= TIMESTAMPTZ '2017-01-01 00:00:00 Europe/Brussels'
+        AND delivery_start <  TIMESTAMPTZ '2018-01-01 00:00:00 Europe/Brussels'
+    expected: 100
+    tolerance: 0.05
+    source: "Zsiborács, Pintér, Vincze & Baranyai 2022, Wind Power Generation Scheduling Accuracy in Europe: An Overview of ENTSO-E Countries, Sustainability 14(24):16446, Table 3, DE, 2017 ID, https://www.mdpi.com/2071-1050/14/24/16446"
+  - name: de_2015_offshore_day_ahead_completeness_pct
+    question: "Share of 2015 (local year, Brussels) covered by the day-ahead offshore wind forecast of Germany (DE_AT_LU), %"
+    sql: |
+      SELECT 100 * coalesce(sum(epoch(resolution)), 0)
+             / epoch(TIMESTAMPTZ '2016-01-01 00:00:00 Europe/Brussels' - TIMESTAMPTZ '2015-01-01 00:00:00 Europe/Brussels')
+      FROM entsoe_wind_solar_forecast_neighbours.forecast
+      WHERE area = 'DE_AT_LU'
+        AND forecast_type = 'day_ahead' AND production_type = 'wind_offshore'
+        AND delivery_start >= TIMESTAMPTZ '2015-01-01 00:00:00 Europe/Brussels'
+        AND delivery_start <  TIMESTAMPTZ '2016-01-01 00:00:00 Europe/Brussels'
+    expected: 99.7
+    tolerance: 0.05
+    source: "Zsiborács, Pintér, Vincze & Baranyai 2022, Wind Power Generation Scheduling Accuracy in Europe: An Overview of ENTSO-E Countries, Sustainability 14(24):16446, Table 4, DE, 2015 DA, https://www.mdpi.com/2071-1050/14/24/16446"
+  - name: de_2016_offshore_day_ahead_completeness_pct
+    question: "Share of 2016 (local year, Brussels) covered by the day-ahead offshore wind forecast of Germany (DE_AT_LU), %"
+    sql: |
+      SELECT 100 * coalesce(sum(epoch(resolution)), 0)
+             / epoch(TIMESTAMPTZ '2017-01-01 00:00:00 Europe/Brussels' - TIMESTAMPTZ '2016-01-01 00:00:00 Europe/Brussels')
+      FROM entsoe_wind_solar_forecast_neighbours.forecast
+      WHERE area = 'DE_AT_LU'
+        AND forecast_type = 'day_ahead' AND production_type = 'wind_offshore'
+        AND delivery_start >= TIMESTAMPTZ '2016-01-01 00:00:00 Europe/Brussels'
+        AND delivery_start <  TIMESTAMPTZ '2017-01-01 00:00:00 Europe/Brussels'
+    expected: 100
+    tolerance: 0.05
+    source: "Zsiborács, Pintér, Vincze & Baranyai 2022, Wind Power Generation Scheduling Accuracy in Europe: An Overview of ENTSO-E Countries, Sustainability 14(24):16446, Table 4, DE, 2016 DA, https://www.mdpi.com/2071-1050/14/24/16446"
+  - name: de_2017_offshore_day_ahead_completeness_pct
+    question: "Share of 2017 (local year, Brussels) covered by the day-ahead offshore wind forecast of Germany (DE_AT_LU), %"
+    sql: |
+      SELECT 100 * coalesce(sum(epoch(resolution)), 0)
+             / epoch(TIMESTAMPTZ '2018-01-01 00:00:00 Europe/Brussels' - TIMESTAMPTZ '2017-01-01 00:00:00 Europe/Brussels')
+      FROM entsoe_wind_solar_forecast_neighbours.forecast
+      WHERE area = 'DE_AT_LU'
+        AND forecast_type = 'day_ahead' AND production_type = 'wind_offshore'
+        AND delivery_start >= TIMESTAMPTZ '2017-01-01 00:00:00 Europe/Brussels'
+        AND delivery_start <  TIMESTAMPTZ '2018-01-01 00:00:00 Europe/Brussels'
+    expected: 100
+    tolerance: 0.05
+    source: "Zsiborács, Pintér, Vincze & Baranyai 2022, Wind Power Generation Scheduling Accuracy in Europe: An Overview of ENTSO-E Countries, Sustainability 14(24):16446, Table 4, DE, 2017 DA, https://www.mdpi.com/2071-1050/14/24/16446"
+  - name: de_2018_offshore_day_ahead_completeness_pct
+    question: "Share of 2018 (local year, Brussels) covered by the day-ahead offshore wind forecast of Germany (DE_AT_LU until 2018-09-30, then DE_LU), %"
+    sql: |
+      SELECT 100 * coalesce(sum(epoch(resolution)), 0)
+             / epoch(TIMESTAMPTZ '2019-01-01 00:00:00 Europe/Brussels' - TIMESTAMPTZ '2018-01-01 00:00:00 Europe/Brussels')
+      FROM entsoe_wind_solar_forecast_neighbours.forecast
+      WHERE ((area = 'DE_AT_LU' AND delivery_start <  TIMESTAMPTZ '2018-09-30 22:00:00Z')
+             OR (area = 'DE_LU' AND delivery_start >= TIMESTAMPTZ '2018-09-30 22:00:00Z'))
+        AND forecast_type = 'day_ahead' AND production_type = 'wind_offshore'
+        AND delivery_start >= TIMESTAMPTZ '2018-01-01 00:00:00 Europe/Brussels'
+        AND delivery_start <  TIMESTAMPTZ '2019-01-01 00:00:00 Europe/Brussels'
+    expected: 100
+    tolerance: 0.05
+    source: "Zsiborács, Pintér, Vincze & Baranyai 2022, Wind Power Generation Scheduling Accuracy in Europe: An Overview of ENTSO-E Countries, Sustainability 14(24):16446, Table 4, DE, 2018 DA, https://www.mdpi.com/2071-1050/14/24/16446"
+  - name: de_2019_offshore_day_ahead_completeness_pct
+    question: "Share of 2019 (local year, Brussels) covered by the day-ahead offshore wind forecast of Germany (DE_LU), %"
+    sql: |
+      SELECT 100 * coalesce(sum(epoch(resolution)), 0)
+             / epoch(TIMESTAMPTZ '2020-01-01 00:00:00 Europe/Brussels' - TIMESTAMPTZ '2019-01-01 00:00:00 Europe/Brussels')
+      FROM entsoe_wind_solar_forecast_neighbours.forecast
+      WHERE area = 'DE_LU'
+        AND forecast_type = 'day_ahead' AND production_type = 'wind_offshore'
+        AND delivery_start >= TIMESTAMPTZ '2019-01-01 00:00:00 Europe/Brussels'
+        AND delivery_start <  TIMESTAMPTZ '2020-01-01 00:00:00 Europe/Brussels'
+    expected: 100
+    tolerance: 0.05
+    source: "Zsiborács, Pintér, Vincze & Baranyai 2022, Wind Power Generation Scheduling Accuracy in Europe: An Overview of ENTSO-E Countries, Sustainability 14(24):16446, Table 4, DE, 2019 DA, https://www.mdpi.com/2071-1050/14/24/16446"
+  - name: de_2020_offshore_day_ahead_completeness_pct
+    question: "Share of 2020 (local year, Brussels) covered by the day-ahead offshore wind forecast of Germany (DE_LU), %"
+    sql: |
+      SELECT 100 * coalesce(sum(epoch(resolution)), 0)
+             / epoch(TIMESTAMPTZ '2021-01-01 00:00:00 Europe/Brussels' - TIMESTAMPTZ '2020-01-01 00:00:00 Europe/Brussels')
+      FROM entsoe_wind_solar_forecast_neighbours.forecast
+      WHERE area = 'DE_LU'
+        AND forecast_type = 'day_ahead' AND production_type = 'wind_offshore'
+        AND delivery_start >= TIMESTAMPTZ '2020-01-01 00:00:00 Europe/Brussels'
+        AND delivery_start <  TIMESTAMPTZ '2021-01-01 00:00:00 Europe/Brussels'
+    expected: 100
+    tolerance: 0.05
+    source: "Zsiborács, Pintér, Vincze & Baranyai 2022, Wind Power Generation Scheduling Accuracy in Europe: An Overview of ENTSO-E Countries, Sustainability 14(24):16446, Table 4, DE, 2020 DA, https://www.mdpi.com/2071-1050/14/24/16446"
+  - name: de_2021_offshore_day_ahead_completeness_pct
+    question: "Share of 2021 (local year, Brussels) covered by the day-ahead offshore wind forecast of Germany (DE_LU), %"
+    sql: |
+      SELECT 100 * coalesce(sum(epoch(resolution)), 0)
+             / epoch(TIMESTAMPTZ '2022-01-01 00:00:00 Europe/Brussels' - TIMESTAMPTZ '2021-01-01 00:00:00 Europe/Brussels')
+      FROM entsoe_wind_solar_forecast_neighbours.forecast
+      WHERE area = 'DE_LU'
+        AND forecast_type = 'day_ahead' AND production_type = 'wind_offshore'
+        AND delivery_start >= TIMESTAMPTZ '2021-01-01 00:00:00 Europe/Brussels'
+        AND delivery_start <  TIMESTAMPTZ '2022-01-01 00:00:00 Europe/Brussels'
+    expected: 100
+    tolerance: 0.05
+    source: "Zsiborács, Pintér, Vincze & Baranyai 2022, Wind Power Generation Scheduling Accuracy in Europe: An Overview of ENTSO-E Countries, Sustainability 14(24):16446, Table 4, DE, 2021 DA, https://www.mdpi.com/2071-1050/14/24/16446"
+  - name: de_2015_offshore_intraday_completeness_pct
+    question: "Share of 2015 (local year, Brussels) covered by the intraday offshore wind forecast of Germany (DE_AT_LU), %"
+    sql: |
+      SELECT 100 * coalesce(sum(epoch(resolution)), 0)
+             / epoch(TIMESTAMPTZ '2016-01-01 00:00:00 Europe/Brussels' - TIMESTAMPTZ '2015-01-01 00:00:00 Europe/Brussels')
+      FROM entsoe_wind_solar_forecast_neighbours.forecast
+      WHERE area = 'DE_AT_LU'
+        AND forecast_type = 'intraday' AND production_type = 'wind_offshore'
+        AND delivery_start >= TIMESTAMPTZ '2015-01-01 00:00:00 Europe/Brussels'
+        AND delivery_start <  TIMESTAMPTZ '2016-01-01 00:00:00 Europe/Brussels'
+    expected: 100
+    tolerance: 0.05
+    source: "Zsiborács, Pintér, Vincze & Baranyai 2022, Wind Power Generation Scheduling Accuracy in Europe: An Overview of ENTSO-E Countries, Sustainability 14(24):16446, Table 4, DE, 2015 ID, https://www.mdpi.com/2071-1050/14/24/16446"
+  - name: de_2016_offshore_intraday_completeness_pct
+    question: "Share of 2016 (local year, Brussels) covered by the intraday offshore wind forecast of Germany (DE_AT_LU), %"
+    sql: |
+      SELECT 100 * coalesce(sum(epoch(resolution)), 0)
+             / epoch(TIMESTAMPTZ '2017-01-01 00:00:00 Europe/Brussels' - TIMESTAMPTZ '2016-01-01 00:00:00 Europe/Brussels')
+      FROM entsoe_wind_solar_forecast_neighbours.forecast
+      WHERE area = 'DE_AT_LU'
+        AND forecast_type = 'intraday' AND production_type = 'wind_offshore'
+        AND delivery_start >= TIMESTAMPTZ '2016-01-01 00:00:00 Europe/Brussels'
+        AND delivery_start <  TIMESTAMPTZ '2017-01-01 00:00:00 Europe/Brussels'
+    expected: 100
+    tolerance: 0.05
+    source: "Zsiborács, Pintér, Vincze & Baranyai 2022, Wind Power Generation Scheduling Accuracy in Europe: An Overview of ENTSO-E Countries, Sustainability 14(24):16446, Table 4, DE, 2016 ID, https://www.mdpi.com/2071-1050/14/24/16446"
+  - name: de_2018_offshore_intraday_completeness_pct
+    question: "Share of 2018 (local year, Brussels) covered by the intraday offshore wind forecast of Germany (DE_AT_LU until 2018-09-30, then DE_LU), %"
+    sql: |
+      SELECT 100 * coalesce(sum(epoch(resolution)), 0)
+             / epoch(TIMESTAMPTZ '2019-01-01 00:00:00 Europe/Brussels' - TIMESTAMPTZ '2018-01-01 00:00:00 Europe/Brussels')
+      FROM entsoe_wind_solar_forecast_neighbours.forecast
+      WHERE ((area = 'DE_AT_LU' AND delivery_start <  TIMESTAMPTZ '2018-09-30 22:00:00Z')
+             OR (area = 'DE_LU' AND delivery_start >= TIMESTAMPTZ '2018-09-30 22:00:00Z'))
+        AND forecast_type = 'intraday' AND production_type = 'wind_offshore'
+        AND delivery_start >= TIMESTAMPTZ '2018-01-01 00:00:00 Europe/Brussels'
+        AND delivery_start <  TIMESTAMPTZ '2019-01-01 00:00:00 Europe/Brussels'
+    expected: 100
+    tolerance: 0.05
+    source: "Zsiborács, Pintér, Vincze & Baranyai 2022, Wind Power Generation Scheduling Accuracy in Europe: An Overview of ENTSO-E Countries, Sustainability 14(24):16446, Table 4, DE, 2018 ID, https://www.mdpi.com/2071-1050/14/24/16446"
+  - name: de_2019_offshore_intraday_completeness_pct
+    question: "Share of 2019 (local year, Brussels) covered by the intraday offshore wind forecast of Germany (DE_LU), %"
+    sql: |
+      SELECT 100 * coalesce(sum(epoch(resolution)), 0)
+             / epoch(TIMESTAMPTZ '2020-01-01 00:00:00 Europe/Brussels' - TIMESTAMPTZ '2019-01-01 00:00:00 Europe/Brussels')
+      FROM entsoe_wind_solar_forecast_neighbours.forecast
+      WHERE area = 'DE_LU'
+        AND forecast_type = 'intraday' AND production_type = 'wind_offshore'
+        AND delivery_start >= TIMESTAMPTZ '2019-01-01 00:00:00 Europe/Brussels'
+        AND delivery_start <  TIMESTAMPTZ '2020-01-01 00:00:00 Europe/Brussels'
+    expected: 100
+    tolerance: 0.05
+    source: "Zsiborács, Pintér, Vincze & Baranyai 2022, Wind Power Generation Scheduling Accuracy in Europe: An Overview of ENTSO-E Countries, Sustainability 14(24):16446, Table 4, DE, 2019 ID, https://www.mdpi.com/2071-1050/14/24/16446"
+  - name: de_2020_offshore_intraday_completeness_pct
+    question: "Share of 2020 (local year, Brussels) covered by the intraday offshore wind forecast of Germany (DE_LU), %"
+    sql: |
+      SELECT 100 * coalesce(sum(epoch(resolution)), 0)
+             / epoch(TIMESTAMPTZ '2021-01-01 00:00:00 Europe/Brussels' - TIMESTAMPTZ '2020-01-01 00:00:00 Europe/Brussels')
+      FROM entsoe_wind_solar_forecast_neighbours.forecast
+      WHERE area = 'DE_LU'
+        AND forecast_type = 'intraday' AND production_type = 'wind_offshore'
+        AND delivery_start >= TIMESTAMPTZ '2020-01-01 00:00:00 Europe/Brussels'
+        AND delivery_start <  TIMESTAMPTZ '2021-01-01 00:00:00 Europe/Brussels'
+    expected: 100
+    tolerance: 0.05
+    source: "Zsiborács, Pintér, Vincze & Baranyai 2022, Wind Power Generation Scheduling Accuracy in Europe: An Overview of ENTSO-E Countries, Sustainability 14(24):16446, Table 4, DE, 2020 ID, https://www.mdpi.com/2071-1050/14/24/16446"
+  - name: de_2021_offshore_intraday_completeness_pct
+    question: "Share of 2021 (local year, Brussels) covered by the intraday offshore wind forecast of Germany (DE_LU), %"
+    sql: |
+      SELECT 100 * coalesce(sum(epoch(resolution)), 0)
+             / epoch(TIMESTAMPTZ '2022-01-01 00:00:00 Europe/Brussels' - TIMESTAMPTZ '2021-01-01 00:00:00 Europe/Brussels')
+      FROM entsoe_wind_solar_forecast_neighbours.forecast
+      WHERE area = 'DE_LU'
+        AND forecast_type = 'intraday' AND production_type = 'wind_offshore'
+        AND delivery_start >= TIMESTAMPTZ '2021-01-01 00:00:00 Europe/Brussels'
+        AND delivery_start <  TIMESTAMPTZ '2022-01-01 00:00:00 Europe/Brussels'
+    expected: 100
+    tolerance: 0.05
+    source: "Zsiborács, Pintér, Vincze & Baranyai 2022, Wind Power Generation Scheduling Accuracy in Europe: An Overview of ENTSO-E Countries, Sustainability 14(24):16446, Table 4, DE, 2021 ID, https://www.mdpi.com/2071-1050/14/24/16446"
+  - name: fr_2015_onshore_day_ahead_completeness_pct
+    question: "Share of 2015 (local year, Brussels) covered by the day-ahead onshore wind forecast of France, %"
+    sql: |
+      SELECT 100 * coalesce(sum(epoch(resolution)), 0)
+             / epoch(TIMESTAMPTZ '2016-01-01 00:00:00 Europe/Brussels' - TIMESTAMPTZ '2015-01-01 00:00:00 Europe/Brussels')
+      FROM entsoe_wind_solar_forecast_neighbours.forecast
+      WHERE area = 'FR'
+        AND forecast_type = 'day_ahead' AND production_type = 'wind_onshore'
+        AND delivery_start >= TIMESTAMPTZ '2015-01-01 00:00:00 Europe/Brussels'
+        AND delivery_start <  TIMESTAMPTZ '2016-01-01 00:00:00 Europe/Brussels'
+    expected: 99.5
+    tolerance: 0.05
+    source: "Zsiborács, Pintér, Vincze & Baranyai 2022, Wind Power Generation Scheduling Accuracy in Europe: An Overview of ENTSO-E Countries, Sustainability 14(24):16446, Table 3, FR, 2015 DA, https://www.mdpi.com/2071-1050/14/24/16446"
+  - name: fr_2017_onshore_day_ahead_completeness_pct
+    question: "Share of 2017 (local year, Brussels) covered by the day-ahead onshore wind forecast of France, %"
+    sql: |
+      SELECT 100 * coalesce(sum(epoch(resolution)), 0)
+             / epoch(TIMESTAMPTZ '2018-01-01 00:00:00 Europe/Brussels' - TIMESTAMPTZ '2017-01-01 00:00:00 Europe/Brussels')
+      FROM entsoe_wind_solar_forecast_neighbours.forecast
+      WHERE area = 'FR'
+        AND forecast_type = 'day_ahead' AND production_type = 'wind_onshore'
+        AND delivery_start >= TIMESTAMPTZ '2017-01-01 00:00:00 Europe/Brussels'
+        AND delivery_start <  TIMESTAMPTZ '2018-01-01 00:00:00 Europe/Brussels'
+    expected: 99.8
+    tolerance: 0.05
+    source: "Zsiborács, Pintér, Vincze & Baranyai 2022, Wind Power Generation Scheduling Accuracy in Europe: An Overview of ENTSO-E Countries, Sustainability 14(24):16446, Table 3, FR, 2017 DA, https://www.mdpi.com/2071-1050/14/24/16446"
+  - name: fr_2021_onshore_day_ahead_completeness_pct
+    question: "Share of 2021 (local year, Brussels) covered by the day-ahead onshore wind forecast of France, %"
+    sql: |
+      SELECT 100 * coalesce(sum(epoch(resolution)), 0)
+             / epoch(TIMESTAMPTZ '2022-01-01 00:00:00 Europe/Brussels' - TIMESTAMPTZ '2021-01-01 00:00:00 Europe/Brussels')
+      FROM entsoe_wind_solar_forecast_neighbours.forecast
+      WHERE area = 'FR'
+        AND forecast_type = 'day_ahead' AND production_type = 'wind_onshore'
+        AND delivery_start >= TIMESTAMPTZ '2021-01-01 00:00:00 Europe/Brussels'
+        AND delivery_start <  TIMESTAMPTZ '2022-01-01 00:00:00 Europe/Brussels'
+    expected: 98.9
+    tolerance: 0.05
+    source: "Zsiborács, Pintér, Vincze & Baranyai 2022, Wind Power Generation Scheduling Accuracy in Europe: An Overview of ENTSO-E Countries, Sustainability 14(24):16446, Table 3, FR, 2021 DA, https://www.mdpi.com/2071-1050/14/24/16446"
+  - name: fr_2018_onshore_intraday_completeness_pct
+    question: "Share of 2018 (local year, Brussels) covered by the intraday onshore wind forecast of France, %"
+    sql: |
+      SELECT 100 * coalesce(sum(epoch(resolution)), 0)
+             / epoch(TIMESTAMPTZ '2019-01-01 00:00:00 Europe/Brussels' - TIMESTAMPTZ '2018-01-01 00:00:00 Europe/Brussels')
+      FROM entsoe_wind_solar_forecast_neighbours.forecast
+      WHERE area = 'FR'
+        AND forecast_type = 'intraday' AND production_type = 'wind_onshore'
+        AND delivery_start >= TIMESTAMPTZ '2018-01-01 00:00:00 Europe/Brussels'
+        AND delivery_start <  TIMESTAMPTZ '2019-01-01 00:00:00 Europe/Brussels'
+    expected: 48.3
+    tolerance: 0.05
+    source: "Zsiborács, Pintér, Vincze & Baranyai 2022, Wind Power Generation Scheduling Accuracy in Europe: An Overview of ENTSO-E Countries, Sustainability 14(24):16446, Table 3, FR, 2018 ID, https://www.mdpi.com/2071-1050/14/24/16446"
+  - name: fr_2019_onshore_intraday_completeness_pct
+    question: "Share of 2019 (local year, Brussels) covered by the intraday onshore wind forecast of France, %"
+    sql: |
+      SELECT 100 * coalesce(sum(epoch(resolution)), 0)
+             / epoch(TIMESTAMPTZ '2020-01-01 00:00:00 Europe/Brussels' - TIMESTAMPTZ '2019-01-01 00:00:00 Europe/Brussels')
+      FROM entsoe_wind_solar_forecast_neighbours.forecast
+      WHERE area = 'FR'
+        AND forecast_type = 'intraday' AND production_type = 'wind_onshore'
+        AND delivery_start >= TIMESTAMPTZ '2019-01-01 00:00:00 Europe/Brussels'
+        AND delivery_start <  TIMESTAMPTZ '2020-01-01 00:00:00 Europe/Brussels'
+    expected: 70.8
+    tolerance: 0.05
+    source: "Zsiborács, Pintér, Vincze & Baranyai 2022, Wind Power Generation Scheduling Accuracy in Europe: An Overview of ENTSO-E Countries, Sustainability 14(24):16446, Table 3, FR, 2019 ID, https://www.mdpi.com/2071-1050/14/24/16446"
+  - name: fr_2021_onshore_intraday_completeness_pct
+    question: "Share of 2021 (local year, Brussels) covered by the intraday onshore wind forecast of France, %"
+    sql: |
+      SELECT 100 * coalesce(sum(epoch(resolution)), 0)
+             / epoch(TIMESTAMPTZ '2022-01-01 00:00:00 Europe/Brussels' - TIMESTAMPTZ '2021-01-01 00:00:00 Europe/Brussels')
+      FROM entsoe_wind_solar_forecast_neighbours.forecast
+      WHERE area = 'FR'
+        AND forecast_type = 'intraday' AND production_type = 'wind_onshore'
+        AND delivery_start >= TIMESTAMPTZ '2021-01-01 00:00:00 Europe/Brussels'
+        AND delivery_start <  TIMESTAMPTZ '2022-01-01 00:00:00 Europe/Brussels'
+    expected: 70.8
+    tolerance: 0.05
+    source: "Zsiborács, Pintér, Vincze & Baranyai 2022, Wind Power Generation Scheduling Accuracy in Europe: An Overview of ENTSO-E Countries, Sustainability 14(24):16446, Table 3, FR, 2021 ID, https://www.mdpi.com/2071-1050/14/24/16446"
+  - name: it_2020_onshore_day_ahead_completeness_pct
+    question: "Share of 2020 (local year, Brussels) covered by the day-ahead onshore wind forecast of Italy (the whole country), %"
+    sql: |
+      SELECT 100 * coalesce(sum(epoch(resolution)), 0)
+             / epoch(TIMESTAMPTZ '2021-01-01 00:00:00 Europe/Brussels' - TIMESTAMPTZ '2020-01-01 00:00:00 Europe/Brussels')
+      FROM entsoe_wind_solar_forecast_neighbours.forecast
+      WHERE area = 'IT'
+        AND forecast_type = 'day_ahead' AND production_type = 'wind_onshore'
+        AND delivery_start >= TIMESTAMPTZ '2020-01-01 00:00:00 Europe/Brussels'
+        AND delivery_start <  TIMESTAMPTZ '2021-01-01 00:00:00 Europe/Brussels'
+    expected: 4.4
+    tolerance: 0.05
+    source: "Zsiborács, Pintér, Vincze & Baranyai 2022, Wind Power Generation Scheduling Accuracy in Europe: An Overview of ENTSO-E Countries, Sustainability 14(24):16446, Table 3, IT, 2020 DA, https://www.mdpi.com/2071-1050/14/24/16446"
+  - name: it_2021_onshore_intraday_completeness_pct
+    question: "Share of 2021 (local year, Brussels) covered by the intraday onshore wind forecast of Italy (the whole country), %"
+    sql: |
+      SELECT 100 * coalesce(sum(epoch(resolution)), 0)
+             / epoch(TIMESTAMPTZ '2022-01-01 00:00:00 Europe/Brussels' - TIMESTAMPTZ '2021-01-01 00:00:00 Europe/Brussels')
+      FROM entsoe_wind_solar_forecast_neighbours.forecast
+      WHERE area = 'IT'
+        AND forecast_type = 'intraday' AND production_type = 'wind_onshore'
+        AND delivery_start >= TIMESTAMPTZ '2021-01-01 00:00:00 Europe/Brussels'
+        AND delivery_start <  TIMESTAMPTZ '2022-01-01 00:00:00 Europe/Brussels'
+    expected: 98.6
+    tolerance: 0.05
+    source: "Zsiborács, Pintér, Vincze & Baranyai 2022, Wind Power Generation Scheduling Accuracy in Europe: An Overview of ENTSO-E Countries, Sustainability 14(24):16446, Table 3, IT, 2021 ID, https://www.mdpi.com/2071-1050/14/24/16446"
+  - name: at_2015_solar_day_ahead_completeness_pct
+    question: "Share of 2015 (local year, Brussels) covered by the day-ahead solar forecast of Austria, %"
+    sql: |
+      SELECT 100 * coalesce(sum(epoch(resolution)), 0)
+             / epoch(TIMESTAMPTZ '2016-01-01 00:00:00 Europe/Brussels' - TIMESTAMPTZ '2015-01-01 00:00:00 Europe/Brussels')
+      FROM entsoe_wind_solar_forecast_neighbours.forecast
+      WHERE area = 'AT'
+        AND forecast_type = 'day_ahead' AND production_type = 'solar'
+        AND delivery_start >= TIMESTAMPTZ '2015-01-01 00:00:00 Europe/Brussels'
+        AND delivery_start <  TIMESTAMPTZ '2016-01-01 00:00:00 Europe/Brussels'
+    expected: 100
+    tolerance: 0.05
+    source: "Zsiborács, Vincze, Pintér & Hegedűsné Baranyai 2023, The Accuracy of PV Power Plant Scheduling in Europe: An Overview of ENTSO-E Countries, IEEE Access 11, Table 2 (p. 74959), AT, 2015 DA, https://doi.org/10.1109/ACCESS.2023.3297494"
+  - name: at_2017_solar_day_ahead_completeness_pct
+    question: "Share of 2017 (local year, Brussels) covered by the day-ahead solar forecast of Austria, %"
+    sql: |
+      SELECT 100 * coalesce(sum(epoch(resolution)), 0)
+             / epoch(TIMESTAMPTZ '2018-01-01 00:00:00 Europe/Brussels' - TIMESTAMPTZ '2017-01-01 00:00:00 Europe/Brussels')
+      FROM entsoe_wind_solar_forecast_neighbours.forecast
+      WHERE area = 'AT'
+        AND forecast_type = 'day_ahead' AND production_type = 'solar'
+        AND delivery_start >= TIMESTAMPTZ '2017-01-01 00:00:00 Europe/Brussels'
+        AND delivery_start <  TIMESTAMPTZ '2018-01-01 00:00:00 Europe/Brussels'
+    expected: 100
+    tolerance: 0.05
+    source: "Zsiborács, Vincze, Pintér & Hegedűsné Baranyai 2023, The Accuracy of PV Power Plant Scheduling in Europe: An Overview of ENTSO-E Countries, IEEE Access 11, Table 2 (p. 74959), AT, 2017 DA, https://doi.org/10.1109/ACCESS.2023.3297494"
+  - name: at_2018_solar_day_ahead_completeness_pct
+    question: "Share of 2018 (local year, Brussels) covered by the day-ahead solar forecast of Austria, %"
+    sql: |
+      SELECT 100 * coalesce(sum(epoch(resolution)), 0)
+             / epoch(TIMESTAMPTZ '2019-01-01 00:00:00 Europe/Brussels' - TIMESTAMPTZ '2018-01-01 00:00:00 Europe/Brussels')
+      FROM entsoe_wind_solar_forecast_neighbours.forecast
+      WHERE area = 'AT'
+        AND forecast_type = 'day_ahead' AND production_type = 'solar'
+        AND delivery_start >= TIMESTAMPTZ '2018-01-01 00:00:00 Europe/Brussels'
+        AND delivery_start <  TIMESTAMPTZ '2019-01-01 00:00:00 Europe/Brussels'
+    expected: 100
+    tolerance: 0.05
+    source: "Zsiborács, Vincze, Pintér & Hegedűsné Baranyai 2023, The Accuracy of PV Power Plant Scheduling in Europe: An Overview of ENTSO-E Countries, IEEE Access 11, Table 2 (p. 74959), AT, 2018 DA, https://doi.org/10.1109/ACCESS.2023.3297494"
+  - name: at_2019_solar_day_ahead_completeness_pct
+    question: "Share of 2019 (local year, Brussels) covered by the day-ahead solar forecast of Austria, %"
+    sql: |
+      SELECT 100 * coalesce(sum(epoch(resolution)), 0)
+             / epoch(TIMESTAMPTZ '2020-01-01 00:00:00 Europe/Brussels' - TIMESTAMPTZ '2019-01-01 00:00:00 Europe/Brussels')
+      FROM entsoe_wind_solar_forecast_neighbours.forecast
+      WHERE area = 'AT'
+        AND forecast_type = 'day_ahead' AND production_type = 'solar'
+        AND delivery_start >= TIMESTAMPTZ '2019-01-01 00:00:00 Europe/Brussels'
+        AND delivery_start <  TIMESTAMPTZ '2020-01-01 00:00:00 Europe/Brussels'
+    expected: 100
+    tolerance: 0.05
+    source: "Zsiborács, Vincze, Pintér & Hegedűsné Baranyai 2023, The Accuracy of PV Power Plant Scheduling in Europe: An Overview of ENTSO-E Countries, IEEE Access 11, Table 2 (p. 74959), AT, 2019 DA, https://doi.org/10.1109/ACCESS.2023.3297494"
+  - name: at_2020_solar_day_ahead_completeness_pct
+    question: "Share of 2020 (local year, Brussels) covered by the day-ahead solar forecast of Austria, %"
+    sql: |
+      SELECT 100 * coalesce(sum(epoch(resolution)), 0)
+             / epoch(TIMESTAMPTZ '2021-01-01 00:00:00 Europe/Brussels' - TIMESTAMPTZ '2020-01-01 00:00:00 Europe/Brussels')
+      FROM entsoe_wind_solar_forecast_neighbours.forecast
+      WHERE area = 'AT'
+        AND forecast_type = 'day_ahead' AND production_type = 'solar'
+        AND delivery_start >= TIMESTAMPTZ '2020-01-01 00:00:00 Europe/Brussels'
+        AND delivery_start <  TIMESTAMPTZ '2021-01-01 00:00:00 Europe/Brussels'
+    expected: 100
+    tolerance: 0.05
+    source: "Zsiborács, Vincze, Pintér & Hegedűsné Baranyai 2023, The Accuracy of PV Power Plant Scheduling in Europe: An Overview of ENTSO-E Countries, IEEE Access 11, Table 2 (p. 74959), AT, 2020 DA, https://doi.org/10.1109/ACCESS.2023.3297494"
+  - name: at_2021_solar_day_ahead_completeness_pct
+    question: "Share of 2021 (local year, Brussels) covered by the day-ahead solar forecast of Austria, %"
+    sql: |
+      SELECT 100 * coalesce(sum(epoch(resolution)), 0)
+             / epoch(TIMESTAMPTZ '2022-01-01 00:00:00 Europe/Brussels' - TIMESTAMPTZ '2021-01-01 00:00:00 Europe/Brussels')
+      FROM entsoe_wind_solar_forecast_neighbours.forecast
+      WHERE area = 'AT'
+        AND forecast_type = 'day_ahead' AND production_type = 'solar'
+        AND delivery_start >= TIMESTAMPTZ '2021-01-01 00:00:00 Europe/Brussels'
+        AND delivery_start <  TIMESTAMPTZ '2022-01-01 00:00:00 Europe/Brussels'
+    expected: 100
+    tolerance: 0.05
+    source: "Zsiborács, Vincze, Pintér & Hegedűsné Baranyai 2023, The Accuracy of PV Power Plant Scheduling in Europe: An Overview of ENTSO-E Countries, IEEE Access 11, Table 2 (p. 74959), AT, 2021 DA, https://doi.org/10.1109/ACCESS.2023.3297494"
+  - name: at_2022_solar_day_ahead_completeness_pct
+    question: "Share of 2022 (local year, Brussels) covered by the day-ahead solar forecast of Austria, %"
+    sql: |
+      SELECT 100 * coalesce(sum(epoch(resolution)), 0)
+             / epoch(TIMESTAMPTZ '2023-01-01 00:00:00 Europe/Brussels' - TIMESTAMPTZ '2022-01-01 00:00:00 Europe/Brussels')
+      FROM entsoe_wind_solar_forecast_neighbours.forecast
+      WHERE area = 'AT'
+        AND forecast_type = 'day_ahead' AND production_type = 'solar'
+        AND delivery_start >= TIMESTAMPTZ '2022-01-01 00:00:00 Europe/Brussels'
+        AND delivery_start <  TIMESTAMPTZ '2023-01-01 00:00:00 Europe/Brussels'
+    expected: 100
+    tolerance: 0.05
+    source: "Zsiborács, Vincze, Pintér & Hegedűsné Baranyai 2023, The Accuracy of PV Power Plant Scheduling in Europe: An Overview of ENTSO-E Countries, IEEE Access 11, Table 2 (p. 74959), AT, 2022 DA, https://doi.org/10.1109/ACCESS.2023.3297494"
+  - name: at_2018_solar_intraday_completeness_pct
+    question: "Share of 2018 (local year, Brussels) covered by the intraday solar forecast of Austria, %"
+    sql: |
+      SELECT 100 * coalesce(sum(epoch(resolution)), 0)
+             / epoch(TIMESTAMPTZ '2019-01-01 00:00:00 Europe/Brussels' - TIMESTAMPTZ '2018-01-01 00:00:00 Europe/Brussels')
+      FROM entsoe_wind_solar_forecast_neighbours.forecast
+      WHERE area = 'AT'
+        AND forecast_type = 'intraday' AND production_type = 'solar'
+        AND delivery_start >= TIMESTAMPTZ '2018-01-01 00:00:00 Europe/Brussels'
+        AND delivery_start <  TIMESTAMPTZ '2019-01-01 00:00:00 Europe/Brussels'
+    expected: 58.6
+    tolerance: 0.05
+    source: "Zsiborács, Vincze, Pintér & Hegedűsné Baranyai 2023, The Accuracy of PV Power Plant Scheduling in Europe: An Overview of ENTSO-E Countries, IEEE Access 11, Table 2 (p. 74959), AT, 2018 ID, https://doi.org/10.1109/ACCESS.2023.3297494"
+  - name: at_2019_solar_intraday_completeness_pct
+    question: "Share of 2019 (local year, Brussels) covered by the intraday solar forecast of Austria, %"
+    sql: |
+      SELECT 100 * coalesce(sum(epoch(resolution)), 0)
+             / epoch(TIMESTAMPTZ '2020-01-01 00:00:00 Europe/Brussels' - TIMESTAMPTZ '2019-01-01 00:00:00 Europe/Brussels')
+      FROM entsoe_wind_solar_forecast_neighbours.forecast
+      WHERE area = 'AT'
+        AND forecast_type = 'intraday' AND production_type = 'solar'
+        AND delivery_start >= TIMESTAMPTZ '2019-01-01 00:00:00 Europe/Brussels'
+        AND delivery_start <  TIMESTAMPTZ '2020-01-01 00:00:00 Europe/Brussels'
+    expected: 100
+    tolerance: 0.05
+    source: "Zsiborács, Vincze, Pintér & Hegedűsné Baranyai 2023, The Accuracy of PV Power Plant Scheduling in Europe: An Overview of ENTSO-E Countries, IEEE Access 11, Table 2 (p. 74959), AT, 2019 ID, https://doi.org/10.1109/ACCESS.2023.3297494"
+  - name: at_2020_solar_intraday_completeness_pct
+    question: "Share of 2020 (local year, Brussels) covered by the intraday solar forecast of Austria, %"
+    sql: |
+      SELECT 100 * coalesce(sum(epoch(resolution)), 0)
+             / epoch(TIMESTAMPTZ '2021-01-01 00:00:00 Europe/Brussels' - TIMESTAMPTZ '2020-01-01 00:00:00 Europe/Brussels')
+      FROM entsoe_wind_solar_forecast_neighbours.forecast
+      WHERE area = 'AT'
+        AND forecast_type = 'intraday' AND production_type = 'solar'
+        AND delivery_start >= TIMESTAMPTZ '2020-01-01 00:00:00 Europe/Brussels'
+        AND delivery_start <  TIMESTAMPTZ '2021-01-01 00:00:00 Europe/Brussels'
+    expected: 100
+    tolerance: 0.05
+    source: "Zsiborács, Vincze, Pintér & Hegedűsné Baranyai 2023, The Accuracy of PV Power Plant Scheduling in Europe: An Overview of ENTSO-E Countries, IEEE Access 11, Table 2 (p. 74959), AT, 2020 ID, https://doi.org/10.1109/ACCESS.2023.3297494"
+  - name: at_2021_solar_intraday_completeness_pct
+    question: "Share of 2021 (local year, Brussels) covered by the intraday solar forecast of Austria, %"
+    sql: |
+      SELECT 100 * coalesce(sum(epoch(resolution)), 0)
+             / epoch(TIMESTAMPTZ '2022-01-01 00:00:00 Europe/Brussels' - TIMESTAMPTZ '2021-01-01 00:00:00 Europe/Brussels')
+      FROM entsoe_wind_solar_forecast_neighbours.forecast
+      WHERE area = 'AT'
+        AND forecast_type = 'intraday' AND production_type = 'solar'
+        AND delivery_start >= TIMESTAMPTZ '2021-01-01 00:00:00 Europe/Brussels'
+        AND delivery_start <  TIMESTAMPTZ '2022-01-01 00:00:00 Europe/Brussels'
+    expected: 100
+    tolerance: 0.05
+    source: "Zsiborács, Vincze, Pintér & Hegedűsné Baranyai 2023, The Accuracy of PV Power Plant Scheduling in Europe: An Overview of ENTSO-E Countries, IEEE Access 11, Table 2 (p. 74959), AT, 2021 ID, https://doi.org/10.1109/ACCESS.2023.3297494"
+  - name: at_2022_solar_intraday_completeness_pct
+    question: "Share of 2022 (local year, Brussels) covered by the intraday solar forecast of Austria, %"
+    sql: |
+      SELECT 100 * coalesce(sum(epoch(resolution)), 0)
+             / epoch(TIMESTAMPTZ '2023-01-01 00:00:00 Europe/Brussels' - TIMESTAMPTZ '2022-01-01 00:00:00 Europe/Brussels')
+      FROM entsoe_wind_solar_forecast_neighbours.forecast
+      WHERE area = 'AT'
+        AND forecast_type = 'intraday' AND production_type = 'solar'
+        AND delivery_start >= TIMESTAMPTZ '2022-01-01 00:00:00 Europe/Brussels'
+        AND delivery_start <  TIMESTAMPTZ '2023-01-01 00:00:00 Europe/Brussels'
+    expected: 100
+    tolerance: 0.05
+    source: "Zsiborács, Vincze, Pintér & Hegedűsné Baranyai 2023, The Accuracy of PV Power Plant Scheduling in Europe: An Overview of ENTSO-E Countries, IEEE Access 11, Table 2 (p. 74959), AT, 2022 ID, https://doi.org/10.1109/ACCESS.2023.3297494"
+  - name: de_2015_solar_day_ahead_completeness_pct
+    question: "Share of 2015 (local year, Brussels) covered by the day-ahead solar forecast of Germany (DE_AT_LU), %"
+    sql: |
+      SELECT 100 * coalesce(sum(epoch(resolution)), 0)
+             / epoch(TIMESTAMPTZ '2016-01-01 00:00:00 Europe/Brussels' - TIMESTAMPTZ '2015-01-01 00:00:00 Europe/Brussels')
+      FROM entsoe_wind_solar_forecast_neighbours.forecast
+      WHERE area = 'DE_AT_LU'
+        AND forecast_type = 'day_ahead' AND production_type = 'solar'
+        AND delivery_start >= TIMESTAMPTZ '2015-01-01 00:00:00 Europe/Brussels'
+        AND delivery_start <  TIMESTAMPTZ '2016-01-01 00:00:00 Europe/Brussels'
+    expected: 100
+    tolerance: 0.05
+    source: "Zsiborács, Vincze, Pintér & Hegedűsné Baranyai 2023, The Accuracy of PV Power Plant Scheduling in Europe: An Overview of ENTSO-E Countries, IEEE Access 11, Table 2 (p. 74959), DE, 2015 DA, https://doi.org/10.1109/ACCESS.2023.3297494"
+  - name: de_2016_solar_day_ahead_completeness_pct
+    question: "Share of 2016 (local year, Brussels) covered by the day-ahead solar forecast of Germany (DE_AT_LU), %"
+    sql: |
+      SELECT 100 * coalesce(sum(epoch(resolution)), 0)
+             / epoch(TIMESTAMPTZ '2017-01-01 00:00:00 Europe/Brussels' - TIMESTAMPTZ '2016-01-01 00:00:00 Europe/Brussels')
+      FROM entsoe_wind_solar_forecast_neighbours.forecast
+      WHERE area = 'DE_AT_LU'
+        AND forecast_type = 'day_ahead' AND production_type = 'solar'
+        AND delivery_start >= TIMESTAMPTZ '2016-01-01 00:00:00 Europe/Brussels'
+        AND delivery_start <  TIMESTAMPTZ '2017-01-01 00:00:00 Europe/Brussels'
+    expected: 100
+    tolerance: 0.05
+    source: "Zsiborács, Vincze, Pintér & Hegedűsné Baranyai 2023, The Accuracy of PV Power Plant Scheduling in Europe: An Overview of ENTSO-E Countries, IEEE Access 11, Table 2 (p. 74959), DE, 2016 DA, https://doi.org/10.1109/ACCESS.2023.3297494"
+  - name: de_2017_solar_day_ahead_completeness_pct
+    question: "Share of 2017 (local year, Brussels) covered by the day-ahead solar forecast of Germany (DE_AT_LU), %"
+    sql: |
+      SELECT 100 * coalesce(sum(epoch(resolution)), 0)
+             / epoch(TIMESTAMPTZ '2018-01-01 00:00:00 Europe/Brussels' - TIMESTAMPTZ '2017-01-01 00:00:00 Europe/Brussels')
+      FROM entsoe_wind_solar_forecast_neighbours.forecast
+      WHERE area = 'DE_AT_LU'
+        AND forecast_type = 'day_ahead' AND production_type = 'solar'
+        AND delivery_start >= TIMESTAMPTZ '2017-01-01 00:00:00 Europe/Brussels'
+        AND delivery_start <  TIMESTAMPTZ '2018-01-01 00:00:00 Europe/Brussels'
+    expected: 100
+    tolerance: 0.05
+    source: "Zsiborács, Vincze, Pintér & Hegedűsné Baranyai 2023, The Accuracy of PV Power Plant Scheduling in Europe: An Overview of ENTSO-E Countries, IEEE Access 11, Table 2 (p. 74959), DE, 2017 DA, https://doi.org/10.1109/ACCESS.2023.3297494"
+  - name: de_2019_solar_day_ahead_completeness_pct
+    question: "Share of 2019 (local year, Brussels) covered by the day-ahead solar forecast of Germany (DE_LU), %"
+    sql: |
+      SELECT 100 * coalesce(sum(epoch(resolution)), 0)
+             / epoch(TIMESTAMPTZ '2020-01-01 00:00:00 Europe/Brussels' - TIMESTAMPTZ '2019-01-01 00:00:00 Europe/Brussels')
+      FROM entsoe_wind_solar_forecast_neighbours.forecast
+      WHERE area = 'DE_LU'
+        AND forecast_type = 'day_ahead' AND production_type = 'solar'
+        AND delivery_start >= TIMESTAMPTZ '2019-01-01 00:00:00 Europe/Brussels'
+        AND delivery_start <  TIMESTAMPTZ '2020-01-01 00:00:00 Europe/Brussels'
+    expected: 100
+    tolerance: 0.05
+    source: "Zsiborács, Vincze, Pintér & Hegedűsné Baranyai 2023, The Accuracy of PV Power Plant Scheduling in Europe: An Overview of ENTSO-E Countries, IEEE Access 11, Table 2 (p. 74959), DE, 2019 DA, https://doi.org/10.1109/ACCESS.2023.3297494"
+  - name: de_2020_solar_day_ahead_completeness_pct
+    question: "Share of 2020 (local year, Brussels) covered by the day-ahead solar forecast of Germany (DE_LU), %"
+    sql: |
+      SELECT 100 * coalesce(sum(epoch(resolution)), 0)
+             / epoch(TIMESTAMPTZ '2021-01-01 00:00:00 Europe/Brussels' - TIMESTAMPTZ '2020-01-01 00:00:00 Europe/Brussels')
+      FROM entsoe_wind_solar_forecast_neighbours.forecast
+      WHERE area = 'DE_LU'
+        AND forecast_type = 'day_ahead' AND production_type = 'solar'
+        AND delivery_start >= TIMESTAMPTZ '2020-01-01 00:00:00 Europe/Brussels'
+        AND delivery_start <  TIMESTAMPTZ '2021-01-01 00:00:00 Europe/Brussels'
+    expected: 100
+    tolerance: 0.05
+    source: "Zsiborács, Vincze, Pintér & Hegedűsné Baranyai 2023, The Accuracy of PV Power Plant Scheduling in Europe: An Overview of ENTSO-E Countries, IEEE Access 11, Table 2 (p. 74959), DE, 2020 DA, https://doi.org/10.1109/ACCESS.2023.3297494"
+  - name: de_2021_solar_day_ahead_completeness_pct
+    question: "Share of 2021 (local year, Brussels) covered by the day-ahead solar forecast of Germany (DE_LU), %"
+    sql: |
+      SELECT 100 * coalesce(sum(epoch(resolution)), 0)
+             / epoch(TIMESTAMPTZ '2022-01-01 00:00:00 Europe/Brussels' - TIMESTAMPTZ '2021-01-01 00:00:00 Europe/Brussels')
+      FROM entsoe_wind_solar_forecast_neighbours.forecast
+      WHERE area = 'DE_LU'
+        AND forecast_type = 'day_ahead' AND production_type = 'solar'
+        AND delivery_start >= TIMESTAMPTZ '2021-01-01 00:00:00 Europe/Brussels'
+        AND delivery_start <  TIMESTAMPTZ '2022-01-01 00:00:00 Europe/Brussels'
+    expected: 100
+    tolerance: 0.05
+    source: "Zsiborács, Vincze, Pintér & Hegedűsné Baranyai 2023, The Accuracy of PV Power Plant Scheduling in Europe: An Overview of ENTSO-E Countries, IEEE Access 11, Table 2 (p. 74959), DE, 2021 DA, https://doi.org/10.1109/ACCESS.2023.3297494"
+  - name: de_2022_solar_day_ahead_completeness_pct
+    question: "Share of 2022 (local year, Brussels) covered by the day-ahead solar forecast of Germany (DE_LU), %"
+    sql: |
+      SELECT 100 * coalesce(sum(epoch(resolution)), 0)
+             / epoch(TIMESTAMPTZ '2023-01-01 00:00:00 Europe/Brussels' - TIMESTAMPTZ '2022-01-01 00:00:00 Europe/Brussels')
+      FROM entsoe_wind_solar_forecast_neighbours.forecast
+      WHERE area = 'DE_LU'
+        AND forecast_type = 'day_ahead' AND production_type = 'solar'
+        AND delivery_start >= TIMESTAMPTZ '2022-01-01 00:00:00 Europe/Brussels'
+        AND delivery_start <  TIMESTAMPTZ '2023-01-01 00:00:00 Europe/Brussels'
+    expected: 100
+    tolerance: 0.05
+    source: "Zsiborács, Vincze, Pintér & Hegedűsné Baranyai 2023, The Accuracy of PV Power Plant Scheduling in Europe: An Overview of ENTSO-E Countries, IEEE Access 11, Table 2 (p. 74959), DE, 2022 DA, https://doi.org/10.1109/ACCESS.2023.3297494"
+  - name: de_2015_solar_intraday_completeness_pct
+    question: "Share of 2015 (local year, Brussels) covered by the intraday solar forecast of Germany (DE_AT_LU), %"
+    sql: |
+      SELECT 100 * coalesce(sum(epoch(resolution)), 0)
+             / epoch(TIMESTAMPTZ '2016-01-01 00:00:00 Europe/Brussels' - TIMESTAMPTZ '2015-01-01 00:00:00 Europe/Brussels')
+      FROM entsoe_wind_solar_forecast_neighbours.forecast
+      WHERE area = 'DE_AT_LU'
+        AND forecast_type = 'intraday' AND production_type = 'solar'
+        AND delivery_start >= TIMESTAMPTZ '2015-01-01 00:00:00 Europe/Brussels'
+        AND delivery_start <  TIMESTAMPTZ '2016-01-01 00:00:00 Europe/Brussels'
+    expected: 100
+    tolerance: 0.05
+    source: "Zsiborács, Vincze, Pintér & Hegedűsné Baranyai 2023, The Accuracy of PV Power Plant Scheduling in Europe: An Overview of ENTSO-E Countries, IEEE Access 11, Table 2 (p. 74959), DE, 2015 ID, https://doi.org/10.1109/ACCESS.2023.3297494"
+  - name: de_2016_solar_intraday_completeness_pct
+    question: "Share of 2016 (local year, Brussels) covered by the intraday solar forecast of Germany (DE_AT_LU), %"
+    sql: |
+      SELECT 100 * coalesce(sum(epoch(resolution)), 0)
+             / epoch(TIMESTAMPTZ '2017-01-01 00:00:00 Europe/Brussels' - TIMESTAMPTZ '2016-01-01 00:00:00 Europe/Brussels')
+      FROM entsoe_wind_solar_forecast_neighbours.forecast
+      WHERE area = 'DE_AT_LU'
+        AND forecast_type = 'intraday' AND production_type = 'solar'
+        AND delivery_start >= TIMESTAMPTZ '2016-01-01 00:00:00 Europe/Brussels'
+        AND delivery_start <  TIMESTAMPTZ '2017-01-01 00:00:00 Europe/Brussels'
+    expected: 100
+    tolerance: 0.05
+    source: "Zsiborács, Vincze, Pintér & Hegedűsné Baranyai 2023, The Accuracy of PV Power Plant Scheduling in Europe: An Overview of ENTSO-E Countries, IEEE Access 11, Table 2 (p. 74959), DE, 2016 ID, https://doi.org/10.1109/ACCESS.2023.3297494"
+  - name: de_2017_solar_intraday_completeness_pct
+    question: "Share of 2017 (local year, Brussels) covered by the intraday solar forecast of Germany (DE_AT_LU), %"
+    sql: |
+      SELECT 100 * coalesce(sum(epoch(resolution)), 0)
+             / epoch(TIMESTAMPTZ '2018-01-01 00:00:00 Europe/Brussels' - TIMESTAMPTZ '2017-01-01 00:00:00 Europe/Brussels')
+      FROM entsoe_wind_solar_forecast_neighbours.forecast
+      WHERE area = 'DE_AT_LU'
+        AND forecast_type = 'intraday' AND production_type = 'solar'
+        AND delivery_start >= TIMESTAMPTZ '2017-01-01 00:00:00 Europe/Brussels'
+        AND delivery_start <  TIMESTAMPTZ '2018-01-01 00:00:00 Europe/Brussels'
+    expected: 100
+    tolerance: 0.05
+    source: "Zsiborács, Vincze, Pintér & Hegedűsné Baranyai 2023, The Accuracy of PV Power Plant Scheduling in Europe: An Overview of ENTSO-E Countries, IEEE Access 11, Table 2 (p. 74959), DE, 2017 ID, https://doi.org/10.1109/ACCESS.2023.3297494"
+  - name: fr_2015_solar_day_ahead_completeness_pct
+    question: "Share of 2015 (local year, Brussels) covered by the day-ahead solar forecast of France, %"
+    sql: |
+      SELECT 100 * coalesce(sum(epoch(resolution)), 0)
+             / epoch(TIMESTAMPTZ '2016-01-01 00:00:00 Europe/Brussels' - TIMESTAMPTZ '2015-01-01 00:00:00 Europe/Brussels')
+      FROM entsoe_wind_solar_forecast_neighbours.forecast
+      WHERE area = 'FR'
+        AND forecast_type = 'day_ahead' AND production_type = 'solar'
+        AND delivery_start >= TIMESTAMPTZ '2015-01-01 00:00:00 Europe/Brussels'
+        AND delivery_start <  TIMESTAMPTZ '2016-01-01 00:00:00 Europe/Brussels'
+    expected: 99.6
+    tolerance: 0.05
+    source: "Zsiborács, Vincze, Pintér & Hegedűsné Baranyai 2023, The Accuracy of PV Power Plant Scheduling in Europe: An Overview of ENTSO-E Countries, IEEE Access 11, Table 2 (p. 74959), FR, 2015 DA, https://doi.org/10.1109/ACCESS.2023.3297494"
+  - name: fr_2017_solar_day_ahead_completeness_pct
+    question: "Share of 2017 (local year, Brussels) covered by the day-ahead solar forecast of France, %"
+    sql: |
+      SELECT 100 * coalesce(sum(epoch(resolution)), 0)
+             / epoch(TIMESTAMPTZ '2018-01-01 00:00:00 Europe/Brussels' - TIMESTAMPTZ '2017-01-01 00:00:00 Europe/Brussels')
+      FROM entsoe_wind_solar_forecast_neighbours.forecast
+      WHERE area = 'FR'
+        AND forecast_type = 'day_ahead' AND production_type = 'solar'
+        AND delivery_start >= TIMESTAMPTZ '2017-01-01 00:00:00 Europe/Brussels'
+        AND delivery_start <  TIMESTAMPTZ '2018-01-01 00:00:00 Europe/Brussels'
+    expected: 99.4
+    tolerance: 0.05
+    source: "Zsiborács, Vincze, Pintér & Hegedűsné Baranyai 2023, The Accuracy of PV Power Plant Scheduling in Europe: An Overview of ENTSO-E Countries, IEEE Access 11, Table 2 (p. 74959), FR, 2017 DA, https://doi.org/10.1109/ACCESS.2023.3297494"
+  - name: fr_2020_solar_day_ahead_completeness_pct
+    question: "Share of 2020 (local year, Brussels) covered by the day-ahead solar forecast of France, %"
+    sql: |
+      SELECT 100 * coalesce(sum(epoch(resolution)), 0)
+             / epoch(TIMESTAMPTZ '2021-01-01 00:00:00 Europe/Brussels' - TIMESTAMPTZ '2020-01-01 00:00:00 Europe/Brussels')
+      FROM entsoe_wind_solar_forecast_neighbours.forecast
+      WHERE area = 'FR'
+        AND forecast_type = 'day_ahead' AND production_type = 'solar'
+        AND delivery_start >= TIMESTAMPTZ '2020-01-01 00:00:00 Europe/Brussels'
+        AND delivery_start <  TIMESTAMPTZ '2021-01-01 00:00:00 Europe/Brussels'
+    expected: 98.3
+    tolerance: 0.05
+    source: "Zsiborács, Vincze, Pintér & Hegedűsné Baranyai 2023, The Accuracy of PV Power Plant Scheduling in Europe: An Overview of ENTSO-E Countries, IEEE Access 11, Table 2 (p. 74959), FR, 2020 DA, https://doi.org/10.1109/ACCESS.2023.3297494"
+  - name: fr_2018_solar_intraday_completeness_pct
+    question: "Share of 2018 (local year, Brussels) covered by the intraday solar forecast of France, %"
+    sql: |
+      SELECT 100 * coalesce(sum(epoch(resolution)), 0)
+             / epoch(TIMESTAMPTZ '2019-01-01 00:00:00 Europe/Brussels' - TIMESTAMPTZ '2018-01-01 00:00:00 Europe/Brussels')
+      FROM entsoe_wind_solar_forecast_neighbours.forecast
+      WHERE area = 'FR'
+        AND forecast_type = 'intraday' AND production_type = 'solar'
+        AND delivery_start >= TIMESTAMPTZ '2018-01-01 00:00:00 Europe/Brussels'
+        AND delivery_start <  TIMESTAMPTZ '2019-01-01 00:00:00 Europe/Brussels'
+    expected: 48
+    tolerance: 0.05
+    source: "Zsiborács, Vincze, Pintér & Hegedűsné Baranyai 2023, The Accuracy of PV Power Plant Scheduling in Europe: An Overview of ENTSO-E Countries, IEEE Access 11, Table 2 (p. 74959), FR, 2018 ID, https://doi.org/10.1109/ACCESS.2023.3297494"
+  - name: fr_2019_solar_intraday_completeness_pct
+    question: "Share of 2019 (local year, Brussels) covered by the intraday solar forecast of France, %"
+    sql: |
+      SELECT 100 * coalesce(sum(epoch(resolution)), 0)
+             / epoch(TIMESTAMPTZ '2020-01-01 00:00:00 Europe/Brussels' - TIMESTAMPTZ '2019-01-01 00:00:00 Europe/Brussels')
+      FROM entsoe_wind_solar_forecast_neighbours.forecast
+      WHERE area = 'FR'
+        AND forecast_type = 'intraday' AND production_type = 'solar'
+        AND delivery_start >= TIMESTAMPTZ '2019-01-01 00:00:00 Europe/Brussels'
+        AND delivery_start <  TIMESTAMPTZ '2020-01-01 00:00:00 Europe/Brussels'
+    expected: 70.3
+    tolerance: 0.05
+    source: "Zsiborács, Vincze, Pintér & Hegedűsné Baranyai 2023, The Accuracy of PV Power Plant Scheduling in Europe: An Overview of ENTSO-E Countries, IEEE Access 11, Table 2 (p. 74959), FR, 2019 ID, https://doi.org/10.1109/ACCESS.2023.3297494"
+  - name: fr_2020_solar_intraday_completeness_pct
+    question: "Share of 2020 (local year, Brussels) covered by the intraday solar forecast of France, %"
+    sql: |
+      SELECT 100 * coalesce(sum(epoch(resolution)), 0)
+             / epoch(TIMESTAMPTZ '2021-01-01 00:00:00 Europe/Brussels' - TIMESTAMPTZ '2020-01-01 00:00:00 Europe/Brussels')
+      FROM entsoe_wind_solar_forecast_neighbours.forecast
+      WHERE area = 'FR'
+        AND forecast_type = 'intraday' AND production_type = 'solar'
+        AND delivery_start >= TIMESTAMPTZ '2020-01-01 00:00:00 Europe/Brussels'
+        AND delivery_start <  TIMESTAMPTZ '2021-01-01 00:00:00 Europe/Brussels'
+    expected: 69.3
+    tolerance: 0.05
+    source: "Zsiborács, Vincze, Pintér & Hegedűsné Baranyai 2023, The Accuracy of PV Power Plant Scheduling in Europe: An Overview of ENTSO-E Countries, IEEE Access 11, Table 2 (p. 74959), FR, 2020 ID, https://doi.org/10.1109/ACCESS.2023.3297494"
+  - name: fr_2021_solar_intraday_completeness_pct
+    question: "Share of 2021 (local year, Brussels) covered by the intraday solar forecast of France, %"
+    sql: |
+      SELECT 100 * coalesce(sum(epoch(resolution)), 0)
+             / epoch(TIMESTAMPTZ '2022-01-01 00:00:00 Europe/Brussels' - TIMESTAMPTZ '2021-01-01 00:00:00 Europe/Brussels')
+      FROM entsoe_wind_solar_forecast_neighbours.forecast
+      WHERE area = 'FR'
+        AND forecast_type = 'intraday' AND production_type = 'solar'
+        AND delivery_start >= TIMESTAMPTZ '2021-01-01 00:00:00 Europe/Brussels'
+        AND delivery_start <  TIMESTAMPTZ '2022-01-01 00:00:00 Europe/Brussels'
+    expected: 70.1
+    tolerance: 0.05
+    source: "Zsiborács, Vincze, Pintér & Hegedűsné Baranyai 2023, The Accuracy of PV Power Plant Scheduling in Europe: An Overview of ENTSO-E Countries, IEEE Access 11, Table 2 (p. 74959), FR, 2021 ID, https://doi.org/10.1109/ACCESS.2023.3297494"
+  - name: it_2019_solar_day_ahead_completeness_pct
+    question: "Share of 2019 (local year, Brussels) covered by the day-ahead solar forecast of Italy (the whole country), %"
+    sql: |
+      SELECT 100 * coalesce(sum(epoch(resolution)), 0)
+             / epoch(TIMESTAMPTZ '2020-01-01 00:00:00 Europe/Brussels' - TIMESTAMPTZ '2019-01-01 00:00:00 Europe/Brussels')
+      FROM entsoe_wind_solar_forecast_neighbours.forecast
+      WHERE area = 'IT'
+        AND forecast_type = 'day_ahead' AND production_type = 'solar'
+        AND delivery_start >= TIMESTAMPTZ '2019-01-01 00:00:00 Europe/Brussels'
+        AND delivery_start <  TIMESTAMPTZ '2020-01-01 00:00:00 Europe/Brussels'
+    expected: 94.8
+    tolerance: 0.05
+    source: "Zsiborács, Vincze, Pintér & Hegedűsné Baranyai 2023, The Accuracy of PV Power Plant Scheduling in Europe: An Overview of ENTSO-E Countries, IEEE Access 11, Table 2 (p. 74959), IT, 2019 DA, https://doi.org/10.1109/ACCESS.2023.3297494"
+  - name: it_2020_solar_day_ahead_completeness_pct
+    question: "Share of 2020 (local year, Brussels) covered by the day-ahead solar forecast of Italy (the whole country), %"
+    sql: |
+      SELECT 100 * coalesce(sum(epoch(resolution)), 0)
+             / epoch(TIMESTAMPTZ '2021-01-01 00:00:00 Europe/Brussels' - TIMESTAMPTZ '2020-01-01 00:00:00 Europe/Brussels')
+      FROM entsoe_wind_solar_forecast_neighbours.forecast
+      WHERE area = 'IT'
+        AND forecast_type = 'day_ahead' AND production_type = 'solar'
+        AND delivery_start >= TIMESTAMPTZ '2020-01-01 00:00:00 Europe/Brussels'
+        AND delivery_start <  TIMESTAMPTZ '2021-01-01 00:00:00 Europe/Brussels'
+    expected: 91
+    tolerance: 0.05
+    source: "Zsiborács, Vincze, Pintér & Hegedűsné Baranyai 2023, The Accuracy of PV Power Plant Scheduling in Europe: An Overview of ENTSO-E Countries, IEEE Access 11, Table 2 (p. 74959), IT, 2020 DA, https://doi.org/10.1109/ACCESS.2023.3297494"

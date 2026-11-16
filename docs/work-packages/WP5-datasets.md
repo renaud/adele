@@ -246,6 +246,10 @@ its Web-API, which needs an account.
    already keeps each version of the day-ahead load forecast that a fetch sees, and CH
    `ws_forecast` (A69) would keep each version of the PV forecast. Is `forecast_versions` still a
    dataset of its own, or only the import of the 634 versions already collected?
+   **Answer (Renaud, 2026-11-16): no dataset.** Its collector saw one version of each hour; its
+   438 A69 values equal adele's except 3 (the older values of three revised night values of
+   2026-10-26/27). The load forecast is in `entsoe_load`. adele can't import old versions: the
+   server stamps `fetched_at` itself.
 
 ## Log
 
@@ -255,3 +259,20 @@ Claude split WP5 into datasets at Renaud's request: first the Claude Doc (groupe
 then this file, with the datasets grouped into sub-packages by what their fetch shares. Counts
 checked against `PLAN.md` ("3 of 30 datasets are in adele") and `TODOs.md` ("27 datasets that
 fit today"): 26 + flows and schedules as one row = 27.
+
+### 2026-11-16, WP5.3 in `main`
+
+Built by Claude in the worktree `wp5.3` (2026-11-15/16), landed before WP5.2 at Renaud's
+request:
+
+- `entsoe_wind_solar_forecast` (CH `ws_forecast`) and `entsoe_wind_solar_forecast_neighbours`
+  (16 areas), `append-only`, the same columns; one `fetch.py` that differs only in `AREAS`.
+  Backfilled on the Mac: 236,584 and 22,567,278 rows, from 2015.
+- 125 published figures as checks: 11 + 14 for CH, 100 for the neighbours.
+  `qa/published_figures_entsoe_wind_solar_forecast*.md`.
+- D34: 14 CH checks read `entsoe_generation` (WP5.2), so until WP5.2 is in `main` they fail
+  where the forecast data exists without it. On steacher1, install WP5.2 with WP5.3 or before
+  it. The server removes the declared secrets from what `fetch.py` prints.
+- `forecast_versions`: not built (open question 6).
+- Left: Renaud's review of the definitions (drafts by Claude, WP7); the backfill on steacher1
+  after WP1.
