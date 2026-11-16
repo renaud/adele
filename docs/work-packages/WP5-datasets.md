@@ -137,6 +137,9 @@ and SolarEdge are here by subject only: PV below the national level.
 
 ### WP5.7 MeteoSwiss stations
 
+Built on 2026-11-16 as six datasets, not seven (the two hourly rows are one dataset):
+`docs/work-packages/WP5.7-meteoswiss-stations.md`. The table below is the plan before the build.
+
 Shared: the open-data files per station (one "historical" file per decade and one "recent"
 file), and the reference tables of stations and parameters. The "recent" files are rewritten
 twice a day, and one fetch of all of them moves 851 MB: once a day is enough (inventory,

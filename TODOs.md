@@ -38,6 +38,21 @@
   figures as checks (156 of them BFE's reference market prices, computed from the same files);
   backfilled on the Mac. Next: Renaud's review of the drafts; backfill on steacher1.
   `docs/work-packages/WP5.5-pronovo.md`"
+- WP5.7 (in `main`, 00ca540): review the drafts of the six `datasets/meteoswiss_*` descriptors
+  (WP7: titles, descriptions, warnings, examples), the zone of `meteoswiss_obs_daily`'s days
+  (Europe/Zurich, assumed), and whether 2,120 checks are too many (the generator can keep a
+  subset). The 9 choices and what is open: `docs/work-packages/WP5.7-meteoswiss-stations.md`.
+  Backfill on steacher1: the commands are in that file (the 10-minute decade files took 30
+  minutes at 3.3 MB/s on the Mac: `fetch_timeout_s` 7,200 there).
+- PLAN.md, row WP5.7 (proposal): "built and in `main`: six MeteoSwiss station datasets
+  (SwissMetNet hourly, 10 minutes, daily and its reference lists; manual network; visual
+  observations), 2,120 published figures from the climate bulletins as checks; backfilled on the
+  Mac. Next: Renaud's review of the drafts; backfill on steacher1.
+  `docs/work-packages/WP5.7-meteoswiss-stations.md`"
+- `skills/review-dataset` (proposal by Claude, 2026-11-16): for a dataset with reference lists,
+  check that every station and parameter code of the data is in them, and the inventory dates
+  against the first and last values. In WP5.7 this found a station in no list (MLJ) and confirmed
+  the time shift (`qa/tools/crosscheck_meteoswiss.py`).
 
 ## For other sessions: an empty table by day or month no longer fails the fetch (2026-11-16)
 
