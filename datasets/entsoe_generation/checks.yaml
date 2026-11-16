@@ -1,0 +1,446 @@
+# Published figures that this dataset must reproduce (skills/add-dataset, step 8).
+# Collected 2026-11-15 by a research agent, compared with adele the same day
+# (qa/tools/published_check_entsoe_generation.py; qa/published_figures_entsoe_generation.md lists
+# the figures left out and why).
+#
+# ENTSO-E Statistical Factsheets 2019-2025, table "ENTSO-E in figures", CH, net generation per type:
+# "based upon data reported to the ENTSO-E Central Transparency Platform". 2023 is left out: its
+# footnote says that the Swiss values are taken from SFOE and Pronovo. TWh printed to 0.1:
+# tolerance 0.05. Years are UTC years (the factsheets give their hours in UTC; local years give
+# the same result for every figure here). Energy = MW x the duration of each row.
+checks:
+  - name: ch_2019_nuclear_twh
+    question: "Actual generation of CH, nuclear, in 2019 (UTC year), TWh"
+    sql: |
+      SELECT sum(generation * epoch(resolution) / 3600) / 1e6
+      FROM entsoe_generation.generation
+      WHERE production_type = 'nuclear'
+        AND delivery_start >= TIMESTAMPTZ '2019-01-01 00:00:00Z'
+        AND delivery_start <  TIMESTAMPTZ '2020-01-01 00:00:00Z'
+    expected: 25.7
+    tolerance: 0.05
+    source: "ENTSO-E, Statistical Factsheet 2019, ENTSO-E in figures, CH, Nuclear, https://eepublicdownloads.entsoe.eu/clean-documents/Publications/Statistics/Factsheet/entsoe_sfs2019_web.pdf"
+  - name: ch_2020_nuclear_twh
+    question: "Actual generation of CH, nuclear, in 2020 (UTC year), TWh"
+    sql: |
+      SELECT sum(generation * epoch(resolution) / 3600) / 1e6
+      FROM entsoe_generation.generation
+      WHERE production_type = 'nuclear'
+        AND delivery_start >= TIMESTAMPTZ '2020-01-01 00:00:00Z'
+        AND delivery_start <  TIMESTAMPTZ '2021-01-01 00:00:00Z'
+    expected: 23.4
+    tolerance: 0.05
+    source: "ENTSO-E, Statistical Factsheet 2020, ENTSO-E in figures, CH, Nuclear, https://eepublicdownloads.entsoe.eu/clean-documents/Publications/Statistics/Factsheet/entsoe_sfs2020_web.pdf"
+  - name: ch_2021_nuclear_twh
+    question: "Actual generation of CH, nuclear, in 2021 (UTC year), TWh"
+    sql: |
+      SELECT sum(generation * epoch(resolution) / 3600) / 1e6
+      FROM entsoe_generation.generation
+      WHERE production_type = 'nuclear'
+        AND delivery_start >= TIMESTAMPTZ '2021-01-01 00:00:00Z'
+        AND delivery_start <  TIMESTAMPTZ '2022-01-01 00:00:00Z'
+    expected: 18.7
+    tolerance: 0.05
+    source: "ENTSO-E, Statistical Factsheet 2021, ENTSO-E in figures, CH, Nuclear, https://eepublicdownloads.entsoe.eu/clean-documents/Publications/Statistics/Factsheet/entsoe_sfs2021_web.pdf"
+  - name: ch_2022_nuclear_twh
+    question: "Actual generation of CH, nuclear, in 2022 (UTC year), TWh"
+    sql: |
+      SELECT sum(generation * epoch(resolution) / 3600) / 1e6
+      FROM entsoe_generation.generation
+      WHERE production_type = 'nuclear'
+        AND delivery_start >= TIMESTAMPTZ '2022-01-01 00:00:00Z'
+        AND delivery_start <  TIMESTAMPTZ '2023-01-01 00:00:00Z'
+    expected: 23.6
+    tolerance: 0.05
+    source: "ENTSO-E, Statistical Factsheet 2022, ENTSO-E in figures, CH, Nuclear, https://eepublicdownloads.blob.core.windows.net/public-cdn-container/clean-documents/Publications/Statistics/Factsheet/entsoe_sfs2022_web.pdf"
+  - name: ch_2024_nuclear_twh
+    question: "Actual generation of CH, nuclear, in 2024 (UTC year), TWh"
+    sql: |
+      SELECT sum(generation * epoch(resolution) / 3600) / 1e6
+      FROM entsoe_generation.generation
+      WHERE production_type = 'nuclear'
+        AND delivery_start >= TIMESTAMPTZ '2024-01-01 00:00:00Z'
+        AND delivery_start <  TIMESTAMPTZ '2025-01-01 00:00:00Z'
+    expected: 23.0
+    tolerance: 0.05
+    source: "ENTSO-E, Statistical Factsheet 2024, ENTSO-E in figures, CH, Nuclear, https://eepublicdownloads.blob.core.windows.net/public-cdn-container/clean-documents/Publications/Statistics/Factsheet/entsoe_sfs2024_web.pdf"
+  - name: ch_2025_nuclear_twh
+    question: "Actual generation of CH, nuclear, in 2025 (UTC year), TWh"
+    sql: |
+      SELECT sum(generation * epoch(resolution) / 3600) / 1e6
+      FROM entsoe_generation.generation
+      WHERE production_type = 'nuclear'
+        AND delivery_start >= TIMESTAMPTZ '2025-01-01 00:00:00Z'
+        AND delivery_start <  TIMESTAMPTZ '2026-01-01 00:00:00Z'
+    expected: 18.4
+    tolerance: 0.05
+    source: "ENTSO-E, Statistical Factsheet 2025, ENTSO-E in figures, CH, Nuclear, https://eepublicdownloads.blob.core.windows.net/public-cdn-container/clean-documents/Publications/Statistics/Factsheet/entsoe_sfs2025_web.pdf"
+  - name: ch_2019_hydro_pumped_storage_twh
+    question: "Actual generation of CH, hydro_pumped_storage, in 2019 (UTC year), TWh"
+    sql: |
+      SELECT sum(generation * epoch(resolution) / 3600) / 1e6
+      FROM entsoe_generation.generation
+      WHERE production_type = 'hydro_pumped_storage'
+        AND delivery_start >= TIMESTAMPTZ '2019-01-01 00:00:00Z'
+        AND delivery_start <  TIMESTAMPTZ '2020-01-01 00:00:00Z'
+    expected: 7.7
+    tolerance: 0.05
+    source: "ENTSO-E, Statistical Factsheet 2019, ENTSO-E in figures, CH, Hydro Pumped Storage, https://eepublicdownloads.entsoe.eu/clean-documents/Publications/Statistics/Factsheet/entsoe_sfs2019_web.pdf"
+  - name: ch_2020_hydro_pumped_storage_twh
+    question: "Actual generation of CH, hydro_pumped_storage, in 2020 (UTC year), TWh"
+    sql: |
+      SELECT sum(generation * epoch(resolution) / 3600) / 1e6
+      FROM entsoe_generation.generation
+      WHERE production_type = 'hydro_pumped_storage'
+        AND delivery_start >= TIMESTAMPTZ '2020-01-01 00:00:00Z'
+        AND delivery_start <  TIMESTAMPTZ '2021-01-01 00:00:00Z'
+    expected: 6.9
+    tolerance: 0.05
+    source: "ENTSO-E, Statistical Factsheet 2020, ENTSO-E in figures, CH, Hydro Pumped Storage, https://eepublicdownloads.entsoe.eu/clean-documents/Publications/Statistics/Factsheet/entsoe_sfs2020_web.pdf"
+  - name: ch_2021_hydro_pumped_storage_twh
+    question: "Actual generation of CH, hydro_pumped_storage, in 2021 (UTC year), TWh"
+    sql: |
+      SELECT sum(generation * epoch(resolution) / 3600) / 1e6
+      FROM entsoe_generation.generation
+      WHERE production_type = 'hydro_pumped_storage'
+        AND delivery_start >= TIMESTAMPTZ '2021-01-01 00:00:00Z'
+        AND delivery_start <  TIMESTAMPTZ '2022-01-01 00:00:00Z'
+    expected: 6.5
+    tolerance: 0.05
+    source: "ENTSO-E, Statistical Factsheet 2021, ENTSO-E in figures, CH, Hydro Pumped Storage, https://eepublicdownloads.entsoe.eu/clean-documents/Publications/Statistics/Factsheet/entsoe_sfs2021_web.pdf"
+  - name: ch_2022_hydro_pumped_storage_twh
+    question: "Actual generation of CH, hydro_pumped_storage, in 2022 (UTC year), TWh"
+    sql: |
+      SELECT sum(generation * epoch(resolution) / 3600) / 1e6
+      FROM entsoe_generation.generation
+      WHERE production_type = 'hydro_pumped_storage'
+        AND delivery_start >= TIMESTAMPTZ '2022-01-01 00:00:00Z'
+        AND delivery_start <  TIMESTAMPTZ '2023-01-01 00:00:00Z'
+    expected: 5.7
+    tolerance: 0.05
+    source: "ENTSO-E, Statistical Factsheet 2022, ENTSO-E in figures, CH, Hydro Pumped Storage, https://eepublicdownloads.blob.core.windows.net/public-cdn-container/clean-documents/Publications/Statistics/Factsheet/entsoe_sfs2022_web.pdf"
+  - name: ch_2024_hydro_pumped_storage_twh
+    question: "Actual generation of CH, hydro_pumped_storage, in 2024 (UTC year), TWh"
+    sql: |
+      SELECT sum(generation * epoch(resolution) / 3600) / 1e6
+      FROM entsoe_generation.generation
+      WHERE production_type = 'hydro_pumped_storage'
+        AND delivery_start >= TIMESTAMPTZ '2024-01-01 00:00:00Z'
+        AND delivery_start <  TIMESTAMPTZ '2025-01-01 00:00:00Z'
+    expected: 9.6
+    tolerance: 0.05
+    source: "ENTSO-E, Statistical Factsheet 2024, ENTSO-E in figures, CH, Hydro Pumped Storage, https://eepublicdownloads.blob.core.windows.net/public-cdn-container/clean-documents/Publications/Statistics/Factsheet/entsoe_sfs2024_web.pdf"
+  - name: ch_2025_hydro_pumped_storage_twh
+    question: "Actual generation of CH, hydro_pumped_storage, in 2025 (UTC year), TWh"
+    sql: |
+      SELECT sum(generation * epoch(resolution) / 3600) / 1e6
+      FROM entsoe_generation.generation
+      WHERE production_type = 'hydro_pumped_storage'
+        AND delivery_start >= TIMESTAMPTZ '2025-01-01 00:00:00Z'
+        AND delivery_start <  TIMESTAMPTZ '2026-01-01 00:00:00Z'
+    expected: 8.0
+    tolerance: 0.05
+    source: "ENTSO-E, Statistical Factsheet 2025, ENTSO-E in figures, CH, Hydro Pumped Storage, https://eepublicdownloads.blob.core.windows.net/public-cdn-container/clean-documents/Publications/Statistics/Factsheet/entsoe_sfs2025_web.pdf"
+  - name: ch_2019_hydro_run_of_river_twh
+    question: "Actual generation of CH, hydro_run_of_river, in 2019 (UTC year), TWh"
+    sql: |
+      SELECT sum(generation * epoch(resolution) / 3600) / 1e6
+      FROM entsoe_generation.generation
+      WHERE production_type = 'hydro_run_of_river'
+        AND delivery_start >= TIMESTAMPTZ '2019-01-01 00:00:00Z'
+        AND delivery_start <  TIMESTAMPTZ '2020-01-01 00:00:00Z'
+    expected: 1.9
+    tolerance: 0.05
+    source: "ENTSO-E, Statistical Factsheet 2019, ENTSO-E in figures, CH, Hydro Run-of-river and poundage, https://eepublicdownloads.entsoe.eu/clean-documents/Publications/Statistics/Factsheet/entsoe_sfs2019_web.pdf"
+  - name: ch_2020_hydro_run_of_river_twh
+    question: "Actual generation of CH, hydro_run_of_river, in 2020 (UTC year), TWh"
+    sql: |
+      SELECT sum(generation * epoch(resolution) / 3600) / 1e6
+      FROM entsoe_generation.generation
+      WHERE production_type = 'hydro_run_of_river'
+        AND delivery_start >= TIMESTAMPTZ '2020-01-01 00:00:00Z'
+        AND delivery_start <  TIMESTAMPTZ '2021-01-01 00:00:00Z'
+    expected: 2.1
+    tolerance: 0.05
+    source: "ENTSO-E, Statistical Factsheet 2020, ENTSO-E in figures, CH, Hydro Run-of-river and poundage, https://eepublicdownloads.entsoe.eu/clean-documents/Publications/Statistics/Factsheet/entsoe_sfs2020_web.pdf"
+  - name: ch_2021_hydro_run_of_river_twh
+    question: "Actual generation of CH, hydro_run_of_river, in 2021 (UTC year), TWh"
+    sql: |
+      SELECT sum(generation * epoch(resolution) / 3600) / 1e6
+      FROM entsoe_generation.generation
+      WHERE production_type = 'hydro_run_of_river'
+        AND delivery_start >= TIMESTAMPTZ '2021-01-01 00:00:00Z'
+        AND delivery_start <  TIMESTAMPTZ '2022-01-01 00:00:00Z'
+    expected: 2.1
+    tolerance: 0.05
+    source: "ENTSO-E, Statistical Factsheet 2021, ENTSO-E in figures, CH, Hydro Run-of-river and poundage, https://eepublicdownloads.entsoe.eu/clean-documents/Publications/Statistics/Factsheet/entsoe_sfs2021_web.pdf"
+  - name: ch_2022_hydro_run_of_river_twh
+    question: "Actual generation of CH, hydro_run_of_river, in 2022 (UTC year), TWh"
+    sql: |
+      SELECT sum(generation * epoch(resolution) / 3600) / 1e6
+      FROM entsoe_generation.generation
+      WHERE production_type = 'hydro_run_of_river'
+        AND delivery_start >= TIMESTAMPTZ '2022-01-01 00:00:00Z'
+        AND delivery_start <  TIMESTAMPTZ '2023-01-01 00:00:00Z'
+    expected: 1.9
+    tolerance: 0.05
+    source: "ENTSO-E, Statistical Factsheet 2022, ENTSO-E in figures, CH, Hydro Run-of-river and poundage, https://eepublicdownloads.blob.core.windows.net/public-cdn-container/clean-documents/Publications/Statistics/Factsheet/entsoe_sfs2022_web.pdf"
+  - name: ch_2024_hydro_run_of_river_twh
+    question: "Actual generation of CH, hydro_run_of_river, in 2024 (UTC year), TWh"
+    sql: |
+      SELECT sum(generation * epoch(resolution) / 3600) / 1e6
+      FROM entsoe_generation.generation
+      WHERE production_type = 'hydro_run_of_river'
+        AND delivery_start >= TIMESTAMPTZ '2024-01-01 00:00:00Z'
+        AND delivery_start <  TIMESTAMPTZ '2025-01-01 00:00:00Z'
+    expected: 2.3
+    tolerance: 0.05
+    source: "ENTSO-E, Statistical Factsheet 2024, ENTSO-E in figures, CH, Hydro Run-of-river and poundage, https://eepublicdownloads.blob.core.windows.net/public-cdn-container/clean-documents/Publications/Statistics/Factsheet/entsoe_sfs2024_web.pdf"
+  - name: ch_2025_hydro_run_of_river_twh
+    question: "Actual generation of CH, hydro_run_of_river, in 2025 (UTC year), TWh"
+    sql: |
+      SELECT sum(generation * epoch(resolution) / 3600) / 1e6
+      FROM entsoe_generation.generation
+      WHERE production_type = 'hydro_run_of_river'
+        AND delivery_start >= TIMESTAMPTZ '2025-01-01 00:00:00Z'
+        AND delivery_start <  TIMESTAMPTZ '2026-01-01 00:00:00Z'
+    expected: 14.5
+    tolerance: 0.05
+    source: "ENTSO-E, Statistical Factsheet 2025, ENTSO-E in figures, CH, Hydro Run-of-river and poundage, https://eepublicdownloads.blob.core.windows.net/public-cdn-container/clean-documents/Publications/Statistics/Factsheet/entsoe_sfs2025_web.pdf"
+  - name: ch_2019_hydro_reservoir_twh
+    question: "Actual generation of CH, hydro_reservoir, in 2019 (UTC year), TWh"
+    sql: |
+      SELECT sum(generation * epoch(resolution) / 3600) / 1e6
+      FROM entsoe_generation.generation
+      WHERE production_type = 'hydro_reservoir'
+        AND delivery_start >= TIMESTAMPTZ '2019-01-01 00:00:00Z'
+        AND delivery_start <  TIMESTAMPTZ '2020-01-01 00:00:00Z'
+    expected: 11.9
+    tolerance: 0.05
+    source: "ENTSO-E, Statistical Factsheet 2019, ENTSO-E in figures, CH, Hydro Water Reservoir, https://eepublicdownloads.entsoe.eu/clean-documents/Publications/Statistics/Factsheet/entsoe_sfs2019_web.pdf"
+  - name: ch_2020_hydro_reservoir_twh
+    question: "Actual generation of CH, hydro_reservoir, in 2020 (UTC year), TWh"
+    sql: |
+      SELECT sum(generation * epoch(resolution) / 3600) / 1e6
+      FROM entsoe_generation.generation
+      WHERE production_type = 'hydro_reservoir'
+        AND delivery_start >= TIMESTAMPTZ '2020-01-01 00:00:00Z'
+        AND delivery_start <  TIMESTAMPTZ '2021-01-01 00:00:00Z'
+    expected: 11.9
+    tolerance: 0.05
+    source: "ENTSO-E, Statistical Factsheet 2020, ENTSO-E in figures, CH, Hydro Water Reservoir, https://eepublicdownloads.entsoe.eu/clean-documents/Publications/Statistics/Factsheet/entsoe_sfs2020_web.pdf"
+  - name: ch_2021_hydro_reservoir_twh
+    question: "Actual generation of CH, hydro_reservoir, in 2021 (UTC year), TWh"
+    sql: |
+      SELECT sum(generation * epoch(resolution) / 3600) / 1e6
+      FROM entsoe_generation.generation
+      WHERE production_type = 'hydro_reservoir'
+        AND delivery_start >= TIMESTAMPTZ '2021-01-01 00:00:00Z'
+        AND delivery_start <  TIMESTAMPTZ '2022-01-01 00:00:00Z'
+    expected: 10.8
+    tolerance: 0.05
+    source: "ENTSO-E, Statistical Factsheet 2021, ENTSO-E in figures, CH, Hydro Water Reservoir, https://eepublicdownloads.entsoe.eu/clean-documents/Publications/Statistics/Factsheet/entsoe_sfs2021_web.pdf"
+  - name: ch_2022_hydro_reservoir_twh
+    question: "Actual generation of CH, hydro_reservoir, in 2022 (UTC year), TWh"
+    sql: |
+      SELECT sum(generation * epoch(resolution) / 3600) / 1e6
+      FROM entsoe_generation.generation
+      WHERE production_type = 'hydro_reservoir'
+        AND delivery_start >= TIMESTAMPTZ '2022-01-01 00:00:00Z'
+        AND delivery_start <  TIMESTAMPTZ '2023-01-01 00:00:00Z'
+    expected: 8.1
+    tolerance: 0.05
+    source: "ENTSO-E, Statistical Factsheet 2022, ENTSO-E in figures, CH, Hydro Water Reservoir, https://eepublicdownloads.blob.core.windows.net/public-cdn-container/clean-documents/Publications/Statistics/Factsheet/entsoe_sfs2022_web.pdf"
+  - name: ch_2024_hydro_reservoir_twh
+    question: "Actual generation of CH, hydro_reservoir, in 2024 (UTC year), TWh"
+    sql: |
+      SELECT sum(generation * epoch(resolution) / 3600) / 1e6
+      FROM entsoe_generation.generation
+      WHERE production_type = 'hydro_reservoir'
+        AND delivery_start >= TIMESTAMPTZ '2024-01-01 00:00:00Z'
+        AND delivery_start <  TIMESTAMPTZ '2025-01-01 00:00:00Z'
+    expected: 13.9
+    tolerance: 0.05
+    source: "ENTSO-E, Statistical Factsheet 2024, ENTSO-E in figures, CH, Hydro Water Reservoir, https://eepublicdownloads.blob.core.windows.net/public-cdn-container/clean-documents/Publications/Statistics/Factsheet/entsoe_sfs2024_web.pdf"
+  - name: ch_2019_solar_twh
+    question: "Actual generation of CH, solar, in 2019 (UTC year), TWh"
+    sql: |
+      SELECT sum(generation * epoch(resolution) / 3600) / 1e6
+      FROM entsoe_generation.generation
+      WHERE production_type = 'solar'
+        AND delivery_start >= TIMESTAMPTZ '2019-01-01 00:00:00Z'
+        AND delivery_start <  TIMESTAMPTZ '2020-01-01 00:00:00Z'
+    expected: 0.4
+    tolerance: 0.05
+    source: "ENTSO-E, Statistical Factsheet 2019, ENTSO-E in figures, CH, Solar, https://eepublicdownloads.entsoe.eu/clean-documents/Publications/Statistics/Factsheet/entsoe_sfs2019_web.pdf"
+  - name: ch_2020_solar_twh
+    question: "Actual generation of CH, solar, in 2020 (UTC year), TWh"
+    sql: |
+      SELECT sum(generation * epoch(resolution) / 3600) / 1e6
+      FROM entsoe_generation.generation
+      WHERE production_type = 'solar'
+        AND delivery_start >= TIMESTAMPTZ '2020-01-01 00:00:00Z'
+        AND delivery_start <  TIMESTAMPTZ '2021-01-01 00:00:00Z'
+    expected: 2.4
+    tolerance: 0.05
+    source: "ENTSO-E, Statistical Factsheet 2020, ENTSO-E in figures, CH, Solar, https://eepublicdownloads.entsoe.eu/clean-documents/Publications/Statistics/Factsheet/entsoe_sfs2020_web.pdf"
+  - name: ch_2021_solar_twh
+    question: "Actual generation of CH, solar, in 2021 (UTC year), TWh"
+    sql: |
+      SELECT sum(generation * epoch(resolution) / 3600) / 1e6
+      FROM entsoe_generation.generation
+      WHERE production_type = 'solar'
+        AND delivery_start >= TIMESTAMPTZ '2021-01-01 00:00:00Z'
+        AND delivery_start <  TIMESTAMPTZ '2022-01-01 00:00:00Z'
+    expected: 2.5
+    tolerance: 0.05
+    source: "ENTSO-E, Statistical Factsheet 2021, ENTSO-E in figures, CH, Solar, https://eepublicdownloads.entsoe.eu/clean-documents/Publications/Statistics/Factsheet/entsoe_sfs2021_web.pdf"
+  - name: ch_2022_solar_twh
+    question: "Actual generation of CH, solar, in 2022 (UTC year), TWh"
+    sql: |
+      SELECT sum(generation * epoch(resolution) / 3600) / 1e6
+      FROM entsoe_generation.generation
+      WHERE production_type = 'solar'
+        AND delivery_start >= TIMESTAMPTZ '2022-01-01 00:00:00Z'
+        AND delivery_start <  TIMESTAMPTZ '2023-01-01 00:00:00Z'
+    expected: 3.0
+    tolerance: 0.05
+    source: "ENTSO-E, Statistical Factsheet 2022, ENTSO-E in figures, CH, Solar, https://eepublicdownloads.blob.core.windows.net/public-cdn-container/clean-documents/Publications/Statistics/Factsheet/entsoe_sfs2022_web.pdf"
+  - name: ch_2024_solar_twh
+    question: "Actual generation of CH, solar, in 2024 (UTC year), TWh"
+    sql: |
+      SELECT sum(generation * epoch(resolution) / 3600) / 1e6
+      FROM entsoe_generation.generation
+      WHERE production_type = 'solar'
+        AND delivery_start >= TIMESTAMPTZ '2024-01-01 00:00:00Z'
+        AND delivery_start <  TIMESTAMPTZ '2025-01-01 00:00:00Z'
+    expected: 4.3
+    tolerance: 0.05
+    source: "ENTSO-E, Statistical Factsheet 2024, ENTSO-E in figures, CH, Solar, https://eepublicdownloads.blob.core.windows.net/public-cdn-container/clean-documents/Publications/Statistics/Factsheet/entsoe_sfs2024_web.pdf"
+  - name: ch_2019_wind_onshore_twh
+    question: "Actual generation of CH, wind_onshore, in 2019 (UTC year), TWh"
+    sql: |
+      SELECT sum(generation * epoch(resolution) / 3600) / 1e6
+      FROM entsoe_generation.generation
+      WHERE production_type = 'wind_onshore'
+        AND delivery_start >= TIMESTAMPTZ '2019-01-01 00:00:00Z'
+        AND delivery_start <  TIMESTAMPTZ '2020-01-01 00:00:00Z'
+    expected: 0.1
+    tolerance: 0.05
+    source: "ENTSO-E, Statistical Factsheet 2019, ENTSO-E in figures, CH, Wind Onshore, https://eepublicdownloads.entsoe.eu/clean-documents/Publications/Statistics/Factsheet/entsoe_sfs2019_web.pdf"
+  - name: ch_2020_wind_onshore_twh
+    question: "Actual generation of CH, wind_onshore, in 2020 (UTC year), TWh"
+    sql: |
+      SELECT sum(generation * epoch(resolution) / 3600) / 1e6
+      FROM entsoe_generation.generation
+      WHERE production_type = 'wind_onshore'
+        AND delivery_start >= TIMESTAMPTZ '2020-01-01 00:00:00Z'
+        AND delivery_start <  TIMESTAMPTZ '2021-01-01 00:00:00Z'
+    expected: 0.1
+    tolerance: 0.05
+    source: "ENTSO-E, Statistical Factsheet 2020, ENTSO-E in figures, CH, Wind Onshore, https://eepublicdownloads.entsoe.eu/clean-documents/Publications/Statistics/Factsheet/entsoe_sfs2020_web.pdf"
+  - name: ch_2021_wind_onshore_twh
+    question: "Actual generation of CH, wind_onshore, in 2021 (UTC year), TWh"
+    sql: |
+      SELECT sum(generation * epoch(resolution) / 3600) / 1e6
+      FROM entsoe_generation.generation
+      WHERE production_type = 'wind_onshore'
+        AND delivery_start >= TIMESTAMPTZ '2021-01-01 00:00:00Z'
+        AND delivery_start <  TIMESTAMPTZ '2022-01-01 00:00:00Z'
+    expected: 0.1
+    tolerance: 0.05
+    source: "ENTSO-E, Statistical Factsheet 2021, ENTSO-E in figures, CH, Wind Onshore, https://eepublicdownloads.entsoe.eu/clean-documents/Publications/Statistics/Factsheet/entsoe_sfs2021_web.pdf"
+  - name: ch_2022_wind_onshore_twh
+    question: "Actual generation of CH, wind_onshore, in 2022 (UTC year), TWh"
+    sql: |
+      SELECT sum(generation * epoch(resolution) / 3600) / 1e6
+      FROM entsoe_generation.generation
+      WHERE production_type = 'wind_onshore'
+        AND delivery_start >= TIMESTAMPTZ '2022-01-01 00:00:00Z'
+        AND delivery_start <  TIMESTAMPTZ '2023-01-01 00:00:00Z'
+    expected: 0.2
+    tolerance: 0.05
+    source: "ENTSO-E, Statistical Factsheet 2022, ENTSO-E in figures, CH, Wind Onshore, https://eepublicdownloads.blob.core.windows.net/public-cdn-container/clean-documents/Publications/Statistics/Factsheet/entsoe_sfs2022_web.pdf"
+  - name: ch_2024_wind_onshore_twh
+    question: "Actual generation of CH, wind_onshore, in 2024 (UTC year), TWh"
+    sql: |
+      SELECT sum(generation * epoch(resolution) / 3600) / 1e6
+      FROM entsoe_generation.generation
+      WHERE production_type = 'wind_onshore'
+        AND delivery_start >= TIMESTAMPTZ '2024-01-01 00:00:00Z'
+        AND delivery_start <  TIMESTAMPTZ '2025-01-01 00:00:00Z'
+    expected: 0.1
+    tolerance: 0.05
+    source: "ENTSO-E, Statistical Factsheet 2024, ENTSO-E in figures, CH, Wind Onshore, https://eepublicdownloads.blob.core.windows.net/public-cdn-container/clean-documents/Publications/Statistics/Factsheet/entsoe_sfs2024_web.pdf"
+  - name: ch_2025_wind_onshore_twh
+    question: "Actual generation of CH, wind_onshore, in 2025 (UTC year), TWh"
+    sql: |
+      SELECT sum(generation * epoch(resolution) / 3600) / 1e6
+      FROM entsoe_generation.generation
+      WHERE production_type = 'wind_onshore'
+        AND delivery_start >= TIMESTAMPTZ '2025-01-01 00:00:00Z'
+        AND delivery_start <  TIMESTAMPTZ '2026-01-01 00:00:00Z'
+    expected: 0.2
+    tolerance: 0.05
+    source: "ENTSO-E, Statistical Factsheet 2025, ENTSO-E in figures, CH, Wind Onshore, https://eepublicdownloads.blob.core.windows.net/public-cdn-container/clean-documents/Publications/Statistics/Factsheet/entsoe_sfs2025_web.pdf"
+  - name: ch_2019_total_twh
+    question: "Actual generation of CH, all production types, in 2019 (UTC year), TWh"
+    sql: |
+      SELECT sum(generation * epoch(resolution) / 3600) / 1e6
+      FROM entsoe_generation.generation
+      WHERE delivery_start >= TIMESTAMPTZ '2019-01-01 00:00:00Z'
+        AND delivery_start <  TIMESTAMPTZ '2020-01-01 00:00:00Z'
+    expected: 47.7
+    tolerance: 0.05
+    source: "ENTSO-E, Statistical Factsheet 2019, ENTSO-E in figures, CH, Total net generation, https://eepublicdownloads.entsoe.eu/clean-documents/Publications/Statistics/Factsheet/entsoe_sfs2019_web.pdf"
+  - name: ch_2020_total_twh
+    question: "Actual generation of CH, all production types, in 2020 (UTC year), TWh"
+    sql: |
+      SELECT sum(generation * epoch(resolution) / 3600) / 1e6
+      FROM entsoe_generation.generation
+      WHERE delivery_start >= TIMESTAMPTZ '2020-01-01 00:00:00Z'
+        AND delivery_start <  TIMESTAMPTZ '2021-01-01 00:00:00Z'
+    expected: 46.7
+    tolerance: 0.05
+    source: "ENTSO-E, Statistical Factsheet 2020, ENTSO-E in figures, CH, Total net generation, https://eepublicdownloads.entsoe.eu/clean-documents/Publications/Statistics/Factsheet/entsoe_sfs2020_web.pdf"
+  - name: ch_2021_total_twh
+    question: "Actual generation of CH, all production types, in 2021 (UTC year), TWh"
+    sql: |
+      SELECT sum(generation * epoch(resolution) / 3600) / 1e6
+      FROM entsoe_generation.generation
+      WHERE delivery_start >= TIMESTAMPTZ '2021-01-01 00:00:00Z'
+        AND delivery_start <  TIMESTAMPTZ '2022-01-01 00:00:00Z'
+    expected: 40.8
+    tolerance: 0.05
+    source: "ENTSO-E, Statistical Factsheet 2021, ENTSO-E in figures, CH, Total net generation, https://eepublicdownloads.entsoe.eu/clean-documents/Publications/Statistics/Factsheet/entsoe_sfs2021_web.pdf"
+  - name: ch_2022_total_twh
+    question: "Actual generation of CH, all production types, in 2022 (UTC year), TWh"
+    sql: |
+      SELECT sum(generation * epoch(resolution) / 3600) / 1e6
+      FROM entsoe_generation.generation
+      WHERE delivery_start >= TIMESTAMPTZ '2022-01-01 00:00:00Z'
+        AND delivery_start <  TIMESTAMPTZ '2023-01-01 00:00:00Z'
+    expected: 42.5
+    tolerance: 0.05
+    source: "ENTSO-E, Statistical Factsheet 2022, ENTSO-E in figures, CH, Total net generation, https://eepublicdownloads.blob.core.windows.net/public-cdn-container/clean-documents/Publications/Statistics/Factsheet/entsoe_sfs2022_web.pdf"
+  - name: ch_2024_total_twh
+    question: "Actual generation of CH, all production types, in 2024 (UTC year), TWh"
+    sql: |
+      SELECT sum(generation * epoch(resolution) / 3600) / 1e6
+      FROM entsoe_generation.generation
+      WHERE delivery_start >= TIMESTAMPTZ '2024-01-01 00:00:00Z'
+        AND delivery_start <  TIMESTAMPTZ '2025-01-01 00:00:00Z'
+    expected: 53.2
+    tolerance: 0.05
+    source: "ENTSO-E, Statistical Factsheet 2024, ENTSO-E in figures, CH, Total net generation, https://eepublicdownloads.blob.core.windows.net/public-cdn-container/clean-documents/Publications/Statistics/Factsheet/entsoe_sfs2024_web.pdf"
+  - name: ch_2025_total_without_pumped_storage_twh
+    question: "Actual generation of CH without hydro_pumped_storage in 2025 (UTC year), TWh"
+    sql: |
+      SELECT sum(generation * epoch(resolution) / 3600) / 1e6
+      FROM entsoe_generation.generation
+      WHERE production_type <> 'hydro_pumped_storage'
+        AND delivery_start >= TIMESTAMPTZ '2025-01-01 00:00:00Z'
+        AND delivery_start <  TIMESTAMPTZ '2026-01-01 00:00:00Z'
+    expected: 48.0
+    tolerance: 0.05
+    source: "ENTSO-E, Statistical Factsheet 2025, ENTSO-E in figures, CH, Total net generation (exclusive storage units), https://eepublicdownloads.blob.core.windows.net/public-cdn-container/clean-documents/Publications/Statistics/Factsheet/entsoe_sfs2025_web.pdf"

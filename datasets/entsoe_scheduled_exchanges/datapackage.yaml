@@ -1,0 +1,143 @@
+# Definitions (titles, descriptions, labels, warnings) are Renaud's (skills/add-dataset). Every
+# definition below is a draft by Claude (WP5.2, 2026-11-15) until he changes or confirms it.
+# Structure (keys, types, refresh) by Claude; Renaud chose append-only (2026-11-15). Sources of
+# the facts: the docstring of fetch.py, and swissgrid_project/data/entsoe/README.md (QA 7c).
+name: entsoe_scheduled_exchanges
+title: Scheduled commercial exchanges on the Swiss borders, day-ahead and total (ENTSO-E)  # draft by Claude
+# draft by Claude
+description: >-
+  Scheduled commercial exchanges on the borders of Switzerland with Germany, France, Italy and
+  Austria, in both directions, as published on the ENTSO-E Transparency Platform (document A09,
+  article 12.1.F of Regulation (EU) 543/2013): the exchanges of the day-ahead market (table
+  day_ahead, contract type A01, from 2018) and the total of all scheduled exchanges (table total,
+  contract type A05, from 2015). Hourly, then 15 minutes from 2025. Every version that adele
+  fetched is kept (revisions: append-only): schedules change before delivery and are corrected
+  up to a month after it.
+# The same platform as entsoe_day_ahead_prices: Renaud's licence entry there, copied by Claude.
+licenses:
+  - name: CC-BY-4.0
+    path: https://creativecommons.org/licenses/by/4.0/
+    title: Creative Commons Attribution 4.0 International License
+resources:
+  - name: day_ahead
+    description: Scheduled exchanges of the day-ahead market per border and delivery interval, in each direction (A09, contract type A01), published the day before delivery.  # draft by Claude
+    schema:
+      primaryKey: [border, delivery_start]
+      fields:
+        - name: border
+          type: string
+          # draft by Claude
+          description: >-
+            The neighbour of Switzerland. DE is the country (ENTSO-E's area 10Y1001A1001A83F)
+            over the whole span, not the bidding zone DE_LU or DE_AT_LU.
+          categories:
+            - {value: DE, label: Germany}
+            - {value: FR, label: France}
+            - {value: IT, label: Italy}
+            - {value: AT, label: Austria}
+        - name: delivery_start
+          type: datetime
+          description: Start of the delivery interval, UTC.
+        - name: resolution
+          type: duration
+          # draft by Claude
+          description: >-
+            Length of the delivery interval: PT1H, then PT15M from a date in 2025 that differs per
+            border and per table (see the warnings). To sum energy or average over a period,
+            weight each row by it: MWh = MW * epoch(resolution) / 3600.
+        - name: from_ch
+          type: number
+          unit: MW
+          # draft by Claude
+          description: >-
+            Scheduled exchange from Switzerland to the neighbour, mean power over the interval,
+            >= 0. Both directions can be above 0 in the same interval: the net scheduled export
+            is from_ch - to_ch.
+        - name: to_ch
+          type: number
+          unit: MW
+          description: Scheduled exchange from the neighbour to Switzerland, mean power over the interval, >= 0.  # draft by Claude
+  - name: total
+    description: Total scheduled exchanges per border and delivery interval, in each direction (A09, contract type A05).  # draft by Claude
+    schema:
+      primaryKey: [border, delivery_start]
+      fields:
+        - name: border
+          type: string
+          # draft by Claude
+          description: >-
+            The neighbour of Switzerland. DE is the country (ENTSO-E's area 10Y1001A1001A83F)
+            over the whole span, not the bidding zone DE_LU or DE_AT_LU.
+          categories:
+            - {value: DE, label: Germany}
+            - {value: FR, label: France}
+            - {value: IT, label: Italy}
+            - {value: AT, label: Austria}
+        - name: delivery_start
+          type: datetime
+          description: Start of the delivery interval, UTC.
+        - name: resolution
+          type: duration
+          # draft by Claude
+          description: >-
+            Length of the delivery interval: PT1H, then PT15M from a date in 2025 that differs per
+            border and per table (see the warnings). To sum energy or average over a period,
+            weight each row by it: MWh = MW * epoch(resolution) / 3600.
+        - name: from_ch
+          type: number
+          unit: MW
+          # draft by Claude
+          description: >-
+            Scheduled exchange from Switzerland to the neighbour, mean power over the interval,
+            >= 0. Both directions can be above 0 in the same interval: the net scheduled export
+            is from_ch - to_ch.
+        - name: to_ch
+          type: number
+          unit: MW
+          description: Scheduled exchange from the neighbour to Switzerland, mean power over the interval, >= 0.  # draft by Claude
+adele:
+  format_version: 1
+  secrets: [ENTSO_TOKEN]
+  refresh:
+    every: PT1H
+    # All 302 corrections came less than 30 days after delivery (fetch.py). 16 requests per run
+    # (about 2 minutes, 2 MB). Proposal by Claude.
+    lookback: P31D
+    horizon: P2D  # the day-ahead schedule of the next day
+  revisions: append-only
+  # drafts by Claude
+  warnings:
+    - >-
+      total includes the day-ahead exchanges: never add the two tables. Both hold the next day
+      before delivery, total later than day_ahead (on 2026-11-15, day_ahead held the next day at
+      21:00 UTC, total only at 22:11 UTC, and not yet for DE). A value before delivery can change
+      until delivery: each change is a new version (the view total_versions).
+    - >-
+      The change from PT1H to PT15M came border by border in 2025 (e.g. total on the DE border
+      at 2025-07-22 22:00 UTC, day_ahead on the AT border at 2025-07-02 22:00 UTC). In the months
+      of the change, some days come at one resolution and some at the other.
+    - >-
+      IT, day_ahead, 2025: on some days ENTSO-E serves one direction at 15 minutes and the other
+      hourly (from CH hourly until 2025-09-03, to CH at 15 minutes on single days from
+      2025-01-01). A row holds both directions, so on those hours the hourly value is repeated
+      in each of its four quarter-hours (4,655 hours of the values from CH): energy and hourly means
+      are exact, a change within such an hour is not real.
+    - >-
+      Each direction is a gross schedule, and both can be far above the capacity of the border:
+      total FR reaches 19,370 MW from CH and 21,799 MW to CH on 2019-04-24 (net 2,429 MW to CH).
+      Use the net (from_ch - to_ch) for anything physical. day_ahead FR has 72 hours of
+      2018-12-19 to 2021-02-03 without a value from CH (null).
+    - >-
+      total minus the physical flows (entsoe_physical_flows) does not give ENTSO-E's MV - SV of
+      the imbalance (entsoe_imbalance_volume.imbalance.mv_minus_sv): hourly correlation 0.06,
+      median gap 314 MW, although the schedules and the flows agree in sign. The schedules that
+      Swissgrid uses there are not these.
+    - >-
+      DE: until 2018-09-30 the German bidding zone was DE_AT_LU, then DE_LU. This table holds
+      the country DE throughout; in 2025 ENTSO-E's DE_LU series has the same values. First
+      values of day_ahead: DE 2018-02-28, FR 2018-04-27, IT 2018-07-01, AT 2018-08-01; of total:
+      2015-01-01 (IT 2015-01-03).
+  # D31: two checks of checks.yaml, chosen by Claude (2026-11-15)
+  examples:
+    - check: ch_2021_total_imports_twh  # each direction summed, all borders: gross
+    - check: ch_2021_total_imports_netted_twh  # netted per border and UTC hour first

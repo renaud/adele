@@ -1,0 +1,262 @@
+# Published figures that this dataset must reproduce (skills/add-dataset, step 8).
+# Collected 2026-11-15 by a research agent, compared with adele the same day
+# (qa/tools/published_check_entsoe_physical_flows.py; qa/published_figures_entsoe_physical_flows.md
+# lists the figures left out and why).
+#
+# ENTSO-E Statistical Factsheets 2019-2025, "Physical energy flows" map, CH borders: "Hourly netted
+# physical flow values", GWh. In each UTC hour the two directions are netted (the mean power of
+# each direction over the hour: DE has quarter-hours from 2021-08), and each direction sums its
+# positive part. GWh printed as whole numbers: tolerance 0.5. Years are UTC years. Only the
+# figures that match now are here: 19 of 56. All 8 of the 2025 edition (made in June 2026)
+# match; the older editions (made from March 2023 to March 2025) differ by 0.01 to 0.9 %, most
+# likely by the corrections that ENTSO-E made after them (flows are corrected up to a year after
+# delivery). A later correction can make one of these checks fail: then compare with the next
+# edition.
+checks:
+  - name: ch_to_de_2020_gwh
+    question: "Physical flow CH --> DE in 2020 (UTC year), netted per hour, GWh"
+    sql: |
+      SELECT sum(greatest(net, 0)) / 1e3
+      FROM (SELECT time_bucket(INTERVAL 1 HOUR, delivery_start) AS hour, avg(from_ch) - avg(to_ch) AS net
+            FROM entsoe_physical_flows.flows
+            WHERE border = 'DE'
+              AND delivery_start >= TIMESTAMPTZ '2020-01-01 00:00:00Z'
+              AND delivery_start <  TIMESTAMPTZ '2021-01-01 00:00:00Z'
+            GROUP BY 1)
+    expected: 5171
+    tolerance: 0.5
+    source: "ENTSO-E, Statistical Factsheet 2020, Physical energy flows, CH --> DE, https://eepublicdownloads.entsoe.eu/clean-documents/Publications/Statistics/Factsheet/entsoe_sfs2020_web.pdf"
+  - name: ch_to_de_2025_gwh
+    question: "Physical flow CH --> DE in 2025 (UTC year), netted per hour, GWh"
+    sql: |
+      SELECT sum(greatest(net, 0)) / 1e3
+      FROM (SELECT time_bucket(INTERVAL 1 HOUR, delivery_start) AS hour, avg(from_ch) - avg(to_ch) AS net
+            FROM entsoe_physical_flows.flows
+            WHERE border = 'DE'
+              AND delivery_start >= TIMESTAMPTZ '2025-01-01 00:00:00Z'
+              AND delivery_start <  TIMESTAMPTZ '2026-01-01 00:00:00Z'
+            GROUP BY 1)
+    expected: 3613
+    tolerance: 0.5
+    source: "ENTSO-E, Statistical Factsheet 2025, Physical energy flows, CH --> DE, https://eepublicdownloads.blob.core.windows.net/public-cdn-container/clean-documents/Publications/Statistics/Factsheet/entsoe_sfs2025_web.pdf"
+  - name: de_to_ch_2025_gwh
+    question: "Physical flow DE --> CH in 2025 (UTC year), netted per hour, GWh"
+    sql: |
+      SELECT sum(greatest(-net, 0)) / 1e3
+      FROM (SELECT time_bucket(INTERVAL 1 HOUR, delivery_start) AS hour, avg(from_ch) - avg(to_ch) AS net
+            FROM entsoe_physical_flows.flows
+            WHERE border = 'DE'
+              AND delivery_start >= TIMESTAMPTZ '2025-01-01 00:00:00Z'
+              AND delivery_start <  TIMESTAMPTZ '2026-01-01 00:00:00Z'
+            GROUP BY 1)
+    expected: 6546
+    tolerance: 0.5
+    source: "ENTSO-E, Statistical Factsheet 2025, Physical energy flows, DE --> CH, https://eepublicdownloads.blob.core.windows.net/public-cdn-container/clean-documents/Publications/Statistics/Factsheet/entsoe_sfs2025_web.pdf"
+  - name: fr_to_ch_2021_gwh
+    question: "Physical flow FR --> CH in 2021 (UTC year), netted per hour, GWh"
+    sql: |
+      SELECT sum(greatest(-net, 0)) / 1e3
+      FROM (SELECT time_bucket(INTERVAL 1 HOUR, delivery_start) AS hour, avg(from_ch) - avg(to_ch) AS net
+            FROM entsoe_physical_flows.flows
+            WHERE border = 'FR'
+              AND delivery_start >= TIMESTAMPTZ '2021-01-01 00:00:00Z'
+              AND delivery_start <  TIMESTAMPTZ '2022-01-01 00:00:00Z'
+            GROUP BY 1)
+    expected: 8218
+    tolerance: 0.5
+    source: "ENTSO-E, Statistical Factsheet 2021, Physical energy flows, FR --> CH, https://eepublicdownloads.entsoe.eu/clean-documents/Publications/Statistics/Factsheet/entsoe_sfs2021_web.pdf"
+  - name: fr_to_ch_2022_gwh
+    question: "Physical flow FR --> CH in 2022 (UTC year), netted per hour, GWh"
+    sql: |
+      SELECT sum(greatest(-net, 0)) / 1e3
+      FROM (SELECT time_bucket(INTERVAL 1 HOUR, delivery_start) AS hour, avg(from_ch) - avg(to_ch) AS net
+            FROM entsoe_physical_flows.flows
+            WHERE border = 'FR'
+              AND delivery_start >= TIMESTAMPTZ '2022-01-01 00:00:00Z'
+              AND delivery_start <  TIMESTAMPTZ '2023-01-01 00:00:00Z'
+            GROUP BY 1)
+    expected: 6864
+    tolerance: 0.5
+    source: "ENTSO-E, Statistical Factsheet 2022, Physical energy flows, FR --> CH, https://eepublicdownloads.blob.core.windows.net/public-cdn-container/clean-documents/Publications/Statistics/Factsheet/entsoe_sfs2022_web.pdf"
+  - name: ch_to_fr_2025_gwh
+    question: "Physical flow CH --> FR in 2025 (UTC year), netted per hour, GWh"
+    sql: |
+      SELECT sum(greatest(net, 0)) / 1e3
+      FROM (SELECT time_bucket(INTERVAL 1 HOUR, delivery_start) AS hour, avg(from_ch) - avg(to_ch) AS net
+            FROM entsoe_physical_flows.flows
+            WHERE border = 'FR'
+              AND delivery_start >= TIMESTAMPTZ '2025-01-01 00:00:00Z'
+              AND delivery_start <  TIMESTAMPTZ '2026-01-01 00:00:00Z'
+            GROUP BY 1)
+    expected: 406
+    tolerance: 0.5
+    source: "ENTSO-E, Statistical Factsheet 2025, Physical energy flows, CH --> FR, https://eepublicdownloads.blob.core.windows.net/public-cdn-container/clean-documents/Publications/Statistics/Factsheet/entsoe_sfs2025_web.pdf"
+  - name: fr_to_ch_2025_gwh
+    question: "Physical flow FR --> CH in 2025 (UTC year), netted per hour, GWh"
+    sql: |
+      SELECT sum(greatest(-net, 0)) / 1e3
+      FROM (SELECT time_bucket(INTERVAL 1 HOUR, delivery_start) AS hour, avg(from_ch) - avg(to_ch) AS net
+            FROM entsoe_physical_flows.flows
+            WHERE border = 'FR'
+              AND delivery_start >= TIMESTAMPTZ '2025-01-01 00:00:00Z'
+              AND delivery_start <  TIMESTAMPTZ '2026-01-01 00:00:00Z'
+            GROUP BY 1)
+    expected: 15754
+    tolerance: 0.5
+    source: "ENTSO-E, Statistical Factsheet 2025, Physical energy flows, FR --> CH, https://eepublicdownloads.blob.core.windows.net/public-cdn-container/clean-documents/Publications/Statistics/Factsheet/entsoe_sfs2025_web.pdf"
+  - name: it_to_ch_2019_gwh
+    question: "Physical flow IT --> CH in 2019 (UTC year), netted per hour, GWh"
+    sql: |
+      SELECT sum(greatest(-net, 0)) / 1e3
+      FROM (SELECT time_bucket(INTERVAL 1 HOUR, delivery_start) AS hour, avg(from_ch) - avg(to_ch) AS net
+            FROM entsoe_physical_flows.flows
+            WHERE border = 'IT'
+              AND delivery_start >= TIMESTAMPTZ '2019-01-01 00:00:00Z'
+              AND delivery_start <  TIMESTAMPTZ '2020-01-01 00:00:00Z'
+            GROUP BY 1)
+    expected: 121
+    tolerance: 0.5
+    source: "ENTSO-E, Statistical Factsheet 2019, Physical energy flows, IT --> CH, https://eepublicdownloads.entsoe.eu/clean-documents/Publications/Statistics/Factsheet/entsoe_sfs2019_web.pdf"
+  - name: it_to_ch_2020_gwh
+    question: "Physical flow IT --> CH in 2020 (UTC year), netted per hour, GWh"
+    sql: |
+      SELECT sum(greatest(-net, 0)) / 1e3
+      FROM (SELECT time_bucket(INTERVAL 1 HOUR, delivery_start) AS hour, avg(from_ch) - avg(to_ch) AS net
+            FROM entsoe_physical_flows.flows
+            WHERE border = 'IT'
+              AND delivery_start >= TIMESTAMPTZ '2020-01-01 00:00:00Z'
+              AND delivery_start <  TIMESTAMPTZ '2021-01-01 00:00:00Z'
+            GROUP BY 1)
+    expected: 861
+    tolerance: 0.5
+    source: "ENTSO-E, Statistical Factsheet 2020, Physical energy flows, IT --> CH, https://eepublicdownloads.entsoe.eu/clean-documents/Publications/Statistics/Factsheet/entsoe_sfs2020_web.pdf"
+  - name: it_to_ch_2021_gwh
+    question: "Physical flow IT --> CH in 2021 (UTC year), netted per hour, GWh"
+    sql: |
+      SELECT sum(greatest(-net, 0)) / 1e3
+      FROM (SELECT time_bucket(INTERVAL 1 HOUR, delivery_start) AS hour, avg(from_ch) - avg(to_ch) AS net
+            FROM entsoe_physical_flows.flows
+            WHERE border = 'IT'
+              AND delivery_start >= TIMESTAMPTZ '2021-01-01 00:00:00Z'
+              AND delivery_start <  TIMESTAMPTZ '2022-01-01 00:00:00Z'
+            GROUP BY 1)
+    expected: 378
+    tolerance: 0.5
+    source: "ENTSO-E, Statistical Factsheet 2021, Physical energy flows, IT --> CH, https://eepublicdownloads.entsoe.eu/clean-documents/Publications/Statistics/Factsheet/entsoe_sfs2021_web.pdf"
+  - name: it_to_ch_2023_gwh
+    question: "Physical flow IT --> CH in 2023 (UTC year), netted per hour, GWh"
+    sql: |
+      SELECT sum(greatest(-net, 0)) / 1e3
+      FROM (SELECT time_bucket(INTERVAL 1 HOUR, delivery_start) AS hour, avg(from_ch) - avg(to_ch) AS net
+            FROM entsoe_physical_flows.flows
+            WHERE border = 'IT'
+              AND delivery_start >= TIMESTAMPTZ '2023-01-01 00:00:00Z'
+              AND delivery_start <  TIMESTAMPTZ '2024-01-01 00:00:00Z'
+            GROUP BY 1)
+    expected: 149
+    tolerance: 0.5
+    source: "ENTSO-E, Statistical Factsheet 2023, Physical energy flows, IT --> CH, https://eepublicdownloads.blob.core.windows.net/public-cdn-container/clean-documents/Publications/Statistics/Factsheet/entsoe_sfs2023_web.pdf"
+  - name: ch_to_it_2025_gwh
+    question: "Physical flow CH --> IT in 2025 (UTC year), netted per hour, GWh"
+    sql: |
+      SELECT sum(greatest(net, 0)) / 1e3
+      FROM (SELECT time_bucket(INTERVAL 1 HOUR, delivery_start) AS hour, avg(from_ch) - avg(to_ch) AS net
+            FROM entsoe_physical_flows.flows
+            WHERE border = 'IT'
+              AND delivery_start >= TIMESTAMPTZ '2025-01-01 00:00:00Z'
+              AND delivery_start <  TIMESTAMPTZ '2026-01-01 00:00:00Z'
+            GROUP BY 1)
+    expected: 16088
+    tolerance: 0.5
+    source: "ENTSO-E, Statistical Factsheet 2025, Physical energy flows, CH --> IT, https://eepublicdownloads.blob.core.windows.net/public-cdn-container/clean-documents/Publications/Statistics/Factsheet/entsoe_sfs2025_web.pdf"
+  - name: it_to_ch_2025_gwh
+    question: "Physical flow IT --> CH in 2025 (UTC year), netted per hour, GWh"
+    sql: |
+      SELECT sum(greatest(-net, 0)) / 1e3
+      FROM (SELECT time_bucket(INTERVAL 1 HOUR, delivery_start) AS hour, avg(from_ch) - avg(to_ch) AS net
+            FROM entsoe_physical_flows.flows
+            WHERE border = 'IT'
+              AND delivery_start >= TIMESTAMPTZ '2025-01-01 00:00:00Z'
+              AND delivery_start <  TIMESTAMPTZ '2026-01-01 00:00:00Z'
+            GROUP BY 1)
+    expected: 496
+    tolerance: 0.5
+    source: "ENTSO-E, Statistical Factsheet 2025, Physical energy flows, IT --> CH, https://eepublicdownloads.blob.core.windows.net/public-cdn-container/clean-documents/Publications/Statistics/Factsheet/entsoe_sfs2025_web.pdf"
+  - name: ch_to_at_2019_gwh
+    question: "Physical flow CH --> AT in 2019 (UTC year), netted per hour, GWh"
+    sql: |
+      SELECT sum(greatest(net, 0)) / 1e3
+      FROM (SELECT time_bucket(INTERVAL 1 HOUR, delivery_start) AS hour, avg(from_ch) - avg(to_ch) AS net
+            FROM entsoe_physical_flows.flows
+            WHERE border = 'AT'
+              AND delivery_start >= TIMESTAMPTZ '2019-01-01 00:00:00Z'
+              AND delivery_start <  TIMESTAMPTZ '2020-01-01 00:00:00Z'
+            GROUP BY 1)
+    expected: 565
+    tolerance: 0.5
+    source: "ENTSO-E, Statistical Factsheet 2019, Physical energy flows, CH --> AT, https://eepublicdownloads.entsoe.eu/clean-documents/Publications/Statistics/Factsheet/entsoe_sfs2019_web.pdf"
+  - name: ch_to_at_2020_gwh
+    question: "Physical flow CH --> AT in 2020 (UTC year), netted per hour, GWh"
+    sql: |
+      SELECT sum(greatest(net, 0)) / 1e3
+      FROM (SELECT time_bucket(INTERVAL 1 HOUR, delivery_start) AS hour, avg(from_ch) - avg(to_ch) AS net
+            FROM entsoe_physical_flows.flows
+            WHERE border = 'AT'
+              AND delivery_start >= TIMESTAMPTZ '2020-01-01 00:00:00Z'
+              AND delivery_start <  TIMESTAMPTZ '2021-01-01 00:00:00Z'
+            GROUP BY 1)
+    expected: 1044
+    tolerance: 0.5
+    source: "ENTSO-E, Statistical Factsheet 2020, Physical energy flows, CH --> AT, https://eepublicdownloads.entsoe.eu/clean-documents/Publications/Statistics/Factsheet/entsoe_sfs2020_web.pdf"
+  - name: at_to_ch_2020_gwh
+    question: "Physical flow AT --> CH in 2020 (UTC year), netted per hour, GWh"
+    sql: |
+      SELECT sum(greatest(-net, 0)) / 1e3
+      FROM (SELECT time_bucket(INTERVAL 1 HOUR, delivery_start) AS hour, avg(from_ch) - avg(to_ch) AS net
+            FROM entsoe_physical_flows.flows
+            WHERE border = 'AT'
+              AND delivery_start >= TIMESTAMPTZ '2020-01-01 00:00:00Z'
+              AND delivery_start <  TIMESTAMPTZ '2021-01-01 00:00:00Z'
+            GROUP BY 1)
+    expected: 3495
+    tolerance: 0.5
+    source: "ENTSO-E, Statistical Factsheet 2020, Physical energy flows, AT --> CH, https://eepublicdownloads.entsoe.eu/clean-documents/Publications/Statistics/Factsheet/entsoe_sfs2020_web.pdf"
+  - name: at_to_ch_2023_gwh
+    question: "Physical flow AT --> CH in 2023 (UTC year), netted per hour, GWh"
+    sql: |
+      SELECT sum(greatest(-net, 0)) / 1e3
+      FROM (SELECT time_bucket(INTERVAL 1 HOUR, delivery_start) AS hour, avg(from_ch) - avg(to_ch) AS net
+            FROM entsoe_physical_flows.flows
+            WHERE border = 'AT'
+              AND delivery_start >= TIMESTAMPTZ '2023-01-01 00:00:00Z'
+              AND delivery_start <  TIMESTAMPTZ '2024-01-01 00:00:00Z'
+            GROUP BY 1)
+    expected: 4628
+    tolerance: 0.5
+    source: "ENTSO-E, Statistical Factsheet 2023, Physical energy flows, AT --> CH, https://eepublicdownloads.blob.core.windows.net/public-cdn-container/clean-documents/Publications/Statistics/Factsheet/entsoe_sfs2023_web.pdf"
+  - name: ch_to_at_2025_gwh
+    question: "Physical flow CH --> AT in 2025 (UTC year), netted per hour, GWh"
+    sql: |
+      SELECT sum(greatest(net, 0)) / 1e3
+      FROM (SELECT time_bucket(INTERVAL 1 HOUR, delivery_start) AS hour, avg(from_ch) - avg(to_ch) AS net
+            FROM entsoe_physical_flows.flows
+            WHERE border = 'AT'
+              AND delivery_start >= TIMESTAMPTZ '2025-01-01 00:00:00Z'
+              AND delivery_start <  TIMESTAMPTZ '2026-01-01 00:00:00Z'
+            GROUP BY 1)
+    expected: 2430
+    tolerance: 0.5
+    source: "ENTSO-E, Statistical Factsheet 2025, Physical energy flows, CH --> AT, https://eepublicdownloads.blob.core.windows.net/public-cdn-container/clean-documents/Publications/Statistics/Factsheet/entsoe_sfs2025_web.pdf"
+  - name: at_to_ch_2025_gwh
+    question: "Physical flow AT --> CH in 2025 (UTC year), netted per hour, GWh"
+    sql: |
+      SELECT sum(greatest(-net, 0)) / 1e3
+      FROM (SELECT time_bucket(INTERVAL 1 HOUR, delivery_start) AS hour, avg(from_ch) - avg(to_ch) AS net
+            FROM entsoe_physical_flows.flows
+            WHERE border = 'AT'
+              AND delivery_start >= TIMESTAMPTZ '2025-01-01 00:00:00Z'
+              AND delivery_start <  TIMESTAMPTZ '2026-01-01 00:00:00Z'
+            GROUP BY 1)
+    expected: 2271
+    tolerance: 0.5
+    source: "ENTSO-E, Statistical Factsheet 2025, Physical energy flows, AT --> CH, https://eepublicdownloads.blob.core.windows.net/public-cdn-container/clean-documents/Publications/Statistics/Factsheet/entsoe_sfs2025_web.pdf"

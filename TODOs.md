@@ -161,10 +161,14 @@ Next, state at the end of 2026-11-15:
 - The ENTSO-E series that are revised (`qa/revisions_entsoe_ch.md`, measured 2026-11-15):
   generation per type (A75), physical flows (A11), scheduled exchanges (A09), imbalance volume
   (A86). Renaud agreed to build their datasets ("b: ok, for the series that a shows to be
-  revised"). Claude's proposal, not decided: all four in WP6 as `append-only`, so flows and
-  schedules leave WP5 (schedules change before delivery: 541 of 1,258 hours ahead changed;
-  flows are corrected up to months later). Until Renaud decides, a session that does WP5
-  leaves A11 and A09 out, so that they aren't built twice with two policies.
+  revised"), and chose `append-only` for flows and schedules too (2026-11-15). Built the same
+  day in the worktree `wp5.2` (WP5.2), on the Mac: `entsoe_generation`, `entsoe_physical_flows`,
+  `entsoe_scheduled_exchanges`, `entsoe_imbalance_volume`, backfilled from 2015, 68 published
+  figures as checks (none found for the imbalance). The 12 choices of the build and what is
+  open: `docs/work-packages/WP5.2-entsoe-revised-series.md`. steacher1 after WP1. Found on the
+  way, for WP4's `swissgrid_balance` (no checks yet): ElCom's yearly counts of quarter-hours per
+  bin of 100 MW beyond +-500 MW of Swissgrid's control area balance, 2017-2025, and Swissgrid's
+  monthly counts of 2024-2026 (`qa/published_figures_wp52_sources.md`, section 4).
 - WP5 split into datasets (Claude, 2026-11-15, at Renaud's request; a proposal, not decided):
   `docs/work-packages/WP5-datasets.md`. With WP1 to WP3 done: 44 datasets (26 with no build, 9
   need WP3, 9 need WP2), in 10 sub-packages WP5.1 to WP5.10 grouped by what their fetch shares,
@@ -191,6 +195,15 @@ Next, state at the end of 2026-11-15:
      `ingest.redact`). The token was printed once in Claude's session of 2026-11-15: rotate it
      if that matters.
   Next: the backfill on steacher1 after WP1 (the neighbours: 12 windows of about 5 min).
+- `entsoe_imbalance_volume`: write its `checks.yaml` (Renaud, 2026-11-16). Two searches found
+  no published figure computed from A86 for CH (`qa/published_figures_entsoe_imbalance_volume.md`:
+  ElCom and DNV use Swissgrid's data, ENTSO-E and Compass Lexecon draw CH only in charts). Ways:
+  (a) Renaud's or the team's documents with figures computed from A86; (b) since
+  `swissgrid_balance` is in `main` (WP4) and a check can read another dataset (D34), a check
+  that joins the two datasets: A86 equals TSI minus the IGCC netting from 2025-02-14 (in the
+  swissgrid project 96 to 99 % of the quarter-hours of each month agreed within 1 MW), e.g. the
+  share of quarter-hours within 1 MW per month. It would test the sign, the stamps and the unit
+  at once.
 - What WP4 needs before a build (Claude, 2026-11-15, asked "what prevents us from doing WP4
   first"): nothing is missing in the server (WP3 is in `main`, G5 was built with D27), but no
   WP4 doc exists. Its design points: where raw answers are kept (G4: place, retention, one copy
@@ -272,6 +285,9 @@ Found on 2026-11-14 by subagents (docs/datasets-inventory.md, sections 4 and 5),
   window again. A window that fails in the middle leaves a hole; the command prints it and
   returns 1, but `state.json` ends with status ok. D21 (`expected_spacing`) would report the
   hole, once built and declared.
+  Met in WP5.2 (2026-11-15): one window of the schedules failed, status ok. To fetch it again,
+  take its bounds from the log: windows of 365 days from the start drift by one day per leap
+  year (from 2015-01-01 the 12th window starts on 2024-12-29, not 2024-12-30).
 - `revisions: none`: a run that is stored in part counts as stored (`windows_to_fetch`) and is
   never completed. Tested by the subagent: 2 rows of 4 stayed after a second backfill.
 - Date column (decided 2026-11-15, D26; the build comes after D22). To change: the `adele:` block per

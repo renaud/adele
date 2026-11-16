@@ -48,6 +48,10 @@ When a review or a QA question finds a trap that is not listed here, add it.
 - Power or energy? Is a value the mean over the interval (MW), an instantaneous reading, or
   the energy of the interval (MWh)? Summing MW over 15-minute rows is wrong by a factor of 4.
 - Sign convention: which direction is positive for flows, imbalances, net positions?
+- Flows per direction: gross (both directions above 0 in the same interval) or net (one of
+  them 0)? ENTSO-E's physical flows on the CH-DE border are gross: both directions above 0 in
+  658 of 756 quarter-hours (2026-11-08 to 2026-11-15). Keep both directions on one row, so
+  that the net flow is a difference and no query adds the two.
 - Currency, and whether it changed.
 - Missing against zero: does the source write 0, an empty cell, or a sentinel (-999, 9999)
   when a value is missing?
@@ -58,6 +62,10 @@ When a review or a QA question finds a trap that is not listed here, add it.
 - Is the declared key unique in the data? Does the source deliver duplicates?
 - Did codes change over time (bidding zones split or merged, production types renamed)?
 - Does one name mean different things at different sources (DE, DE_LU, DE_AT_LU)?
+- Does the source publish one border under two areas with different values? ENTSO-E's
+  flows on the Swiss-German border for the country DE and for the bidding zone DE_LU are equal
+  except in 2025, where 24,782 of 35,040 quarter-hours differ; Swissgrid's figures agree with
+  DE. Asking both would also count the border twice.
 - Does a total row sit among the detail rows (e.g. a zone "EU" next to the countries)?
 - Is the total the sum of its parts? ENTSO-E wind and solar forecasts (measured 2026-11-15): IT
   equals the sum of its zones, but DE_LU's day-ahead solar and onshore wind exceed the sum of

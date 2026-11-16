@@ -1,0 +1,95 @@
+# Definitions (titles, descriptions, labels, warnings) are Renaud's (skills/add-dataset). Every
+# definition below is a draft by Claude (WP5.2, 2026-11-15) until he changes or confirms it.
+# Structure (keys, types, refresh) by Claude. Sources of the facts: the docstring of fetch.py,
+# and swissgrid_project/data/entsoe/README.md ("The main result", QA 1b, 2 and 2h).
+name: entsoe_imbalance_volume
+title: Total imbalance volume of the Swiss control area (ENTSO-E)  # draft by Claude
+# draft by Claude
+description: >-
+  Total imbalance volume of the Swiss control area per quarter-hour, as published on the ENTSO-E
+  Transparency Platform (document A86, article 17.1.H of Regulation (EU) 543/2013), from
+  2015-03-25, signed: positive when the control area is long (surplus). From August 2024 also
+  the difference between measured and scheduled flows on all interconnectors (MV - SV). Every
+  version that adele fetched is kept (revisions: append-only): values marked intermediate may
+  become final, and single days were corrected more than a year later.
+# The same platform as entsoe_day_ahead_prices: Renaud's licence entry there, copied by Claude.
+licenses:
+  - name: CC-BY-4.0
+    path: https://creativecommons.org/licenses/by/4.0/
+    title: Creative Commons Attribution 4.0 International License
+resources:
+  - name: imbalance
+    description: Total imbalance volume per quarter-hour (A86, business type A19).  # draft by Claude
+    schema:
+      primaryKey: [control_area, delivery_start]
+      fields:
+        - name: control_area
+          type: string
+          description: Short name of the control area.  # draft by Claude
+          categories:
+            - {value: CH, label: Switzerland (Swissgrid)}
+        - name: delivery_start
+          type: datetime
+          description: Start of the delivery interval, UTC.
+        - name: resolution
+          type: duration
+          description: Length of the delivery interval (PT15M in every row so far).  # draft by Claude
+        - name: imbalance
+          type: number
+          unit: MWh
+          # draft by Claude
+          description: >-
+            Total imbalance volume of the interval, an energy: > 0 when the control area is long
+            (surplus), < 0 when it is short (deficit), 0 when balanced. ENTSO-E publishes the
+            volume >= 0 with a direction; adele gives it the sign (direction A01 --> +, A02 -->
+            -), checked against Swissgrid's TSI. Mean power in MW, as TSI: imbalance * 3600 /
+            epoch(resolution).
+        - name: mv_minus_sv
+          type: number
+          unit: MWh
+          # draft by Claude
+          description: >-
+            Measured minus scheduled flows over all interconnectors (MV - SV), signed, export >
+            0, energy of the interval. Null before 2024-07-31 22:00 UTC.
+        - name: status
+          type: string
+          # draft by Claude
+          description: >-
+            Status of the document that holds the value. Every value before 2025-03-31 is
+            intermediate; 20 values of 2015-03-25, 2015-03-31 and 2022-05-31 have no status
+            (null). A value that becomes final is a new version.
+          categories:
+            - {value: intermediate, label: Intermediate (docStatus A01, not finalized)}
+            - {value: final, label: Final (docStatus A02)}
+adele:
+  format_version: 1
+  secrets: [ENTSO_TOKEN]
+  refresh:
+    every: PT1H
+    # The values of 2025-09-11 were corrected about 14 months after delivery (fetch.py). A
+    # window of 430 days costs two requests per hour (about 30 s and 0.5 MB). Proposal by Claude.
+    lookback: P430D
+    horizon: PT0S  # no value before delivery
+  revisions: append-only
+  # drafts by Claude
+  warnings:
+    - >-
+      This is not Swissgrid's total system imbalance (TSI): from 2025-02-14 it equals TSI minus
+      Swissgrid's imbalance netting (IGCC), within 1 MW in 98 % of the quarter-hours, so the
+      netting counts twice. Before, the gap is larger on some days (in November 2024, 11 to
+      39 MW lower on 29 of 30 days). The netting adds about 50 MW of noise: of the 1,152
+      quarter-hours of 2024-11 to 2026-10 with |imbalance| >= 500 MW (as mean power), about half
+      are not large in TSI. A ranking of the worst quarter-hours here is not a ranking on TSI.
+    - >-
+      Nor does it equal Swissgrid's control area balance in earlier years: it reproduces none of
+      ElCom's yearly counts of quarter-hours beyond +-500 MW of that balance (2017-2025). In
+      2022, 180 quarter-hours here are above +500 MW as mean power, 47 in ElCom's count; in 2019
+      the counts below -500 MW nearly agree (49 here, 51), those above +500 MW not (13, 4).
+    - >-
+      The spread grows over the years (standard deviation of the mean power 89 MW in 2015, 107 to
+      120 MW in 2016-2020, 135 to 159 MW in 2021-2023, 183 to 188 MW in 2024-2025). Whether
+      Swissgrid computed the value the same way in every year is not known.
+    - >-
+      Holes, as published on 2026-11-15: 476 quarter-hours from 2015-03-26 23:00 UTC, 95 from
+      2025-10-23 22:15 UTC (almost the whole local day of 2025-10-24), and single quarter-hours at
+      2024-08-31 07:00, 2024-09-05 07:45, 2024-12-24 21:15 and 2024-12-30 21:15 UTC.

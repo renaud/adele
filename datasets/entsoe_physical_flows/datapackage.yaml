@@ -1,0 +1,82 @@
+# Definitions (titles, descriptions, labels, warnings) are Renaud's (skills/add-dataset). Every
+# definition below is a draft by Claude (WP5.2, 2026-11-15) until he changes or confirms it.
+# Structure (keys, types, refresh) by Claude; Renaud chose append-only (2026-11-15). Sources of
+# the facts: the docstring of fetch.py, and swissgrid_project/data/entsoe/README.md (QA 7b).
+name: entsoe_physical_flows
+title: Physical flows on the Swiss borders (ENTSO-E)  # draft by Claude
+# draft by Claude
+description: >-
+  Physical flows on the borders of Switzerland with Germany, France, Italy and Austria, in both
+  directions, as published on the ENTSO-E Transparency Platform (document A11, article 12.1.G of
+  Regulation (EU) 543/2013), from 2015. Hourly, at 15 minutes on the German border from August
+  2021. Every version that adele fetched is kept (revisions: append-only): ENTSO-E corrects
+  flows up to a year after delivery.
+# The same platform as entsoe_day_ahead_prices: Renaud's licence entry there, copied by Claude.
+licenses:
+  - name: CC-BY-4.0
+    path: https://creativecommons.org/licenses/by/4.0/
+    title: Creative Commons Attribution 4.0 International License
+resources:
+  - name: flows
+    description: Physical flow per border and delivery interval, in each direction (A11).  # draft by Claude
+    schema:
+      primaryKey: [border, delivery_start]
+      fields:
+        - name: border
+          type: string
+          # draft by Claude
+          description: >-
+            The neighbour of Switzerland. DE is the country (ENTSO-E's area 10Y1001A1001A83F)
+            over the whole span, not the bidding zone DE_LU or DE_AT_LU.
+          categories:
+            - {value: DE, label: Germany}
+            - {value: FR, label: France}
+            - {value: IT, label: Italy}
+            - {value: AT, label: Austria}
+        - name: delivery_start
+          type: datetime
+          description: Start of the delivery interval, UTC.
+        - name: resolution
+          type: duration
+          # draft by Claude
+          description: >-
+            Length of the delivery interval: PT1H, and PT15M on the German border from
+            2021-08-01 22:00 UTC. To sum energy or average over a period, weight each row by it:
+            MWh = MW * epoch(resolution) / 3600.
+        - name: from_ch
+          type: number
+          unit: MW
+          # draft by Claude
+          description: >-
+            Physical flow from Switzerland to the neighbour, mean power over the interval, >= 0.
+            Both directions can be above 0 in the same interval: the net export is
+            from_ch - to_ch.
+        - name: to_ch
+          type: number
+          unit: MW
+          description: Physical flow from the neighbour to Switzerland, mean power over the interval, >= 0.  # draft by Claude
+adele:
+  format_version: 1
+  secrets: [ENTSO_TOKEN]
+  refresh:
+    # 6,215 of 6,398 corrections came 1 to 12 months after delivery, none later (fetch.py). A
+    # window of 400 days costs 16 requests (about 2 minutes) and 12 MB per run; every 3 hours
+    # keeps that near 100 MB a day. Proposal by Claude.
+    every: PT3H
+    lookback: P400D
+    horizon: PT0S  # no value before delivery
+  revisions: append-only
+  # drafts by Claude
+  warnings:
+    - >-
+      DE: until 2018-09-30 the German bidding zone was DE_AT_LU, then DE_LU. This table holds
+      the country DE throughout. ENTSO-E's DE_LU series of the same border differs in 2025, and
+      Swissgrid's Energy Statistic agrees with DE (median difference 1.6 to 7 MW a year), not
+      with DE_LU. DE starts on 2015-02-01, the other borders on 2015-01-01.
+    - >-
+      Only the DE border was compared with an outside total (Swissgrid's Energy Statistic,
+      2021-08 to 2026-09); FR, IT and AT were not.
+  # D31: two checks of checks.yaml, chosen by Claude (2026-11-15)
+  examples:
+    - check: de_to_ch_2025_gwh  # the two directions netted in each UTC hour, quarter-hours averaged to hours first
+    - check: ch_to_it_2025_gwh  # the same on an hourly border

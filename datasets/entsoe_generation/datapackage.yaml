@@ -1,0 +1,97 @@
+# Definitions (titles, descriptions, labels, warnings) are Renaud's (skills/add-dataset). Every
+# definition below is a draft by Claude (WP5.2, 2026-11-15) until he changes or confirms it.
+# Structure (keys, types, refresh) by Claude. Sources of the facts: the docstring of fetch.py,
+# and swissgrid_project/data/entsoe/README.md ("Known problems and breaks", QA 5 p and w).
+name: entsoe_generation
+title: Actual generation per production type, Switzerland (ENTSO-E)  # draft by Claude
+# draft by Claude
+description: >-
+  Actual generation of the Swiss bidding zone per production type, as published on the ENTSO-E
+  Transparency Platform (document A75, process type A16, article 16.1.B&C of Regulation (EU)
+  543/2013), hourly, from 2015. The data comes from Swissgrid. Every version that adele fetched
+  is kept (revisions: append-only): the first values of the last hours are often corrected.
+# The same platform as entsoe_day_ahead_prices: Renaud's licence entry there, copied by Claude.
+licenses:
+  - name: CC-BY-4.0
+    path: https://creativecommons.org/licenses/by/4.0/
+    title: Creative Commons Attribution 4.0 International License
+resources:
+  - name: generation
+    description: Actual generation per production type and delivery interval (A75, process type A16).  # draft by Claude
+    schema:
+      primaryKey: [bidding_zone, production_type, delivery_start]
+      fields:
+        - name: bidding_zone
+          type: string
+          description: Short zone name.  # draft by Claude
+          categories:
+            - {value: CH, label: Switzerland}
+        - name: production_type
+          type: string
+          # draft by Claude
+          description: >-
+            Production type, ENTSO-E's psrType in the label. The types start at different dates
+            in 2015, and fossil gas exists only in 2015 (see the warnings).
+          # labels: draft by Claude, from ENTSO-E's code list
+          categories:
+            - {value: fossil_gas, label: Fossil gas (B04)}
+            - {value: hydro_pumped_storage, label: Hydro pumped storage (B10)}
+            - {value: hydro_run_of_river, label: Hydro run-of-river and poundage (B11)}
+            - {value: hydro_reservoir, label: Hydro water reservoir (B12)}
+            - {value: nuclear, label: Nuclear (B14)}
+            - {value: solar, label: Solar (B16)}
+            - {value: wind_onshore, label: Wind onshore (B19)}
+        - name: delivery_start
+          type: datetime
+          description: Start of the delivery interval, UTC.
+        - name: resolution
+          type: duration
+          description: Length of the delivery interval (PT1H in every row so far).  # draft by Claude
+        - name: generation
+          type: number
+          unit: MW
+          # draft by Claude
+          description: >-
+            Actual generation, mean power over the delivery interval, as published. Energy in MWh:
+            generation * epoch(resolution) / 3600.
+adele:
+  format_version: 1
+  secrets: [ENTSO_TOKEN]
+  refresh:
+    every: PT1H
+    # 36 values changed in 15 days, 33 of them less than 2 days old, one 93 days old (fetch.py).
+    # A request of 100 days costs one request per hour (about 15 s and 2 MB). Proposal by Claude.
+    lookback: P100D
+    horizon: PT0S  # no value before delivery
+  revisions: append-only
+  # drafts by Claude
+  warnings:
+    - >-
+      The types don't add up to the Swiss production: there is no thermal, biomass, waste or
+      small hydro type, and pumped storage counts only the generation, not the pumping. 2024:
+      53.2 TWh here, 81.1 TWh in the Swiss electricity statistics (BFE, Landeserzeugung).
+    - >-
+      hydro_run_of_river covers only part of the fleet until 2024: 2.3 TWh in 2024, 14.5 TWh in
+      2025 (monthly mean 197 MW in December 2024, 1,459 MW in January 2025). From 2025 it changes
+      very smoothly from hour to hour, more than a sum of measured plants would; it jumps from
+      1,290 to 1,402 MW at 2025-10-22 22:00 UTC.
+    - >-
+      solar is small until 2019 (0.2 to 0.4 TWh a year, with single hours of 1,012 MW in 2016
+      and 1,046 MW in 2017) and covers the whole country from January 2020 (2.4 TWh in 2020). It
+      stays below the PV production of the Swiss electricity statistics (BFE): 4.3 against
+      6.0 TWh in 2024, 5.1 against 7.9 TWh in 2025.
+    - >-
+      wind_onshore reaches 198.6 MW in March 2026 (69 hours above 100 MW), while the Swiss
+      turbines had about 101 MW at the end of 2024: values above about 105 MW can't be Swiss
+      wind output.
+    - >-
+      Holes, as published: nuclear 1,632 hours from 2015-04-23 22:00 UTC, hydro_run_of_river 240
+      hours from 2016-11-18 23:00 UTC, solar and wind_onshore 23 hours from 2017-10-28 00:00 UTC,
+      fossil_gas four holes of one or two days in 2015. First values (UTC): solar and
+      wind_onshore 2015-01-01 00:00, nuclear 2015-04-20 22:00, hydro_pumped_storage and
+      hydro_reservoir 2015-06-30 22:00, hydro_run_of_river 2015-10-12 22:00; fossil_gas only from
+      2015-01-16 23:00 to 2015-10-07 21:00.
+  # D31: two checks of checks.yaml, chosen by Claude (2026-11-15)
+  examples:
+    - check: ch_2024_hydro_run_of_river_twh  # 2.3 TWh: before 2025 the platform covers part of the fleet (BFE: 19.4 TWh)
+    - check: ch_2024_total_twh  # energy = MW x the duration of each row; the types are not the Swiss production

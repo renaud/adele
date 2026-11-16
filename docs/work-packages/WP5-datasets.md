@@ -231,6 +231,7 @@ its Web-API, which needs an account.
 1. **Flows (A11) and scheduled exchanges (A09):** `append-only` (this file, Claude's proposal in
    `TODOs.md`) or `overwrite` (the inventory)? With WP3 done, that is the only choice left. Until
    Renaud decides, a WP5 session leaves them out.
+   Answered 2026-11-15 (Renaud): `append-only`. Built in WP5.2.
 2. **WP2 frees 9 datasets, not 13.** `TODOs.md` says 13: that is every dataset marked G1 or G2.
    Four of them need more than D22 and D26: `reserve_auctions` and `outages` (a period with its
    own end), the Energie Reporter (a state at a date), `calendar_daily` (a derived table).
@@ -276,3 +277,19 @@ request:
 - `forecast_versions`: not built (open question 6).
 - Left: Renaud's review of the definitions (drafts by Claude, WP7); the backfill on steacher1
   after WP1.
+
+### 2026-11-16, WP5.2 in `main`
+
+Built by Claude in the worktree `wp5.2` (2026-11-15/16), landed after WP5.3:
+
+- `entsoe_generation` (CH `generation`), `entsoe_physical_flows` (CH `flows`),
+  `entsoe_scheduled_exchanges` (CH `scheduled`, tables `day_ahead` and `total`),
+  `entsoe_imbalance_volume` (CH `imbalance_volume`), all `append-only` (open question 1).
+  Backfilled on the Mac from 2015: 610,647, 554,704, 439,329 + 560,313 and 407,708 rows.
+- 68 published figures as checks: 40 for generation, 19 for flows, 9 for the total schedules,
+  none for the imbalance (two searches; `TODOs.md`). With WP5.2 in `main`, the 14 CH checks of
+  WP5.3 that read `entsoe_generation` can pass.
+- The 12 choices of the build (German border as the country DE, both directions on one row, the
+  IT day-ahead of 2025 repeated in quarter-hours, ...): `docs/work-packages/WP5.2-entsoe-revised-series.md`.
+- Left: Renaud's review of the definitions (drafts by Claude, WP7); the checks of the imbalance;
+  the backfill on steacher1 after WP1.

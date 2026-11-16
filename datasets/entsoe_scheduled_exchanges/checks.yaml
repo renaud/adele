@@ -1,0 +1,121 @@
+# Published figures that this dataset must reproduce (skills/add-dataset, step 8).
+# Collected 2026-11-15 by a research agent, compared with adele the same day
+# (qa/tools/published_check_entsoe_scheduled_exchanges.py; qa/published_figures_entsoe_scheduled_exchanges.md
+# lists the figures left out and why).
+#
+# T. Buckley, M. Schaefer (Universitaet Freiburg), "Annual imports, exports and balances for European
+# bidding zones", TIB LDM4Energy, DOI 10.71694/1b92fgz8 (created 2025-05-13): CH, all borders
+# together, "based on scheduled commercial exchanges as published by ENTSO-E", TWh. They match the
+# table total (contract type A05), not day_ahead. "Imports" and "Exports" sum each direction;
+# "Netted" nets the two directions of each border in each UTC hour (the mean power of each
+# direction over the hour) and sums the positive part. Years are UTC years.
+# Tolerance: the figures are printed unrounded (e.g. 33.28380761499999), and adele differs from
+# them by 2 to 11 MWh in 2021 and 2022, a few intervals or the summation: 0.00002 TWh (20 MWh).
+# 2023 and 2024 differ by 0.1 to 4.6 GWh except one figure: left out.
+# No published figure was found for day_ahead, nor per border.
+checks:
+  - name: ch_2021_total_imports_twh
+    question: "Scheduled imports of CH over all borders, total schedules, in 2021 (UTC year), TWh"
+    sql: |
+      SELECT sum(to_ch * epoch(resolution) / 3600) / 1e6
+      FROM entsoe_scheduled_exchanges.total
+      WHERE delivery_start >= TIMESTAMPTZ '2021-01-01 00:00:00Z'
+        AND delivery_start <  TIMESTAMPTZ '2022-01-01 00:00:00Z'
+    expected: 33.28380761499999
+    tolerance: 0.00002
+    source: "Buckley & Schaefer, Annual imports, exports and balances for European bidding zones, TIB LDM4Energy, comm_flows_total_annual_sums_2021.csv, CH, Imports, https://doi.org/10.71694/1b92fgz8"
+  - name: ch_2021_total_exports_twh
+    question: "Scheduled exports of CH over all borders, total schedules, in 2021 (UTC year), TWh"
+    sql: |
+      SELECT sum(from_ch * epoch(resolution) / 3600) / 1e6
+      FROM entsoe_scheduled_exchanges.total
+      WHERE delivery_start >= TIMESTAMPTZ '2021-01-01 00:00:00Z'
+        AND delivery_start <  TIMESTAMPTZ '2022-01-01 00:00:00Z'
+    expected: 29.345362665
+    tolerance: 0.00002
+    source: "Buckley & Schaefer, Annual imports, exports and balances for European bidding zones, TIB LDM4Energy, comm_flows_total_annual_sums_2021.csv, CH, Exports, https://doi.org/10.71694/1b92fgz8"
+  - name: ch_2021_total_imports_netted_twh
+    question: "Scheduled imports of CH, total schedules, netted per border and UTC hour, in 2021 (UTC year), TWh"
+    sql: |
+      SELECT sum(greatest(imp - exp, 0)) / 1e6
+      FROM (SELECT border, time_bucket(INTERVAL 1 HOUR, delivery_start) AS hour,
+                   avg(from_ch) AS exp, avg(to_ch) AS imp
+            FROM entsoe_scheduled_exchanges.total
+            WHERE delivery_start >= TIMESTAMPTZ '2021-01-01 00:00:00Z'
+              AND delivery_start <  TIMESTAMPTZ '2022-01-01 00:00:00Z'
+            GROUP BY 1, 2)
+    expected: 26.377398267500002
+    tolerance: 0.00002
+    source: "Buckley & Schaefer, Annual imports, exports and balances for European bidding zones, TIB LDM4Energy, comm_flows_total_annual_sums_2021.csv, CH, Imports Netted, https://doi.org/10.71694/1b92fgz8"
+  - name: ch_2021_total_exports_netted_twh
+    question: "Scheduled exports of CH, total schedules, netted per border and UTC hour, in 2021 (UTC year), TWh"
+    sql: |
+      SELECT sum(greatest(exp - imp, 0)) / 1e6
+      FROM (SELECT border, time_bucket(INTERVAL 1 HOUR, delivery_start) AS hour,
+                   avg(from_ch) AS exp, avg(to_ch) AS imp
+            FROM entsoe_scheduled_exchanges.total
+            WHERE delivery_start >= TIMESTAMPTZ '2021-01-01 00:00:00Z'
+              AND delivery_start <  TIMESTAMPTZ '2022-01-01 00:00:00Z'
+            GROUP BY 1, 2)
+    expected: 22.4389533175
+    tolerance: 0.00002
+    source: "Buckley & Schaefer, Annual imports, exports and balances for European bidding zones, TIB LDM4Energy, comm_flows_total_annual_sums_2021.csv, CH, Exports Netted, https://doi.org/10.71694/1b92fgz8"
+  - name: ch_2022_total_imports_twh
+    question: "Scheduled imports of CH over all borders, total schedules, in 2022 (UTC year), TWh"
+    sql: |
+      SELECT sum(to_ch * epoch(resolution) / 3600) / 1e6
+      FROM entsoe_scheduled_exchanges.total
+      WHERE delivery_start >= TIMESTAMPTZ '2022-01-01 00:00:00Z'
+        AND delivery_start <  TIMESTAMPTZ '2023-01-01 00:00:00Z'
+    expected: 33.7710441725
+    tolerance: 0.00002
+    source: "Buckley & Schaefer, Annual imports, exports and balances for European bidding zones, TIB LDM4Energy, comm_flows_total_annual_sums_2022.csv, CH, Imports, https://doi.org/10.71694/1b92fgz8"
+  - name: ch_2022_total_exports_twh
+    question: "Scheduled exports of CH over all borders, total schedules, in 2022 (UTC year), TWh"
+    sql: |
+      SELECT sum(from_ch * epoch(resolution) / 3600) / 1e6
+      FROM entsoe_scheduled_exchanges.total
+      WHERE delivery_start >= TIMESTAMPTZ '2022-01-01 00:00:00Z'
+        AND delivery_start <  TIMESTAMPTZ '2023-01-01 00:00:00Z'
+    expected: 28.847504344999997
+    tolerance: 0.00002
+    source: "Buckley & Schaefer, Annual imports, exports and balances for European bidding zones, TIB LDM4Energy, comm_flows_total_annual_sums_2022.csv, CH, Exports, https://doi.org/10.71694/1b92fgz8"
+  - name: ch_2022_total_imports_netted_twh
+    question: "Scheduled imports of CH, total schedules, netted per border and UTC hour, in 2022 (UTC year), TWh"
+    sql: |
+      SELECT sum(greatest(imp - exp, 0)) / 1e6
+      FROM (SELECT border, time_bucket(INTERVAL 1 HOUR, delivery_start) AS hour,
+                   avg(from_ch) AS exp, avg(to_ch) AS imp
+            FROM entsoe_scheduled_exchanges.total
+            WHERE delivery_start >= TIMESTAMPTZ '2022-01-01 00:00:00Z'
+              AND delivery_start <  TIMESTAMPTZ '2023-01-01 00:00:00Z'
+            GROUP BY 1, 2)
+    expected: 26.438840155
+    tolerance: 0.00002
+    source: "Buckley & Schaefer, Annual imports, exports and balances for European bidding zones, TIB LDM4Energy, comm_flows_total_annual_sums_2022.csv, CH, Imports Netted, https://doi.org/10.71694/1b92fgz8"
+  - name: ch_2022_total_exports_netted_twh
+    question: "Scheduled exports of CH, total schedules, netted per border and UTC hour, in 2022 (UTC year), TWh"
+    sql: |
+      SELECT sum(greatest(exp - imp, 0)) / 1e6
+      FROM (SELECT border, time_bucket(INTERVAL 1 HOUR, delivery_start) AS hour,
+                   avg(from_ch) AS exp, avg(to_ch) AS imp
+            FROM entsoe_scheduled_exchanges.total
+            WHERE delivery_start >= TIMESTAMPTZ '2022-01-01 00:00:00Z'
+              AND delivery_start <  TIMESTAMPTZ '2023-01-01 00:00:00Z'
+            GROUP BY 1, 2)
+    expected: 21.5153003275
+    tolerance: 0.00002
+    source: "Buckley & Schaefer, Annual imports, exports and balances for European bidding zones, TIB LDM4Energy, comm_flows_total_annual_sums_2022.csv, CH, Exports Netted, https://doi.org/10.71694/1b92fgz8"
+  - name: ch_2023_total_imports_netted_twh
+    question: "Scheduled imports of CH, total schedules, netted per border and UTC hour, in 2023 (UTC year), TWh"
+    sql: |
+      SELECT sum(greatest(imp - exp, 0)) / 1e6
+      FROM (SELECT border, time_bucket(INTERVAL 1 HOUR, delivery_start) AS hour,
+                   avg(from_ch) AS exp, avg(to_ch) AS imp
+            FROM entsoe_scheduled_exchanges.total
+            WHERE delivery_start >= TIMESTAMPTZ '2023-01-01 00:00:00Z'
+              AND delivery_start <  TIMESTAMPTZ '2024-01-01 00:00:00Z'
+            GROUP BY 1, 2)
+    expected: 25.46236054
+    tolerance: 0.00002
+    source: "Buckley & Schaefer, Annual imports, exports and balances for European bidding zones, TIB LDM4Energy, comm_flows_total_annual_sums_2023.csv, CH, Imports Netted, https://doi.org/10.71694/1b92fgz8"
