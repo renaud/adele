@@ -171,6 +171,9 @@ Next, state at the end of 2026-11-15:
 - `main` holds code that steacher1 doesn't run since 72f2b1a (D31), and WP3 (D30) since its
   landing on 2026-11-15 (Renaud relaxed "after the week"). A WP1 fix now comes from a branch
   made at 32237db (`WP1-server-on-steacher1.md`).
+- WP1 closed on 2026-11-16 after 17 hours of fetches, not a week (Renaud). What waited for
+  "after WP1" or "after 2026-11-22" can start: WP3 on steacher1 (V1), WP4 step 6, WP5 on
+  steacher1. WP1's steps 6 and 8 are in V1.
 
 Next for Claude (decided 2026-11-14, not built):
 
@@ -284,9 +287,20 @@ Other V0 items:
 
 ## V1
 
-- WP3 on steacher1, once WP1 is done (WP3 lands in `main` on 2026-11-15: Renaud relaxed the
-  rule "after the week" of the WP1 doc): pull the code onto steacher1 (`/opt/adele`), install
-  `datasets/entsoe_load` with its timer, backfill it from 2015, let it fetch for 1-2 days
+- From WP1 (closed 2026-11-16, `docs/work-packages/WP1-server-on-steacher1.md`):
+  - HTTPS on another port (WP1 step 6, way b, Caddy's `tls internal`), once Renaud opens the
+    port in Infomaniak's panel: `deploy/Caddyfile` with port 8443, `tls internal` and no
+    listener on :80; `ADELE_CA_FILE` in `client/src/adele/_api.py`; a query from a laptop.
+  - Faults on purpose (WP1 step 8), on the code of the next deployment, each on a copy under
+    another id: a renamed column, a duplicated row, an undeclared zone code, a fetch over its
+    memory limit (status failing each time); the timers stopped for two hours, then the hole
+    fetched (D25).
+  - Two checks that WP1's 17 hours could not make: the first new delivery day of entsoe
+    fetched unattended (no auction fell in them), and `oom_score_adj` 1000 on `fetch.py`
+    during a fetch.
+- WP3 on steacher1, once WP1 is done (done 2026-11-16; WP3 lands in `main` on 2026-11-15:
+  Renaud relaxed the rule "after the week" of the WP1 doc): pull the code onto steacher1
+  (`/opt/adele`), install `datasets/entsoe_load` with its timer, backfill it from 2015, let it fetch for 1-2 days
   (Renaud: "we won't wait a week, just 1-2 days"), then check `describe` (`versions_since`, the
   count of versions), the 50 checks, and a query with `--as-of` before the last fetch. If
   ENTSO-E revised a value in those days, the old value must come back with that `--as-of`

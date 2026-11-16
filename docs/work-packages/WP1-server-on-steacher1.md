@@ -3,22 +3,17 @@
 Draft by Claude, 2026-11-15, not accepted. From `PLAN.md` (WP1) and `TODOs.md` (POC step 6).
 Renaud's answers of 2026-11-15 are in.
 
-## Where WP1 stands (2026-11-15, 16:10 UTC)
+## Where WP1 stands (2026-11-16, 09:10 UTC): done
 
-- Steps 0-5 done: both backfills ended with status ok, their figures match the Mac, and both
-  timers run since 16:11 (enabled by hand: the script's check misread the state of the units,
-  see the log). The fetch units have memory limits since 16:16 (`deploy/wp1-memory-limits.sh`).
-  Next: step 6 (HTTPS, once Renaud opens the port), step 7 (the week, from 2026-11-15), step 8.
-- steacher1 runs commit 32237db (`/opt/adele`), whose code (`server/`, `client/`, `datasets/`,
-  `skills/`) is that of f1766c9. The code stays there during the week: the evidence of the
-  week holds for one version. Only a fix that WP1 needs is pulled there, and it goes into the
-  log below. Once WP3 is in `main`, such a fix comes from a branch made at 32237db.
-- Rules for other sessions (WP3 runs in its own worktree from 2026-11-15, Renaud):
-  - `main` holds what steacher1 runs plus WP1 fixes. WP3 lands in `main` after the week, and
-    reaches steacher1 only once WP1 is done (as `WP3-versions.md` says).
-  - Don't touch `deploy/` or this file; WP1 may still change `server/` for a fix.
-  - Don't run anything on steacher1. Claude's only route there is `/usr/local/bin/sc-run`
-    (user `claude`, no sudo), and root steps are scripts that Renaud runs.
+- Closed by Renaud on 2026-11-16 after 17 hours of unattended fetches, not the week planned
+  (log, 2026-11-16). adele runs on steacher1 (`/opt/adele`, commit 32237db, the code of
+  f1766c9) with both datasets, one timer each. The timers keep running.
+- Not done in WP1, moved to `TODOs.md` (V1): HTTPS (step 6, waits for the port) and the
+  faults on purpose (step 8, to run on the code of the next deployment, which is the code that
+  will stay).
+- The next deployment brings `main` (WP2, WP3, WP4) to steacher1: `TODOs.md`, V1. Claude's
+  only route to steacher1 stays `/usr/local/bin/sc-run` (user `claude`, no sudo); root steps
+  are scripts in `deploy/` that Renaud reads and runs.
 
 ## Goal
 
@@ -86,13 +81,16 @@ outside the server can query it over HTTPS.
    system's authorities: it gets a setting `ADELE_CA_FILE` (the root certificate of adele's
    authority), a few lines in `client/src/adele/_api.py`. Pointing `SSL_CERT_FILE` at that
    file would also work, but it breaks every other HTTPS call of the shell that sets it.
+   Not done: moved to `TODOs.md` (V1) on 2026-11-16.
 7. **The week.** Once a day: `adele list` (freshness, status), the failed units, the alert log.
-   Each problem goes into the log at the end of this file, with its fix.
+   Each problem goes into the log at the end of this file, with its fix. Done in part: 17 hours
+   (2026-11-15 16:11 to 2026-11-16 09:01 UTC), no problem (log, 2026-11-16).
 8. **Faults on purpose**, each on a copy of a dataset under another id, so that the real data
    stays clean: a renamed column, a duplicated row, an undeclared zone code. Each must set the
    status to failing. Added by Claude: stop the timers for two hours; the next run must fetch
    the hole (D25). And a fetch that passes its memory limit (a drop-in with a small
-   `MemoryMax=` on the copy): status failing, with `exited with code -9`.
+   `MemoryMax=` on the copy): status failing, with `exited with code -9`. Not done: moved to
+   `TODOs.md` (V1) on 2026-11-16.
 
 ## HTTPS on another port
 
@@ -119,6 +117,15 @@ Chosen: b (Renaud, 2026-11-15). Not chosen: the other site's web server as the f
 - the faults of step 8 are caught.
 - a query over HTTPS from a laptop answers.
 - `deploy/README.md` describes what was run, and is no longer a draft.
+
+Result on 2026-11-16, when Renaud closed WP1:
+
+- 17 hours instead of 7 days. In them, both datasets were fetched on schedule, every hourly
+  run of weathernext3 is there, every status was ok, and the checks passed after each fetch.
+  entsoe had no new delivery day to fetch in those hours.
+- The faults of step 8: not done, moved to `TODOs.md` (V1).
+- HTTPS: not done (the port), moved to `TODOs.md` (V1).
+- `deploy/README.md` describes what ran and is no longer a draft, except its HTTPS section.
 
 ## Not in WP1
 
@@ -289,6 +296,30 @@ None on 2026-11-15.
   `OOMScoreAdjust=1000`, `OOMPolicy=continue`. The ticks of 16:17 ended with success. Not
   checked yet: that `fetch.py` inherits the score (`/proc/<pid>/oom_score_adj` during a fetch
   that stores a run).
+
+### 2026-11-16, the end of WP1 (17 hours of fetches, read over `sc-run` at 09:05 UTC)
+
+- Period: 2026-11-15 16:11 to 2026-11-16 09:01 UTC, 17 hours. Renaud closed WP1 then ("i want
+  to wrap it up"), not after 7 days. The code of f1766c9 the whole time; `adele-server` ran
+  without a restart (up since 2026-11-15 12:22:42); no adele unit failed.
+- weathernext3: 18 scheduled fetches (one an hour, at about :01), all with status ok. They
+  stored 19 runs, from 08Z on 2026-11-15 to 02Z on 2026-11-16, 139,776 rows each, each run
+  once: no hole. A run appears about 7 hours after its start time; twice, the hourly fetch
+  found nothing new and the next one stored 2 runs. With the backfill, steacher1 holds every
+  run from 2026-11-12 00Z to 2026-11-16 02Z (99 runs), plus the 3 sample runs of 2024-2025.
+- entsoe: 18 scheduled fetches (one an hour, at :00), all with status ok, 0 new or changed
+  rows. As expected: no auction fell in those hours (the backfill had already stored delivery
+  day 2026-11-16; the prices of 2026-11-17 come out at about 12:00 UTC on 2026-11-16). So WP1
+  does not show the unattended fetch of a new delivery day. Each fetch reads about 1,100 rows
+  again (the window runs from about 3 days back to 2 days ahead).
+- Checks: they run after every fetch (`_settle` in `ingest.py`), and a failed check sets the
+  status to failing; every status was ok, so the published figures passed after each fetch.
+  The journal has no warning, error or OOM line for either unit. `/health`: both ok.
+- Memory and disk: no fetch was killed. 8.5 GB free (8.6 GB on 2026-11-15). Still not checked:
+  the score of `fetch.py` (no fetch ran while Claude looked).
+- Not readable by `claude`: `/var/lib/adele`, `/var/log/adele` (`alerts.log`, `queries.jsonl`)
+  and the config with the API key. The figures above come from the journal. No status
+  changed, so `alerts.log` should hold no new line (not read).
 - Disk: weathernext3 226 MB, entsoe 2.0 MB; 8.6 GB free (82 % used). About 2.7 MB per
   weathernext3 run, 24 runs a day: about 65 MB a day, so the free space would last about 4
   months. The week measures it.

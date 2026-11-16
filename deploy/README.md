@@ -1,4 +1,4 @@
-# Deploying adele-server on Linux (draft of 2026-11-13; installed on steacher1 on 2026-11-15)
+# Deploying adele-server on Linux (installed on steacher1 on 2026-11-15, WP1)
 
 POC step 6 (TODOs.md). The units share one install and one data folder:
 
@@ -126,6 +126,11 @@ which `ProtectHome=yes` hides from the units. So the install sets `UV_PYTHON_INS
 for `uv sync` too (on steacher1: `.venv/bin/python` --> `/opt/uv-python/cpython-3.13.9-linux-x86_64-gnu`).
 
 ## Access from outside: HTTPS through Caddy
+
+Not done, and out of date (2026-11-16). Ports 80 and 443 of steacher1 serve another site, so
+adele gets another port with Caddy's own certificate authority (`tls internal`), not Let's
+Encrypt: way b of `docs/work-packages/WP1-server-on-steacher1.md`, step 6, moved to
+`TODOs.md` (V1). The text below is the draft of 2026-11-13.
 
 Decided 2026-11-13: steacher1 has a DNS name and can be reached from outside, so team members call
 the server over HTTPS. An SSH tunnel would need an SSH account per member, which is a shell: more
