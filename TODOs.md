@@ -53,6 +53,22 @@
   check that every station and parameter code of the data is in them, and the inventory dates
   against the first and last values. In WP5.7 this found a station in no list (MLJ) and confirmed
   the time shift (`qa/tools/crosscheck_meteoswiss.py`).
+- Landing (Claude, 2026-11-16, measured from the session transcripts): a landing takes 10-17
+  minutes, and the three runs of the full suite in `land` (before the rebase, after it, in
+  `main`) take about 15 of them. A landing costs $1-5 at list price, 5-15 % of a WP ($20-37);
+  $3-4 of it when the session was idle more than an hour (the cache lasts 1 h, so 480k tokens of
+  context are written again). To decide (proposals, no file changed): (1) `land` tests only
+  after the rebase; step 1 only when that fails; step 6 checks that `main` is the tested commit;
+  (2) land at once when a WP is done, or from a fresh session, or with a `land.sh` that calls
+  Claude only on a conflict or a failure; (3) a faster suite (V0 below); (4) `merge=union` in
+  `.gitattributes` for `TODOs.md` and `skills/common-traps.md`, decisions numbered at landing;
+  (5) 3-4 WPs open at once instead of 10.
+
+## For other sessions: landing wp5.10 (2026-11-16)
+
+- `wp5.10` branched from 6d213e9 (WP4), before every WP5 landing: on 2026-11-16 it was 14
+  commits behind `main`, with 15 uncommitted files, `TODOs.md` among them. Read the three
+  "For other sessions" sections below before its rebase.
 
 ## For other sessions: an empty table by day or month no longer fails the fetch (2026-11-16)
 
@@ -242,6 +258,13 @@ Next, state at the end of 2026-11-15:
   failed once in the full suite (WP5.2's landing, 2026-11-16, load average 49.7 from other
   sessions' backfills) and passed alone and in the next full run: a timing test that fails under
   load. Rerun it alone before looking for a bug.
+- The full suite grew from 147 tests in under a minute to 486 tests in 5 minutes (2026-11-16);
+  474 tests took 173 s alone and 325 s while other worktrees ran theirs. Not profiled yet: run
+  `uv run pytest --durations=20` when no landing runs. Suspects: the `time.sleep(60)` and
+  `time.sleep(120)` of fake fetch scripts (`server/tests/conftest.py:49`,
+  `test_fetch_command.py:34`, `test_raw.py:61`, `test_window_and_runner.py:65`) if a test waits
+  for a real timeout. Then `pytest-xdist` (tests that share a folder and the timing test above
+  may fail in parallel).
 - What WP4 needs before a build (Claude, 2026-11-15, asked "what prevents us from doing WP4
   first"): nothing is missing in the server (WP3 is in `main`, G5 was built with D27), but no
   WP4 doc exists. Its design points: where raw answers are kept (G4: place, retention, one copy
