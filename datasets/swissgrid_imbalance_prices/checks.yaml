@@ -1,0 +1,554 @@
+# Published figures that this dataset must reproduce (skills/add-dataset, step 8; D12). The server runs every
+# query after each fetch; a result outside the tolerance sets the status to failing.
+#
+# Collected 2026-11-15 by Claude (WP5.4): ElCom's weekly market reports of 2025-11 to 2026-08 found by web search
+# (23 reports, read with pdftotext), compared with qa/tools/published_check_swissgrid_imbalance_prices.py; notes and
+# the figures left out in qa/published_figures_swissgrid_imbalance_prices.md. Generated once by a script of the
+# session (gen_checks_wp54.py, scratchpad); edit this file directly from now on.
+#
+# Conventions: weeks run from Monday 00:00 to Monday 00:00, local time (Europe/Zurich), as in ElCom's charts.
+# ElCom gives whole EUR/MWh: tolerance 0.5. 2025 (dual price): ElCom's "AE+ (short)" and "AE- (long)" are the plain
+# means of price_short and price_long. 2026 (single price): ElCom's "AE short / long" are the means of the single price
+# over the quarter-hours when the control area was short (TSI < 0) or long (TSI > 0). adele has no TSI (it is in
+# Swissgrid's control-area file, WP4), so these checks use a stand-in: the quarter-hours where the single price is
+# above, or at or below, the CH day-ahead price (entsoe_day_ahead_prices). Only the weeks where both the stand-in and
+# ElCom's own definition (with the TSI of SED's copy of the control-area file) give ElCom's two figures are here.
+checks:
+  - name: week_2025_10_27_short
+    question: "Mean imbalance price of a short balance group (price_short, plain mean), week of 2025-10-27 (local, Monday to Sunday)"
+    sql: |
+      SELECT avg(price_short)
+      FROM swissgrid_imbalance_prices.prices p
+      WHERE p.delivery_start >= timezone('Europe/Zurich', TIMESTAMP '2025-10-27')
+      AND p.delivery_start < timezone('Europe/Zurich', TIMESTAMP '2025-10-27' + INTERVAL 7 DAY)
+    expected: 249
+    tolerance: 0.5
+    source: "ElCom, Marktbericht vom 11.11.2025, p. 7, table Ausgleichsenergiepreis, column Vorwoche, https://www.elcom.admin.ch/dam/fr/sd-web/VlO6g6OJTrQE/Marktbericht%20vom%2011-11-2025.pdf"
+  - name: week_2025_10_27_long
+    question: "Mean imbalance price of a long balance group (price_long, plain mean), week of 2025-10-27 (local, Monday to Sunday)"
+    sql: |
+      SELECT avg(price_long)
+      FROM swissgrid_imbalance_prices.prices p
+      WHERE p.delivery_start >= timezone('Europe/Zurich', TIMESTAMP '2025-10-27')
+      AND p.delivery_start < timezone('Europe/Zurich', TIMESTAMP '2025-10-27' + INTERVAL 7 DAY)
+    expected: -33
+    tolerance: 0.5
+    source: "ElCom, Marktbericht vom 11.11.2025, p. 7, table Ausgleichsenergiepreis, column Vorwoche, https://www.elcom.admin.ch/dam/fr/sd-web/VlO6g6OJTrQE/Marktbericht%20vom%2011-11-2025.pdf"
+  - name: week_2025_11_03_short
+    question: "Mean imbalance price of a short balance group (price_short, plain mean), week of 2025-11-03 (local, Monday to Sunday)"
+    sql: |
+      SELECT avg(price_short)
+      FROM swissgrid_imbalance_prices.prices p
+      WHERE p.delivery_start >= timezone('Europe/Zurich', TIMESTAMP '2025-11-03')
+      AND p.delivery_start < timezone('Europe/Zurich', TIMESTAMP '2025-11-03' + INTERVAL 7 DAY)
+    expected: 218
+    tolerance: 0.5
+    source: "ElCom, Marktbericht vom 11.11.2025, p. 7, table Ausgleichsenergiepreis, column Aktuell, https://www.elcom.admin.ch/dam/fr/sd-web/VlO6g6OJTrQE/Marktbericht%20vom%2011-11-2025.pdf"
+  - name: week_2025_11_03_long
+    question: "Mean imbalance price of a long balance group (price_long, plain mean), week of 2025-11-03 (local, Monday to Sunday)"
+    sql: |
+      SELECT avg(price_long)
+      FROM swissgrid_imbalance_prices.prices p
+      WHERE p.delivery_start >= timezone('Europe/Zurich', TIMESTAMP '2025-11-03')
+      AND p.delivery_start < timezone('Europe/Zurich', TIMESTAMP '2025-11-03' + INTERVAL 7 DAY)
+    expected: -56
+    tolerance: 0.5
+    source: "ElCom, Marktbericht vom 11.11.2025, p. 7, table Ausgleichsenergiepreis, column Aktuell, https://www.elcom.admin.ch/dam/fr/sd-web/VlO6g6OJTrQE/Marktbericht%20vom%2011-11-2025.pdf"
+  - name: week_2025_11_10_short
+    question: "Mean imbalance price of a short balance group (price_short, plain mean), week of 2025-11-10 (local, Monday to Sunday)"
+    sql: |
+      SELECT avg(price_short)
+      FROM swissgrid_imbalance_prices.prices p
+      WHERE p.delivery_start >= timezone('Europe/Zurich', TIMESTAMP '2025-11-10')
+      AND p.delivery_start < timezone('Europe/Zurich', TIMESTAMP '2025-11-10' + INTERVAL 7 DAY)
+    expected: 234
+    tolerance: 0.5
+    source: "ElCom, Marktbericht vom 18.11.2025, p. 7, table Ausgleichsenergiepreis, column Aktuell, https://www.elcom.admin.ch/dam/fr/sd-web/eVbpTq-Vn-JM/Marktbericht%20vom%2018-11-2025.pdf"
+  - name: week_2025_11_10_long
+    question: "Mean imbalance price of a long balance group (price_long, plain mean), week of 2025-11-10 (local, Monday to Sunday)"
+    sql: |
+      SELECT avg(price_long)
+      FROM swissgrid_imbalance_prices.prices p
+      WHERE p.delivery_start >= timezone('Europe/Zurich', TIMESTAMP '2025-11-10')
+      AND p.delivery_start < timezone('Europe/Zurich', TIMESTAMP '2025-11-10' + INTERVAL 7 DAY)
+    expected: -14
+    tolerance: 0.5
+    source: "ElCom, Marktbericht vom 18.11.2025, p. 7, table Ausgleichsenergiepreis, column Aktuell, https://www.elcom.admin.ch/dam/fr/sd-web/eVbpTq-Vn-JM/Marktbericht%20vom%2018-11-2025.pdf"
+  - name: week_2025_11_17_short
+    question: "Mean imbalance price of a short balance group (price_short, plain mean), week of 2025-11-17 (local, Monday to Sunday)"
+    sql: |
+      SELECT avg(price_short)
+      FROM swissgrid_imbalance_prices.prices p
+      WHERE p.delivery_start >= timezone('Europe/Zurich', TIMESTAMP '2025-11-17')
+      AND p.delivery_start < timezone('Europe/Zurich', TIMESTAMP '2025-11-17' + INTERVAL 7 DAY)
+    expected: 244
+    tolerance: 0.5
+    source: "ElCom, Marktbericht vom 25.11.2025, p. 7, table Ausgleichsenergiepreis, column Aktuell, https://www.elcom.admin.ch/dam/it/sd-web/1nIZhWNz4D7Q/Marktbericht%20vom%2025-11-2025.pdf"
+  - name: week_2025_11_17_long
+    question: "Mean imbalance price of a long balance group (price_long, plain mean), week of 2025-11-17 (local, Monday to Sunday)"
+    sql: |
+      SELECT avg(price_long)
+      FROM swissgrid_imbalance_prices.prices p
+      WHERE p.delivery_start >= timezone('Europe/Zurich', TIMESTAMP '2025-11-17')
+      AND p.delivery_start < timezone('Europe/Zurich', TIMESTAMP '2025-11-17' + INTERVAL 7 DAY)
+    expected: 38
+    tolerance: 0.5
+    source: "ElCom, Marktbericht vom 25.11.2025, p. 7, table Ausgleichsenergiepreis, column Aktuell, https://www.elcom.admin.ch/dam/it/sd-web/1nIZhWNz4D7Q/Marktbericht%20vom%2025-11-2025.pdf"
+  - name: week_2025_12_01_short
+    question: "Mean imbalance price of a short balance group (price_short, plain mean), week of 2025-12-01 (local, Monday to Sunday)"
+    sql: |
+      SELECT avg(price_short)
+      FROM swissgrid_imbalance_prices.prices p
+      WHERE p.delivery_start >= timezone('Europe/Zurich', TIMESTAMP '2025-12-01')
+      AND p.delivery_start < timezone('Europe/Zurich', TIMESTAMP '2025-12-01' + INTERVAL 7 DAY)
+    expected: 217
+    tolerance: 0.5
+    source: "ElCom, Marktbericht vom 16.12.2025, p. 7, table Ausgleichsenergiepreis, column Vorwoche, https://www.elcom.admin.ch/dam/fr/sd-web/LGeU-FLn5jQY/2025_12_16_Marktbericht.pdf"
+  - name: week_2025_12_01_long
+    question: "Mean imbalance price of a long balance group (price_long, plain mean), week of 2025-12-01 (local, Monday to Sunday)"
+    sql: |
+      SELECT avg(price_long)
+      FROM swissgrid_imbalance_prices.prices p
+      WHERE p.delivery_start >= timezone('Europe/Zurich', TIMESTAMP '2025-12-01')
+      AND p.delivery_start < timezone('Europe/Zurich', TIMESTAMP '2025-12-01' + INTERVAL 7 DAY)
+    expected: 36
+    tolerance: 0.5
+    source: "ElCom, Marktbericht vom 16.12.2025, p. 7, table Ausgleichsenergiepreis, column Vorwoche, https://www.elcom.admin.ch/dam/fr/sd-web/LGeU-FLn5jQY/2025_12_16_Marktbericht.pdf"
+  - name: week_2025_12_08_short
+    question: "Mean imbalance price of a short balance group (price_short, plain mean), week of 2025-12-08 (local, Monday to Sunday)"
+    sql: |
+      SELECT avg(price_short)
+      FROM swissgrid_imbalance_prices.prices p
+      WHERE p.delivery_start >= timezone('Europe/Zurich', TIMESTAMP '2025-12-08')
+      AND p.delivery_start < timezone('Europe/Zurich', TIMESTAMP '2025-12-08' + INTERVAL 7 DAY)
+    expected: 208
+    tolerance: 0.5
+    source: "ElCom, Marktbericht vom 16.12.2025, p. 7, table Ausgleichsenergiepreis, column Aktuell, https://www.elcom.admin.ch/dam/fr/sd-web/LGeU-FLn5jQY/2025_12_16_Marktbericht.pdf"
+  - name: week_2025_12_08_long
+    question: "Mean imbalance price of a long balance group (price_long, plain mean), week of 2025-12-08 (local, Monday to Sunday)"
+    sql: |
+      SELECT avg(price_long)
+      FROM swissgrid_imbalance_prices.prices p
+      WHERE p.delivery_start >= timezone('Europe/Zurich', TIMESTAMP '2025-12-08')
+      AND p.delivery_start < timezone('Europe/Zurich', TIMESTAMP '2025-12-08' + INTERVAL 7 DAY)
+    expected: 7
+    tolerance: 0.5
+    source: "ElCom, Marktbericht vom 16.12.2025, p. 7, table Ausgleichsenergiepreis, column Aktuell, https://www.elcom.admin.ch/dam/fr/sd-web/LGeU-FLn5jQY/2025_12_16_Marktbericht.pdf"
+  - name: week_2025_12_29_short
+    question: "Mean single imbalance price over the quarter-hours where it is above the CH day-ahead price (ElCom: the control area short), week of 2025-12-29 (local, Monday to Sunday)"
+    sql: |
+      SELECT avg(p.price_single) FILTER (WHERE p.price_single > d.price)
+      FROM swissgrid_imbalance_prices.prices p
+      JOIN entsoe_day_ahead_prices.prices d ON d.bidding_zone = 'CH' AND p.delivery_start >= d.delivery_start
+      AND p.delivery_start < d.delivery_start + d.resolution
+      WHERE p.delivery_start >= timezone('Europe/Zurich', TIMESTAMP '2025-12-29')
+      AND p.delivery_start < timezone('Europe/Zurich', TIMESTAMP '2025-12-29' + INTERVAL 7 DAY)
+    expected: 157
+    tolerance: 0.5
+    source: "ElCom, Marktbericht vom 13.01.2026, p. 7, table Ausgleichsenergiepreis, column Vorwoche, https://www.elcom.admin.ch/dam/de/sd-web/HG2LlaF939U5/Marktbericht%20vom%2013-01-2026.pdf"
+  - name: week_2025_12_29_long
+    question: "Mean single imbalance price over the quarter-hours where it is at or below the CH day-ahead price (ElCom: the control area long), week of 2025-12-29 (local, Monday to Sunday)"
+    sql: |
+      SELECT avg(p.price_single) FILTER (WHERE p.price_single <= d.price)
+      FROM swissgrid_imbalance_prices.prices p
+      JOIN entsoe_day_ahead_prices.prices d ON d.bidding_zone = 'CH' AND p.delivery_start >= d.delivery_start
+      AND p.delivery_start < d.delivery_start + d.resolution
+      WHERE p.delivery_start >= timezone('Europe/Zurich', TIMESTAMP '2025-12-29')
+      AND p.delivery_start < timezone('Europe/Zurich', TIMESTAMP '2025-12-29' + INTERVAL 7 DAY)
+    expected: -15
+    tolerance: 0.5
+    source: "ElCom, Marktbericht vom 13.01.2026, p. 7, table Ausgleichsenergiepreis, column Vorwoche, https://www.elcom.admin.ch/dam/de/sd-web/HG2LlaF939U5/Marktbericht%20vom%2013-01-2026.pdf"
+  - name: week_2026_01_05_short
+    question: "Mean single imbalance price over the quarter-hours where it is above the CH day-ahead price (ElCom: the control area short), week of 2026-01-05 (local, Monday to Sunday)"
+    sql: |
+      SELECT avg(p.price_single) FILTER (WHERE p.price_single > d.price)
+      FROM swissgrid_imbalance_prices.prices p
+      JOIN entsoe_day_ahead_prices.prices d ON d.bidding_zone = 'CH' AND p.delivery_start >= d.delivery_start
+      AND p.delivery_start < d.delivery_start + d.resolution
+      WHERE p.delivery_start >= timezone('Europe/Zurich', TIMESTAMP '2026-01-05')
+      AND p.delivery_start < timezone('Europe/Zurich', TIMESTAMP '2026-01-05' + INTERVAL 7 DAY)
+    expected: 246
+    tolerance: 0.5
+    source: "ElCom, Marktbericht vom 13.01.2026, p. 7, table Ausgleichsenergiepreis, column Aktuell, https://www.elcom.admin.ch/dam/de/sd-web/HG2LlaF939U5/Marktbericht%20vom%2013-01-2026.pdf"
+  - name: week_2026_01_05_long
+    question: "Mean single imbalance price over the quarter-hours where it is at or below the CH day-ahead price (ElCom: the control area long), week of 2026-01-05 (local, Monday to Sunday)"
+    sql: |
+      SELECT avg(p.price_single) FILTER (WHERE p.price_single <= d.price)
+      FROM swissgrid_imbalance_prices.prices p
+      JOIN entsoe_day_ahead_prices.prices d ON d.bidding_zone = 'CH' AND p.delivery_start >= d.delivery_start
+      AND p.delivery_start < d.delivery_start + d.resolution
+      WHERE p.delivery_start >= timezone('Europe/Zurich', TIMESTAMP '2026-01-05')
+      AND p.delivery_start < timezone('Europe/Zurich', TIMESTAMP '2026-01-05' + INTERVAL 7 DAY)
+    expected: 31
+    tolerance: 0.5
+    source: "ElCom, Marktbericht vom 13.01.2026, p. 7, table Ausgleichsenergiepreis, column Aktuell, https://www.elcom.admin.ch/dam/de/sd-web/HG2LlaF939U5/Marktbericht%20vom%2013-01-2026.pdf"
+  - name: week_2026_01_12_short
+    question: "Mean single imbalance price over the quarter-hours where it is above the CH day-ahead price (ElCom: the control area short), week of 2026-01-12 (local, Monday to Sunday)"
+    sql: |
+      SELECT avg(p.price_single) FILTER (WHERE p.price_single > d.price)
+      FROM swissgrid_imbalance_prices.prices p
+      JOIN entsoe_day_ahead_prices.prices d ON d.bidding_zone = 'CH' AND p.delivery_start >= d.delivery_start
+      AND p.delivery_start < d.delivery_start + d.resolution
+      WHERE p.delivery_start >= timezone('Europe/Zurich', TIMESTAMP '2026-01-12')
+      AND p.delivery_start < timezone('Europe/Zurich', TIMESTAMP '2026-01-12' + INTERVAL 7 DAY)
+    expected: 210
+    tolerance: 0.5
+    source: "ElCom, Marktbericht vom 27.01.2026, p. 7, table Ausgleichsenergiepreis, column Vorwoche, https://www.elcom.admin.ch/dam/it/sd-web/qqtyVH45dtHI/Marktbericht%20vom%2027-01-2026.pdf"
+  - name: week_2026_01_12_long
+    question: "Mean single imbalance price over the quarter-hours where it is at or below the CH day-ahead price (ElCom: the control area long), week of 2026-01-12 (local, Monday to Sunday)"
+    sql: |
+      SELECT avg(p.price_single) FILTER (WHERE p.price_single <= d.price)
+      FROM swissgrid_imbalance_prices.prices p
+      JOIN entsoe_day_ahead_prices.prices d ON d.bidding_zone = 'CH' AND p.delivery_start >= d.delivery_start
+      AND p.delivery_start < d.delivery_start + d.resolution
+      WHERE p.delivery_start >= timezone('Europe/Zurich', TIMESTAMP '2026-01-12')
+      AND p.delivery_start < timezone('Europe/Zurich', TIMESTAMP '2026-01-12' + INTERVAL 7 DAY)
+    expected: 56
+    tolerance: 0.5
+    source: "ElCom, Marktbericht vom 27.01.2026, p. 7, table Ausgleichsenergiepreis, column Vorwoche, https://www.elcom.admin.ch/dam/it/sd-web/qqtyVH45dtHI/Marktbericht%20vom%2027-01-2026.pdf"
+  - name: week_2026_01_19_short
+    question: "Mean single imbalance price over the quarter-hours where it is above the CH day-ahead price (ElCom: the control area short), week of 2026-01-19 (local, Monday to Sunday)"
+    sql: |
+      SELECT avg(p.price_single) FILTER (WHERE p.price_single > d.price)
+      FROM swissgrid_imbalance_prices.prices p
+      JOIN entsoe_day_ahead_prices.prices d ON d.bidding_zone = 'CH' AND p.delivery_start >= d.delivery_start
+      AND p.delivery_start < d.delivery_start + d.resolution
+      WHERE p.delivery_start >= timezone('Europe/Zurich', TIMESTAMP '2026-01-19')
+      AND p.delivery_start < timezone('Europe/Zurich', TIMESTAMP '2026-01-19' + INTERVAL 7 DAY)
+    expected: 223
+    tolerance: 0.5
+    source: "ElCom, Marktbericht vom 27.01.2026, p. 7, table Ausgleichsenergiepreis, column Aktuell, https://www.elcom.admin.ch/dam/it/sd-web/qqtyVH45dtHI/Marktbericht%20vom%2027-01-2026.pdf"
+  - name: week_2026_01_19_long
+    question: "Mean single imbalance price over the quarter-hours where it is at or below the CH day-ahead price (ElCom: the control area long), week of 2026-01-19 (local, Monday to Sunday)"
+    sql: |
+      SELECT avg(p.price_single) FILTER (WHERE p.price_single <= d.price)
+      FROM swissgrid_imbalance_prices.prices p
+      JOIN entsoe_day_ahead_prices.prices d ON d.bidding_zone = 'CH' AND p.delivery_start >= d.delivery_start
+      AND p.delivery_start < d.delivery_start + d.resolution
+      WHERE p.delivery_start >= timezone('Europe/Zurich', TIMESTAMP '2026-01-19')
+      AND p.delivery_start < timezone('Europe/Zurich', TIMESTAMP '2026-01-19' + INTERVAL 7 DAY)
+    expected: 77
+    tolerance: 0.5
+    source: "ElCom, Marktbericht vom 27.01.2026, p. 7, table Ausgleichsenergiepreis, column Aktuell, https://www.elcom.admin.ch/dam/it/sd-web/qqtyVH45dtHI/Marktbericht%20vom%2027-01-2026.pdf"
+  - name: week_2026_02_02_short
+    question: "Mean single imbalance price over the quarter-hours where it is above the CH day-ahead price (ElCom: the control area short), week of 2026-02-02 (local, Monday to Sunday)"
+    sql: |
+      SELECT avg(p.price_single) FILTER (WHERE p.price_single > d.price)
+      FROM swissgrid_imbalance_prices.prices p
+      JOIN entsoe_day_ahead_prices.prices d ON d.bidding_zone = 'CH' AND p.delivery_start >= d.delivery_start
+      AND p.delivery_start < d.delivery_start + d.resolution
+      WHERE p.delivery_start >= timezone('Europe/Zurich', TIMESTAMP '2026-02-02')
+      AND p.delivery_start < timezone('Europe/Zurich', TIMESTAMP '2026-02-02' + INTERVAL 7 DAY)
+    expected: 193
+    tolerance: 0.5
+    source: "ElCom, Marktbericht vom 10.02.2026, p. 7, table Ausgleichsenergiepreis, column Aktuell, https://www.elcom.admin.ch/dam/de/sd-web/VZ7k86DCuRXK/Marktbericht%20vom%2002-10-2026.pdf"
+  - name: week_2026_02_02_long
+    question: "Mean single imbalance price over the quarter-hours where it is at or below the CH day-ahead price (ElCom: the control area long), week of 2026-02-02 (local, Monday to Sunday)"
+    sql: |
+      SELECT avg(p.price_single) FILTER (WHERE p.price_single <= d.price)
+      FROM swissgrid_imbalance_prices.prices p
+      JOIN entsoe_day_ahead_prices.prices d ON d.bidding_zone = 'CH' AND p.delivery_start >= d.delivery_start
+      AND p.delivery_start < d.delivery_start + d.resolution
+      WHERE p.delivery_start >= timezone('Europe/Zurich', TIMESTAMP '2026-02-02')
+      AND p.delivery_start < timezone('Europe/Zurich', TIMESTAMP '2026-02-02' + INTERVAL 7 DAY)
+    expected: 65
+    tolerance: 0.5
+    source: "ElCom, Marktbericht vom 10.02.2026, p. 7, table Ausgleichsenergiepreis, column Aktuell, https://www.elcom.admin.ch/dam/de/sd-web/VZ7k86DCuRXK/Marktbericht%20vom%2002-10-2026.pdf"
+  - name: week_2026_02_23_short
+    question: "Mean single imbalance price over the quarter-hours where it is above the CH day-ahead price (ElCom: the control area short), week of 2026-02-23 (local, Monday to Sunday)"
+    sql: |
+      SELECT avg(p.price_single) FILTER (WHERE p.price_single > d.price)
+      FROM swissgrid_imbalance_prices.prices p
+      JOIN entsoe_day_ahead_prices.prices d ON d.bidding_zone = 'CH' AND p.delivery_start >= d.delivery_start
+      AND p.delivery_start < d.delivery_start + d.resolution
+      WHERE p.delivery_start >= timezone('Europe/Zurich', TIMESTAMP '2026-02-23')
+      AND p.delivery_start < timezone('Europe/Zurich', TIMESTAMP '2026-02-23' + INTERVAL 7 DAY)
+    expected: 161
+    tolerance: 0.5
+    source: "ElCom, Marktbericht vom 03.03.2026, p. 7, table Ausgleichsenergiepreis, column Aktuell, https://www.elcom.admin.ch/dam/de/sd-web/oRRR5xnDTVKG/Marktbericht%20vom%2003-03-2026.pdf"
+  - name: week_2026_02_23_long
+    question: "Mean single imbalance price over the quarter-hours where it is at or below the CH day-ahead price (ElCom: the control area long), week of 2026-02-23 (local, Monday to Sunday)"
+    sql: |
+      SELECT avg(p.price_single) FILTER (WHERE p.price_single <= d.price)
+      FROM swissgrid_imbalance_prices.prices p
+      JOIN entsoe_day_ahead_prices.prices d ON d.bidding_zone = 'CH' AND p.delivery_start >= d.delivery_start
+      AND p.delivery_start < d.delivery_start + d.resolution
+      WHERE p.delivery_start >= timezone('Europe/Zurich', TIMESTAMP '2026-02-23')
+      AND p.delivery_start < timezone('Europe/Zurich', TIMESTAMP '2026-02-23' + INTERVAL 7 DAY)
+    expected: 34
+    tolerance: 0.5
+    source: "ElCom, Marktbericht vom 03.03.2026, p. 7, table Ausgleichsenergiepreis, column Aktuell, https://www.elcom.admin.ch/dam/de/sd-web/oRRR5xnDTVKG/Marktbericht%20vom%2003-03-2026.pdf"
+  - name: week_2026_03_02_short
+    question: "Mean single imbalance price over the quarter-hours where it is above the CH day-ahead price (ElCom: the control area short), week of 2026-03-02 (local, Monday to Sunday)"
+    sql: |
+      SELECT avg(p.price_single) FILTER (WHERE p.price_single > d.price)
+      FROM swissgrid_imbalance_prices.prices p
+      JOIN entsoe_day_ahead_prices.prices d ON d.bidding_zone = 'CH' AND p.delivery_start >= d.delivery_start
+      AND p.delivery_start < d.delivery_start + d.resolution
+      WHERE p.delivery_start >= timezone('Europe/Zurich', TIMESTAMP '2026-03-02')
+      AND p.delivery_start < timezone('Europe/Zurich', TIMESTAMP '2026-03-02' + INTERVAL 7 DAY)
+    expected: 179
+    tolerance: 0.5
+    source: "ElCom, Marktbericht vom 10.03.2026, p. 7, table Ausgleichsenergiepreis, column Aktuell, https://www.elcom.admin.ch/dam/de/sd-web/hVFcznnsxAkc/Marktbericht%20vom%2010-03-2026.pdf"
+  - name: week_2026_03_02_long
+    question: "Mean single imbalance price over the quarter-hours where it is at or below the CH day-ahead price (ElCom: the control area long), week of 2026-03-02 (local, Monday to Sunday)"
+    sql: |
+      SELECT avg(p.price_single) FILTER (WHERE p.price_single <= d.price)
+      FROM swissgrid_imbalance_prices.prices p
+      JOIN entsoe_day_ahead_prices.prices d ON d.bidding_zone = 'CH' AND p.delivery_start >= d.delivery_start
+      AND p.delivery_start < d.delivery_start + d.resolution
+      WHERE p.delivery_start >= timezone('Europe/Zurich', TIMESTAMP '2026-03-02')
+      AND p.delivery_start < timezone('Europe/Zurich', TIMESTAMP '2026-03-02' + INTERVAL 7 DAY)
+    expected: 57
+    tolerance: 0.5
+    source: "ElCom, Marktbericht vom 10.03.2026, p. 7, table Ausgleichsenergiepreis, column Aktuell, https://www.elcom.admin.ch/dam/de/sd-web/hVFcznnsxAkc/Marktbericht%20vom%2010-03-2026.pdf"
+  - name: week_2026_03_16_short
+    question: "Mean single imbalance price over the quarter-hours where it is above the CH day-ahead price (ElCom: the control area short), week of 2026-03-16 (local, Monday to Sunday)"
+    sql: |
+      SELECT avg(p.price_single) FILTER (WHERE p.price_single > d.price)
+      FROM swissgrid_imbalance_prices.prices p
+      JOIN entsoe_day_ahead_prices.prices d ON d.bidding_zone = 'CH' AND p.delivery_start >= d.delivery_start
+      AND p.delivery_start < d.delivery_start + d.resolution
+      WHERE p.delivery_start >= timezone('Europe/Zurich', TIMESTAMP '2026-03-16')
+      AND p.delivery_start < timezone('Europe/Zurich', TIMESTAMP '2026-03-16' + INTERVAL 7 DAY)
+    expected: 215
+    tolerance: 0.5
+    source: "ElCom, Marktbericht vom 24.03.2026, p. 7, table Ausgleichsenergiepreis, column Aktuell, https://www.elcom.admin.ch/dam/de/sd-web/XDYKUSOHs9le/Marktbericht%20vom%2024-03-2026.pdf"
+  - name: week_2026_03_16_long
+    question: "Mean single imbalance price over the quarter-hours where it is at or below the CH day-ahead price (ElCom: the control area long), week of 2026-03-16 (local, Monday to Sunday)"
+    sql: |
+      SELECT avg(p.price_single) FILTER (WHERE p.price_single <= d.price)
+      FROM swissgrid_imbalance_prices.prices p
+      JOIN entsoe_day_ahead_prices.prices d ON d.bidding_zone = 'CH' AND p.delivery_start >= d.delivery_start
+      AND p.delivery_start < d.delivery_start + d.resolution
+      WHERE p.delivery_start >= timezone('Europe/Zurich', TIMESTAMP '2026-03-16')
+      AND p.delivery_start < timezone('Europe/Zurich', TIMESTAMP '2026-03-16' + INTERVAL 7 DAY)
+    expected: 35
+    tolerance: 0.5
+    source: "ElCom, Marktbericht vom 24.03.2026, p. 7, table Ausgleichsenergiepreis, column Aktuell, https://www.elcom.admin.ch/dam/de/sd-web/XDYKUSOHs9le/Marktbericht%20vom%2024-03-2026.pdf"
+  - name: week_2026_04_06_short
+    question: "Mean single imbalance price over the quarter-hours where it is above the CH day-ahead price (ElCom: the control area short), week of 2026-04-06 (local, Monday to Sunday)"
+    sql: |
+      SELECT avg(p.price_single) FILTER (WHERE p.price_single > d.price)
+      FROM swissgrid_imbalance_prices.prices p
+      JOIN entsoe_day_ahead_prices.prices d ON d.bidding_zone = 'CH' AND p.delivery_start >= d.delivery_start
+      AND p.delivery_start < d.delivery_start + d.resolution
+      WHERE p.delivery_start >= timezone('Europe/Zurich', TIMESTAMP '2026-04-06')
+      AND p.delivery_start < timezone('Europe/Zurich', TIMESTAMP '2026-04-06' + INTERVAL 7 DAY)
+    expected: 153
+    tolerance: 0.5
+    source: "ElCom, Marktbericht vom 14.04.2026, p. 7, table Ausgleichsenergiepreis, column Aktuell, https://www.elcom.admin.ch/dam/de/sd-web/EcPt7UkTo3Sw/Marktbericht%20vom%2014-04-2026.pdf"
+  - name: week_2026_04_06_long
+    question: "Mean single imbalance price over the quarter-hours where it is at or below the CH day-ahead price (ElCom: the control area long), week of 2026-04-06 (local, Monday to Sunday)"
+    sql: |
+      SELECT avg(p.price_single) FILTER (WHERE p.price_single <= d.price)
+      FROM swissgrid_imbalance_prices.prices p
+      JOIN entsoe_day_ahead_prices.prices d ON d.bidding_zone = 'CH' AND p.delivery_start >= d.delivery_start
+      AND p.delivery_start < d.delivery_start + d.resolution
+      WHERE p.delivery_start >= timezone('Europe/Zurich', TIMESTAMP '2026-04-06')
+      AND p.delivery_start < timezone('Europe/Zurich', TIMESTAMP '2026-04-06' + INTERVAL 7 DAY)
+    expected: -68
+    tolerance: 0.5
+    source: "ElCom, Marktbericht vom 14.04.2026, p. 7, table Ausgleichsenergiepreis, column Aktuell, https://www.elcom.admin.ch/dam/de/sd-web/EcPt7UkTo3Sw/Marktbericht%20vom%2014-04-2026.pdf"
+  - name: week_2026_04_20_short
+    question: "Mean single imbalance price over the quarter-hours where it is above the CH day-ahead price (ElCom: the control area short), week of 2026-04-20 (local, Monday to Sunday)"
+    sql: |
+      SELECT avg(p.price_single) FILTER (WHERE p.price_single > d.price)
+      FROM swissgrid_imbalance_prices.prices p
+      JOIN entsoe_day_ahead_prices.prices d ON d.bidding_zone = 'CH' AND p.delivery_start >= d.delivery_start
+      AND p.delivery_start < d.delivery_start + d.resolution
+      WHERE p.delivery_start >= timezone('Europe/Zurich', TIMESTAMP '2026-04-20')
+      AND p.delivery_start < timezone('Europe/Zurich', TIMESTAMP '2026-04-20' + INTERVAL 7 DAY)
+    expected: 143
+    tolerance: 0.5
+    source: "ElCom, Marktbericht vom 28.04.2026, p. 7, table Ausgleichsenergiepreis, column Aktuell, https://www.elcom.admin.ch/dam/de/sd-web/xmUJ9cvT9ktA/Marktbericht%20vom%2028-04-2026.pdf"
+  - name: week_2026_04_20_long
+    question: "Mean single imbalance price over the quarter-hours where it is at or below the CH day-ahead price (ElCom: the control area long), week of 2026-04-20 (local, Monday to Sunday)"
+    sql: |
+      SELECT avg(p.price_single) FILTER (WHERE p.price_single <= d.price)
+      FROM swissgrid_imbalance_prices.prices p
+      JOIN entsoe_day_ahead_prices.prices d ON d.bidding_zone = 'CH' AND p.delivery_start >= d.delivery_start
+      AND p.delivery_start < d.delivery_start + d.resolution
+      WHERE p.delivery_start >= timezone('Europe/Zurich', TIMESTAMP '2026-04-20')
+      AND p.delivery_start < timezone('Europe/Zurich', TIMESTAMP '2026-04-20' + INTERVAL 7 DAY)
+    expected: -46
+    tolerance: 0.5
+    source: "ElCom, Marktbericht vom 28.04.2026, p. 7, table Ausgleichsenergiepreis, column Aktuell, https://www.elcom.admin.ch/dam/de/sd-web/xmUJ9cvT9ktA/Marktbericht%20vom%2028-04-2026.pdf"
+  - name: week_2026_05_04_short
+    question: "Mean single imbalance price over the quarter-hours where it is above the CH day-ahead price (ElCom: the control area short), week of 2026-05-04 (local, Monday to Sunday)"
+    sql: |
+      SELECT avg(p.price_single) FILTER (WHERE p.price_single > d.price)
+      FROM swissgrid_imbalance_prices.prices p
+      JOIN entsoe_day_ahead_prices.prices d ON d.bidding_zone = 'CH' AND p.delivery_start >= d.delivery_start
+      AND p.delivery_start < d.delivery_start + d.resolution
+      WHERE p.delivery_start >= timezone('Europe/Zurich', TIMESTAMP '2026-05-04')
+      AND p.delivery_start < timezone('Europe/Zurich', TIMESTAMP '2026-05-04' + INTERVAL 7 DAY)
+    expected: 208
+    tolerance: 0.5
+    source: "ElCom, Marktbericht vom 12.05.2026, p. 7, table Ausgleichsenergiepreis, column Aktuell, https://www.elcom.admin.ch/dam/it/sd-web/eDHHIm5EJiZx/Marktbericht%20vom%2012-05-2026.pdf"
+  - name: week_2026_05_04_long
+    question: "Mean single imbalance price over the quarter-hours where it is at or below the CH day-ahead price (ElCom: the control area long), week of 2026-05-04 (local, Monday to Sunday)"
+    sql: |
+      SELECT avg(p.price_single) FILTER (WHERE p.price_single <= d.price)
+      FROM swissgrid_imbalance_prices.prices p
+      JOIN entsoe_day_ahead_prices.prices d ON d.bidding_zone = 'CH' AND p.delivery_start >= d.delivery_start
+      AND p.delivery_start < d.delivery_start + d.resolution
+      WHERE p.delivery_start >= timezone('Europe/Zurich', TIMESTAMP '2026-05-04')
+      AND p.delivery_start < timezone('Europe/Zurich', TIMESTAMP '2026-05-04' + INTERVAL 7 DAY)
+    expected: 40
+    tolerance: 0.5
+    source: "ElCom, Marktbericht vom 12.05.2026, p. 7, table Ausgleichsenergiepreis, column Aktuell, https://www.elcom.admin.ch/dam/it/sd-web/eDHHIm5EJiZx/Marktbericht%20vom%2012-05-2026.pdf"
+  - name: week_2026_05_11_short
+    question: "Mean single imbalance price over the quarter-hours where it is above the CH day-ahead price (ElCom: the control area short), week of 2026-05-11 (local, Monday to Sunday)"
+    sql: |
+      SELECT avg(p.price_single) FILTER (WHERE p.price_single > d.price)
+      FROM swissgrid_imbalance_prices.prices p
+      JOIN entsoe_day_ahead_prices.prices d ON d.bidding_zone = 'CH' AND p.delivery_start >= d.delivery_start
+      AND p.delivery_start < d.delivery_start + d.resolution
+      WHERE p.delivery_start >= timezone('Europe/Zurich', TIMESTAMP '2026-05-11')
+      AND p.delivery_start < timezone('Europe/Zurich', TIMESTAMP '2026-05-11' + INTERVAL 7 DAY)
+    expected: 194
+    tolerance: 0.5
+    source: "ElCom, Marktbericht vom 19.05.2026, p. 7, table Ausgleichsenergiepreis, column Aktuell, https://www.elcom.admin.ch/dam/en/sd-web/ePbapQ8BgXPR/Marktbericht%20vom%2019-05-2026.pdf"
+  - name: week_2026_05_11_long
+    question: "Mean single imbalance price over the quarter-hours where it is at or below the CH day-ahead price (ElCom: the control area long), week of 2026-05-11 (local, Monday to Sunday)"
+    sql: |
+      SELECT avg(p.price_single) FILTER (WHERE p.price_single <= d.price)
+      FROM swissgrid_imbalance_prices.prices p
+      JOIN entsoe_day_ahead_prices.prices d ON d.bidding_zone = 'CH' AND p.delivery_start >= d.delivery_start
+      AND p.delivery_start < d.delivery_start + d.resolution
+      WHERE p.delivery_start >= timezone('Europe/Zurich', TIMESTAMP '2026-05-11')
+      AND p.delivery_start < timezone('Europe/Zurich', TIMESTAMP '2026-05-11' + INTERVAL 7 DAY)
+    expected: 3
+    tolerance: 0.5
+    source: "ElCom, Marktbericht vom 19.05.2026, p. 7, table Ausgleichsenergiepreis, column Aktuell, https://www.elcom.admin.ch/dam/en/sd-web/ePbapQ8BgXPR/Marktbericht%20vom%2019-05-2026.pdf"
+  - name: week_2026_05_18_short
+    question: "Mean single imbalance price over the quarter-hours where it is above the CH day-ahead price (ElCom: the control area short), week of 2026-05-18 (local, Monday to Sunday)"
+    sql: |
+      SELECT avg(p.price_single) FILTER (WHERE p.price_single > d.price)
+      FROM swissgrid_imbalance_prices.prices p
+      JOIN entsoe_day_ahead_prices.prices d ON d.bidding_zone = 'CH' AND p.delivery_start >= d.delivery_start
+      AND p.delivery_start < d.delivery_start + d.resolution
+      WHERE p.delivery_start >= timezone('Europe/Zurich', TIMESTAMP '2026-05-18')
+      AND p.delivery_start < timezone('Europe/Zurich', TIMESTAMP '2026-05-18' + INTERVAL 7 DAY)
+    expected: 190
+    tolerance: 0.5
+    source: "ElCom, Marktbericht vom 26.05.2026, p. 7, table Ausgleichsenergiepreis, column Aktuell, https://www.elcom.admin.ch/dam/fr/sd-web/EEprl7t7YuxF/Rapport%20de%20march%C3%A9%20du%2026-05-2026.pdf"
+  - name: week_2026_05_18_long
+    question: "Mean single imbalance price over the quarter-hours where it is at or below the CH day-ahead price (ElCom: the control area long), week of 2026-05-18 (local, Monday to Sunday)"
+    sql: |
+      SELECT avg(p.price_single) FILTER (WHERE p.price_single <= d.price)
+      FROM swissgrid_imbalance_prices.prices p
+      JOIN entsoe_day_ahead_prices.prices d ON d.bidding_zone = 'CH' AND p.delivery_start >= d.delivery_start
+      AND p.delivery_start < d.delivery_start + d.resolution
+      WHERE p.delivery_start >= timezone('Europe/Zurich', TIMESTAMP '2026-05-18')
+      AND p.delivery_start < timezone('Europe/Zurich', TIMESTAMP '2026-05-18' + INTERVAL 7 DAY)
+    expected: -40
+    tolerance: 0.5
+    source: "ElCom, Marktbericht vom 26.05.2026, p. 7, table Ausgleichsenergiepreis, column Aktuell, https://www.elcom.admin.ch/dam/fr/sd-web/EEprl7t7YuxF/Rapport%20de%20march%C3%A9%20du%2026-05-2026.pdf"
+  - name: week_2026_05_25_short
+    question: "Mean single imbalance price over the quarter-hours where it is above the CH day-ahead price (ElCom: the control area short), week of 2026-05-25 (local, Monday to Sunday)"
+    sql: |
+      SELECT avg(p.price_single) FILTER (WHERE p.price_single > d.price)
+      FROM swissgrid_imbalance_prices.prices p
+      JOIN entsoe_day_ahead_prices.prices d ON d.bidding_zone = 'CH' AND p.delivery_start >= d.delivery_start
+      AND p.delivery_start < d.delivery_start + d.resolution
+      WHERE p.delivery_start >= timezone('Europe/Zurich', TIMESTAMP '2026-05-25')
+      AND p.delivery_start < timezone('Europe/Zurich', TIMESTAMP '2026-05-25' + INTERVAL 7 DAY)
+    expected: 186
+    tolerance: 0.5
+    source: "ElCom, Marktbericht vom 02.06.2026, p. 7, table Ausgleichsenergiepreis, column Aktuell, https://www.elcom.admin.ch/dam/fr/sd-web/eIpA4YFxzJFA/Marktbericht%20vom%2002-06-2026.pdf"
+  - name: week_2026_05_25_long
+    question: "Mean single imbalance price over the quarter-hours where it is at or below the CH day-ahead price (ElCom: the control area long), week of 2026-05-25 (local, Monday to Sunday)"
+    sql: |
+      SELECT avg(p.price_single) FILTER (WHERE p.price_single <= d.price)
+      FROM swissgrid_imbalance_prices.prices p
+      JOIN entsoe_day_ahead_prices.prices d ON d.bidding_zone = 'CH' AND p.delivery_start >= d.delivery_start
+      AND p.delivery_start < d.delivery_start + d.resolution
+      WHERE p.delivery_start >= timezone('Europe/Zurich', TIMESTAMP '2026-05-25')
+      AND p.delivery_start < timezone('Europe/Zurich', TIMESTAMP '2026-05-25' + INTERVAL 7 DAY)
+    expected: 25
+    tolerance: 0.5
+    source: "ElCom, Marktbericht vom 02.06.2026, p. 7, table Ausgleichsenergiepreis, column Aktuell, https://www.elcom.admin.ch/dam/fr/sd-web/eIpA4YFxzJFA/Marktbericht%20vom%2002-06-2026.pdf"
+  - name: week_2026_06_01_short
+    question: "Mean single imbalance price over the quarter-hours where it is above the CH day-ahead price (ElCom: the control area short), week of 2026-06-01 (local, Monday to Sunday)"
+    sql: |
+      SELECT avg(p.price_single) FILTER (WHERE p.price_single > d.price)
+      FROM swissgrid_imbalance_prices.prices p
+      JOIN entsoe_day_ahead_prices.prices d ON d.bidding_zone = 'CH' AND p.delivery_start >= d.delivery_start
+      AND p.delivery_start < d.delivery_start + d.resolution
+      WHERE p.delivery_start >= timezone('Europe/Zurich', TIMESTAMP '2026-06-01')
+      AND p.delivery_start < timezone('Europe/Zurich', TIMESTAMP '2026-06-01' + INTERVAL 7 DAY)
+    expected: 165
+    tolerance: 0.5
+    source: "ElCom, Marktbericht vom 09.06.2026, p. 7, table Ausgleichsenergiepreis, column Aktuell, https://www.elcom.admin.ch/dam/fr/sd-web/YEW7fzhvTsx4/Marktbericht%20vom%2009-06-2026.pdf"
+  - name: week_2026_06_01_long
+    question: "Mean single imbalance price over the quarter-hours where it is at or below the CH day-ahead price (ElCom: the control area long), week of 2026-06-01 (local, Monday to Sunday)"
+    sql: |
+      SELECT avg(p.price_single) FILTER (WHERE p.price_single <= d.price)
+      FROM swissgrid_imbalance_prices.prices p
+      JOIN entsoe_day_ahead_prices.prices d ON d.bidding_zone = 'CH' AND p.delivery_start >= d.delivery_start
+      AND p.delivery_start < d.delivery_start + d.resolution
+      WHERE p.delivery_start >= timezone('Europe/Zurich', TIMESTAMP '2026-06-01')
+      AND p.delivery_start < timezone('Europe/Zurich', TIMESTAMP '2026-06-01' + INTERVAL 7 DAY)
+    expected: -28
+    tolerance: 0.5
+    source: "ElCom, Marktbericht vom 09.06.2026, p. 7, table Ausgleichsenergiepreis, column Aktuell, https://www.elcom.admin.ch/dam/fr/sd-web/YEW7fzhvTsx4/Marktbericht%20vom%2009-06-2026.pdf"
+  - name: week_2026_08_03_short
+    question: "Mean single imbalance price over the quarter-hours where it is above the CH day-ahead price (ElCom: the control area short), week of 2026-08-03 (local, Monday to Sunday)"
+    sql: |
+      SELECT avg(p.price_single) FILTER (WHERE p.price_single > d.price)
+      FROM swissgrid_imbalance_prices.prices p
+      JOIN entsoe_day_ahead_prices.prices d ON d.bidding_zone = 'CH' AND p.delivery_start >= d.delivery_start
+      AND p.delivery_start < d.delivery_start + d.resolution
+      WHERE p.delivery_start >= timezone('Europe/Zurich', TIMESTAMP '2026-08-03')
+      AND p.delivery_start < timezone('Europe/Zurich', TIMESTAMP '2026-08-03' + INTERVAL 7 DAY)
+    expected: 221
+    tolerance: 0.5
+    source: "ElCom, Marktbericht vom 18.08.2026, p. 7, table Ausgleichsenergiepreis, column Vorwoche, https://www.elcom.admin.ch/dam/it/sd-web/WyyGRFw0proO/Marktbericht%20vom%2018-08-2026.pdf"
+  - name: week_2026_08_03_long
+    question: "Mean single imbalance price over the quarter-hours where it is at or below the CH day-ahead price (ElCom: the control area long), week of 2026-08-03 (local, Monday to Sunday)"
+    sql: |
+      SELECT avg(p.price_single) FILTER (WHERE p.price_single <= d.price)
+      FROM swissgrid_imbalance_prices.prices p
+      JOIN entsoe_day_ahead_prices.prices d ON d.bidding_zone = 'CH' AND p.delivery_start >= d.delivery_start
+      AND p.delivery_start < d.delivery_start + d.resolution
+      WHERE p.delivery_start >= timezone('Europe/Zurich', TIMESTAMP '2026-08-03')
+      AND p.delivery_start < timezone('Europe/Zurich', TIMESTAMP '2026-08-03' + INTERVAL 7 DAY)
+    expected: 33
+    tolerance: 0.5
+    source: "ElCom, Marktbericht vom 18.08.2026, p. 7, table Ausgleichsenergiepreis, column Vorwoche, https://www.elcom.admin.ch/dam/it/sd-web/WyyGRFw0proO/Marktbericht%20vom%2018-08-2026.pdf"
+  - name: week_2026_08_10_short
+    question: "Mean single imbalance price over the quarter-hours where it is above the CH day-ahead price (ElCom: the control area short), week of 2026-08-10 (local, Monday to Sunday)"
+    sql: |
+      SELECT avg(p.price_single) FILTER (WHERE p.price_single > d.price)
+      FROM swissgrid_imbalance_prices.prices p
+      JOIN entsoe_day_ahead_prices.prices d ON d.bidding_zone = 'CH' AND p.delivery_start >= d.delivery_start
+      AND p.delivery_start < d.delivery_start + d.resolution
+      WHERE p.delivery_start >= timezone('Europe/Zurich', TIMESTAMP '2026-08-10')
+      AND p.delivery_start < timezone('Europe/Zurich', TIMESTAMP '2026-08-10' + INTERVAL 7 DAY)
+    expected: 244
+    tolerance: 0.5
+    source: "ElCom, Marktbericht vom 18.08.2026, p. 7, table Ausgleichsenergiepreis, column Aktuell, https://www.elcom.admin.ch/dam/it/sd-web/WyyGRFw0proO/Marktbericht%20vom%2018-08-2026.pdf"
+  - name: week_2026_08_10_long
+    question: "Mean single imbalance price over the quarter-hours where it is at or below the CH day-ahead price (ElCom: the control area long), week of 2026-08-10 (local, Monday to Sunday)"
+    sql: |
+      SELECT avg(p.price_single) FILTER (WHERE p.price_single <= d.price)
+      FROM swissgrid_imbalance_prices.prices p
+      JOIN entsoe_day_ahead_prices.prices d ON d.bidding_zone = 'CH' AND p.delivery_start >= d.delivery_start
+      AND p.delivery_start < d.delivery_start + d.resolution
+      WHERE p.delivery_start >= timezone('Europe/Zurich', TIMESTAMP '2026-08-10')
+      AND p.delivery_start < timezone('Europe/Zurich', TIMESTAMP '2026-08-10' + INTERVAL 7 DAY)
+    expected: 15
+    tolerance: 0.5
+    source: "ElCom, Marktbericht vom 18.08.2026, p. 7, table Ausgleichsenergiepreis, column Aktuell, https://www.elcom.admin.ch/dam/it/sd-web/WyyGRFw0proO/Marktbericht%20vom%2018-08-2026.pdf"
+  - name: low_2026_05_19_local_time
+    question: "Local time (HHMM) of the quarter-hour with the lowest imbalance price on 2026-05-19 (local day)"
+    sql: |
+      SELECT strftime(delivery_start AT TIME ZONE 'Europe/Zurich', '%H%M')::INTEGER
+      FROM swissgrid_imbalance_prices.prices
+      WHERE delivery_start >= TIMESTAMPTZ '2026-05-19 00:00:00+02' AND delivery_start < TIMESTAMPTZ '2026-05-20 00:00:00+02'
+      ORDER BY price_single LIMIT 1
+    expected: 1245
+    tolerance: 0.5
+    source: "ElCom, Marktbericht vom 26.05.2026, p. 2: on Tuesday, activation costs at 12:45 above 450,000 EUR/15min, an imbalance price of over 3,300 EUR/MWh (in absolute value; the control area was long), https://www.elcom.admin.ch/dam/fr/sd-web/EEprl7t7YuxF/Rapport%20de%20march%C3%A9%20du%2026-05-2026.pdf"

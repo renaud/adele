@@ -1,0 +1,157 @@
+# Definitions (titles, descriptions, labels, warnings, questions) are Renaud's (skills/add-dataset).
+# Every definition below is a draft by Claude (WP5.4, 2026-11-15) until he changes or confirms it.
+# Structure (keys, types, refresh) by Claude. Sources of the facts: the docstring of fetch.py, SED's
+# notes/swiss_intraday.md (sections 3 and 6) and the docstring of swissgrid_project's
+# code/da_id_spread_de/fetch_energy_charts_de.py (the match of the DE series with EPEX's indices).
+name: energy_charts_intraday_prices
+title: Hourly intraday electricity prices, Switzerland and Germany (Energy-Charts)  # draft by Claude
+# draft by Claude
+description: >-
+  Hourly prices of the intraday markets for Switzerland (CH) and Germany (DE_LU, DE_AT_LU until
+  2018-09-30), from the year files behind the spot-price chart of Energy-Charts (Fraunhofer ISE),
+  since 2015. Continuous trading of the 60-minute contracts: the average, lowest and highest price
+  of the trades of each delivery hour, and for DE the indices ID3 and ID1. Intraday auctions: CH
+  IDA1 and IDA2 (2020 to 2025), the German 15-minute auction (to mid 2024). The prices are EPEX
+  SPOT data that Energy-Charts shows. The day-ahead price is in entsoe_day_ahead_prices.
+# Facts on the terms, recorded as found (SED, notes/swiss_intraday.md section 7, read 2026-11-06)
+licenses:
+  - path: https://www.energy-charts.info/
+    title: >-
+      Energy-Charts Publishing Notes: material may be downloaded for personal use only; any other
+      use needs the prior written approval of Fraunhofer ISE. The intraday prices are EPEX SPOT
+      data (EPEX's website: internal use only, commercial use after EPEX's approval).
+resources:
+  - name: prices
+    description: One row per bidding zone and delivery hour.  # draft by Claude
+    schema:
+      primaryKey: [bidding_zone, delivery_start]
+      fields:
+        - name: bidding_zone
+          type: string
+          # draft by Claude
+          description: >-
+            Zone as Energy-Charts labels its series. Germany is DE_AT_LU until 2018-09-30 and DE_LU
+            from 2018-10-01 (local days), as in entsoe_day_ahead_prices.
+          categories:
+            - {value: CH, label: Switzerland}
+            - {value: DE_LU, label: Germany-Luxembourg}
+            - {value: DE_AT_LU, label: Germany-Austria-Luxembourg}
+        - name: delivery_start
+          type: datetime
+          description: Start of the delivery hour, UTC.  # draft by Claude
+        - name: id_avg
+          type: number
+          unit: EUR/MWh
+          # draft by Claude
+          description: >-
+            Continuous intraday, 60-minute contract: average price of the trades of the whole
+            trading session for this delivery hour ("Intraday Continuous Average Price"). Known only
+            after the session closes, so after delivery has started. DE: EPEX's ID Full index. CH:
+            null in an hour without a trade (see the warnings); unlike EPEX's ID Full, no fallback to
+            the day-ahead price in a thin hour.
+        - name: id_low
+          type: number
+          unit: EUR/MWh
+          description: Continuous intraday, 60-minute contract, lowest trade of the session for this hour.  # draft by Claude
+        - name: id_high
+          type: number
+          unit: EUR/MWh
+          description: Continuous intraday, 60-minute contract, highest trade of the session for this hour.  # draft by Claude
+        - name: id3
+          type: number
+          unit: EUR/MWh
+          # draft by Claude
+          description: >-
+            DE only: EPEX's ID3 index, the weighted average of the trades in the last 3 trading
+            hours of the contract. From 2015-06-28. Null for CH (Energy-Charts has no CH series).
+        - name: id1
+          type: number
+          unit: EUR/MWh
+          # draft by Claude
+          description: >-
+            DE only: EPEX's ID1 index, the weighted average of the trades in the last trading hour
+            of the contract. From 2018-02-05. Null for CH.
+        - name: ida1
+          type: number
+          unit: EUR/MWh
+          # draft by Claude
+          description: >-
+            CH only: clearing price of the Swiss intraday auction IDA1 (day before delivery), 2020
+            to 2025. Null from 2025-01-01 to 2025-06-05, and in 2026: the source dropped its 2026
+            values in November 2026.
+        - name: ida2
+          type: number
+          unit: EUR/MWh
+          # draft by Claude
+          description: >-
+            CH only: clearing price of the Swiss intraday auction IDA2 (day of delivery), 2020 to
+            2025, for the hours that it auctions (local hours 16-23 in 2020, 12-23 from 2021). Null
+            in the other hours and as ida1.
+        - name: ida15
+          type: number
+          unit: EUR/MWh
+          # draft by Claude
+          description: >-
+            DE only: average of the four 15-minute prices of the German intraday auction for this
+            hour ("Intraday auction, average of the 15 min auctions"). Ends 2024-06-13 in the source.
+adele:
+  format_version: 1
+  resolution:
+    - {from: 2015-01-01, value: PT1H}
+  refresh:
+    every: PT6H
+    # The continuous prices of a day appear the next day. No value of 2019-2026 changed between
+    # 2026-10-28 and 2026-11-15 (fetch.py), but the source dropped a series: a short lookback
+    # keeps a later drop from erasing stored values (overwrite). Proposal by Claude.
+    lookback: P3D
+    horizon: P0D
+    timeout: PT10M
+  revisions: overwrite
+  # drafts by Claude
+  warnings:
+    - >-
+      id_avg, id_low and id_high cover the whole trading session of the hour, which closes after
+      delivery has started: they are not known before the hour and must not enter its forecast.
+    - >-
+      CH: an hour without a trade has no continuous price (null): 25 % of the hours of 2019, 48 % of
+      2020 (with a gap of the source from 2020-10-12 07:00 to 2020-12-31 22:00 UTC), 3 % of 2021,
+      about 1 % in 2022-2023, a few hours a year after. From 2021 the source writes such an hour as
+      0.00 for the average, the low and the high; adele stores null.
+    - >-
+      Hourly 60-minute contracts only: the 15-minute and 30-minute contracts are not in the year
+      files. To compare with the day-ahead price of entsoe_day_ahead_prices, average its quarter-hours
+      to the hour first (DE_LU from 2025-10-01, CH from 2026-11-04).
+  examples:
+    # drafts by Claude, results not yet confirmed by Renaud
+    - question: Mean of the continuous intraday average price per local month of 2025, CH and DE_LU?
+      sql: |
+        SELECT bidding_zone,
+               date_trunc('month', delivery_start AT TIME ZONE 'Europe/Zurich') AS month,
+               round(avg(id_avg), 2) AS mean_id_avg,
+               count(*) FILTER (WHERE id_avg IS NULL) AS hours_without_price
+        FROM energy_charts_intraday_prices.prices
+        WHERE delivery_start >= TIMESTAMPTZ '2025-01-01 00:00:00+01'
+          AND delivery_start <  TIMESTAMPTZ '2026-01-01 00:00:00+01'
+        GROUP BY ALL
+        ORDER BY 1, 2
+    - question: >-
+        Median hourly spread between the continuous intraday average price and the day-ahead price,
+        DE_LU, per local month from 2025-07 (the day-ahead price is quarter-hourly from 2025-10-01:
+        average its quarter-hours to the hour first)?
+      sql: |
+        WITH da AS (
+          SELECT time_bucket(INTERVAL 1 HOUR, delivery_start) AS hour, avg(price) AS da
+          FROM entsoe_day_ahead_prices.prices
+          WHERE bidding_zone = 'DE_LU' AND delivery_start >= TIMESTAMPTZ '2025-07-01 00:00:00+02'
+          GROUP BY 1)
+        SELECT date_trunc('month', i.delivery_start AT TIME ZONE 'Europe/Berlin') AS month,
+               round(median(i.id_avg - da.da), 2) AS median_spread,
+               count(*) AS hours
+        FROM energy_charts_intraday_prices.prices i
+        JOIN da ON da.hour = i.delivery_start
+        WHERE i.bidding_zone = 'DE_LU' AND i.id_avg IS NOT NULL
+        GROUP BY 1
+        ORDER BY 1
+    # D31: checks of checks.yaml, chosen by Claude for the trap that each one shows
+    - check: de_lu_2025_12_id_avg_base  # a local month; id_avg is EPEX's ID Full for DE
+    - check: ch_2025_12_ida2_peak  # IDA2 auctions only some hours (null in the others); EPEX's peak hours

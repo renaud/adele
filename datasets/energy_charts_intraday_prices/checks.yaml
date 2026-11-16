@@ -1,0 +1,140 @@
+# Published figures that this dataset must reproduce (skills/add-dataset, step 8; D12). The server runs every
+# query after each fetch; a result outside the tolerance sets the status to failing.
+#
+# Collected 2026-11-15 by Claude (WP5.4): EPEX SPOT's monthly "Power Trading Results" of 2025-09 and 2025-12, compared
+# with qa/tools/published_check_energy_charts_intraday_prices.py; notes in
+# qa/published_figures_energy_charts_intraday_prices.md. EPEX's download center refuses scripts (HTTP 403): only these
+# two reports could be read; the other months wait for a download by hand. Generated once by a script of the session
+# (gen_checks_wp54.py, scratchpad); edit this file directly from now on.
+#
+# Conventions: local months (Europe/Zurich). Base = every hour of the month; peak = Monday to Friday 08:00-20:00 local.
+# EPEX gives cents: tolerance 0.015. Left out: CH ID Full of 2025-12 (112.89 published, 112.906 here; see the notes).
+checks:
+  - name: de_lu_2025_12_id_avg_base
+    question: "Mean continuous intraday average price (EPEX ID Full), DE_LU, 2025-12 (local month), every hour (EPEX's base)"
+    sql: |
+      SELECT avg(id_avg)
+      FROM energy_charts_intraday_prices.prices WHERE bidding_zone = 'DE_LU'
+      AND delivery_start >= timezone('Europe/Zurich', TIMESTAMP '2025-12-01')
+      AND delivery_start < timezone('Europe/Zurich', TIMESTAMP '2026-01-01')
+    expected: 92.39
+    tolerance: 0.015
+    source: "EPEX Power Trading Results 12-2025 (2026-01-06), p. 8, ID Full DE (60 min), local copy swissgrid_project/papers/EPEX_2026_Power_Trading_Results_2025-12.pdf (EPEX's download center refuses scripts)"
+  - name: de_lu_2025_12_id3_base
+    question: "Mean ID3 index, DE_LU, 2025-12 (local month), every hour (EPEX's base)"
+    sql: |
+      SELECT avg(id3)
+      FROM energy_charts_intraday_prices.prices WHERE bidding_zone = 'DE_LU'
+      AND delivery_start >= timezone('Europe/Zurich', TIMESTAMP '2025-12-01')
+      AND delivery_start < timezone('Europe/Zurich', TIMESTAMP '2026-01-01')
+    expected: 92.16
+    tolerance: 0.015
+    source: "EPEX Power Trading Results 12-2025 (2026-01-06), p. 8, ID3 DE (60 min), local copy swissgrid_project/papers/EPEX_2026_Power_Trading_Results_2025-12.pdf (EPEX's download center refuses scripts)"
+  - name: de_lu_2025_12_id1_base
+    question: "Mean ID1 index, DE_LU, 2025-12 (local month), every hour (EPEX's base)"
+    sql: |
+      SELECT avg(id1)
+      FROM energy_charts_intraday_prices.prices WHERE bidding_zone = 'DE_LU'
+      AND delivery_start >= timezone('Europe/Zurich', TIMESTAMP '2025-12-01')
+      AND delivery_start < timezone('Europe/Zurich', TIMESTAMP '2026-01-01')
+    expected: 92.13
+    tolerance: 0.015
+    source: "EPEX Power Trading Results 12-2025 (2026-01-06), p. 8, ID1 DE (60 min), local copy swissgrid_project/papers/EPEX_2026_Power_Trading_Results_2025-12.pdf (EPEX's download center refuses scripts)"
+  - name: ch_2025_12_ida1_base
+    question: "Mean IDA1 auction price, CH, 2025-12 (local month), every hour (EPEX's base)"
+    sql: |
+      SELECT avg(ida1)
+      FROM energy_charts_intraday_prices.prices WHERE bidding_zone = 'CH'
+      AND delivery_start >= timezone('Europe/Zurich', TIMESTAMP '2025-12-01')
+      AND delivery_start < timezone('Europe/Zurich', TIMESTAMP '2026-01-01')
+    expected: 187.33
+    tolerance: 0.015
+    source: "EPEX Power Trading Results 12-2025 (2026-01-06), p. 6, CH IDA1 base, local copy swissgrid_project/papers/EPEX_2026_Power_Trading_Results_2025-12.pdf (EPEX's download center refuses scripts)"
+  - name: ch_2025_12_ida1_peak
+    question: "Mean IDA1 auction price, CH, 2025-12 (local month), Monday to Friday 08:00-20:00 local (EPEX's peak)"
+    sql: |
+      SELECT avg(ida1)
+      FROM energy_charts_intraday_prices.prices WHERE bidding_zone = 'CH'
+      AND delivery_start >= timezone('Europe/Zurich', TIMESTAMP '2025-12-01')
+      AND delivery_start < timezone('Europe/Zurich', TIMESTAMP '2026-01-01')
+      AND isodow(delivery_start AT TIME ZONE 'Europe/Zurich') <= 5
+      AND hour(delivery_start AT TIME ZONE 'Europe/Zurich') BETWEEN 8 AND 19
+    expected: 125.9
+    tolerance: 0.015
+    source: "EPEX Power Trading Results 12-2025 (2026-01-06), p. 6, CH IDA1 peak, local copy swissgrid_project/papers/EPEX_2026_Power_Trading_Results_2025-12.pdf (EPEX's download center refuses scripts)"
+  - name: ch_2025_12_ida2_base
+    question: "Mean IDA2 auction price, CH, 2025-12 (local month), every hour (EPEX's base)"
+    sql: |
+      SELECT avg(ida2)
+      FROM energy_charts_intraday_prices.prices WHERE bidding_zone = 'CH'
+      AND delivery_start >= timezone('Europe/Zurich', TIMESTAMP '2025-12-01')
+      AND delivery_start < timezone('Europe/Zurich', TIMESTAMP '2026-01-01')
+    expected: 127.93
+    tolerance: 0.015
+    source: "EPEX Power Trading Results 12-2025 (2026-01-06), p. 6, CH IDA2 base, local copy swissgrid_project/papers/EPEX_2026_Power_Trading_Results_2025-12.pdf (EPEX's download center refuses scripts)"
+  - name: ch_2025_12_ida2_peak
+    question: "Mean IDA2 auction price, CH, 2025-12 (local month), Monday to Friday 08:00-20:00 local (EPEX's peak)"
+    sql: |
+      SELECT avg(ida2)
+      FROM energy_charts_intraday_prices.prices WHERE bidding_zone = 'CH'
+      AND delivery_start >= timezone('Europe/Zurich', TIMESTAMP '2025-12-01')
+      AND delivery_start < timezone('Europe/Zurich', TIMESTAMP '2026-01-01')
+      AND isodow(delivery_start AT TIME ZONE 'Europe/Zurich') <= 5
+      AND hour(delivery_start AT TIME ZONE 'Europe/Zurich') BETWEEN 8 AND 19
+    expected: 124.2
+    tolerance: 0.015
+    source: "EPEX Power Trading Results 12-2025 (2026-01-06), p. 6, CH IDA2 peak, local copy swissgrid_project/papers/EPEX_2026_Power_Trading_Results_2025-12.pdf (EPEX's download center refuses scripts)"
+  - name: de_lu_2025_09_id3_base
+    question: "Mean ID3 index, DE_LU, 2025-09 (local month), every hour (EPEX's base)"
+    sql: |
+      SELECT avg(id3)
+      FROM energy_charts_intraday_prices.prices WHERE bidding_zone = 'DE_LU'
+      AND delivery_start >= timezone('Europe/Zurich', TIMESTAMP '2025-09-01')
+      AND delivery_start < timezone('Europe/Zurich', TIMESTAMP '2025-10-01')
+    expected: 86.12
+    tolerance: 0.015
+    source: "EPEX Power Trading Results 09-2025 (2025-10-02), p. 7, ID3 DE (60 min), https://www.epexspot.com/sites/default/files/download_center_files/2025-10-02_EPEX%20SPOT_Power%20Trading%20Results%2009-2025_0.pdf"
+  - name: ch_2025_09_ida1_base
+    question: "Mean IDA1 auction price, CH, 2025-09 (local month), every hour (EPEX's base)"
+    sql: |
+      SELECT avg(ida1)
+      FROM energy_charts_intraday_prices.prices WHERE bidding_zone = 'CH'
+      AND delivery_start >= timezone('Europe/Zurich', TIMESTAMP '2025-09-01')
+      AND delivery_start < timezone('Europe/Zurich', TIMESTAMP '2025-10-01')
+    expected: 93.46
+    tolerance: 0.015
+    source: "EPEX Power Trading Results 09-2025 (2025-10-02), p. 5, CH IDA1 base, https://www.epexspot.com/sites/default/files/download_center_files/2025-10-02_EPEX%20SPOT_Power%20Trading%20Results%2009-2025_0.pdf"
+  - name: ch_2025_09_ida1_peak
+    question: "Mean IDA1 auction price, CH, 2025-09 (local month), Monday to Friday 08:00-20:00 local (EPEX's peak)"
+    sql: |
+      SELECT avg(ida1)
+      FROM energy_charts_intraday_prices.prices WHERE bidding_zone = 'CH'
+      AND delivery_start >= timezone('Europe/Zurich', TIMESTAMP '2025-09-01')
+      AND delivery_start < timezone('Europe/Zurich', TIMESTAMP '2025-10-01')
+      AND isodow(delivery_start AT TIME ZONE 'Europe/Zurich') <= 5
+      AND hour(delivery_start AT TIME ZONE 'Europe/Zurich') BETWEEN 8 AND 19
+    expected: 101.89
+    tolerance: 0.015
+    source: "EPEX Power Trading Results 09-2025 (2025-10-02), p. 5, CH IDA1 peak, https://www.epexspot.com/sites/default/files/download_center_files/2025-10-02_EPEX%20SPOT_Power%20Trading%20Results%2009-2025_0.pdf"
+  - name: ch_2025_09_ida2_base
+    question: "Mean IDA2 auction price, CH, 2025-09 (local month), every hour (EPEX's base)"
+    sql: |
+      SELECT avg(ida2)
+      FROM energy_charts_intraday_prices.prices WHERE bidding_zone = 'CH'
+      AND delivery_start >= timezone('Europe/Zurich', TIMESTAMP '2025-09-01')
+      AND delivery_start < timezone('Europe/Zurich', TIMESTAMP '2025-10-01')
+    expected: 556.97
+    tolerance: 0.015
+    source: "EPEX Power Trading Results 09-2025 (2025-10-02), p. 5, CH IDA2 base, https://www.epexspot.com/sites/default/files/download_center_files/2025-10-02_EPEX%20SPOT_Power%20Trading%20Results%2009-2025_0.pdf"
+  - name: ch_2025_09_ida2_peak
+    question: "Mean IDA2 auction price, CH, 2025-09 (local month), Monday to Friday 08:00-20:00 local (EPEX's peak)"
+    sql: |
+      SELECT avg(ida2)
+      FROM energy_charts_intraday_prices.prices WHERE bidding_zone = 'CH'
+      AND delivery_start >= timezone('Europe/Zurich', TIMESTAMP '2025-09-01')
+      AND delivery_start < timezone('Europe/Zurich', TIMESTAMP '2025-10-01')
+      AND isodow(delivery_start AT TIME ZONE 'Europe/Zurich') <= 5
+      AND hour(delivery_start AT TIME ZONE 'Europe/Zurich') BETWEEN 8 AND 19
+    expected: 596.67
+    tolerance: 0.015
+    source: "EPEX Power Trading Results 09-2025 (2025-10-02), p. 5, CH IDA2 peak, https://www.epexspot.com/sites/default/files/download_center_files/2025-10-02_EPEX%20SPOT_Power%20Trading%20Results%2009-2025_0.pdf"

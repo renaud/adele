@@ -1,0 +1,132 @@
+# Definitions (titles, descriptions, labels, warnings, questions) are Renaud's (skills/add-dataset).
+# Every definition below is a draft by Claude (WP5.4, 2026-11-15) until he changes or confirms it.
+# Structure (keys, types, refresh) by Claude. Sources of the facts: the docstring of fetch.py, and
+# SED's sources/ch_swissgrid/README.md (signs, the scarcity add-on of 2026-07-01).
+name: swissgrid_imbalance_prices
+title: Imbalance prices of the Swiss control area per quarter-hour (Swissgrid)  # draft by Claude
+# draft by Claude
+description: >-
+  The prices at which Swissgrid settles the imbalance of balance groups, per quarter-hour, from the
+  monthly price notices on swissgrid.ch (final prices), since January 2023. Until December 2025 a
+  dual price: one price for a balance group that is long (more energy in than out) and one for a
+  group that is short. From January 2026 a single price for both. A month appears in the middle of
+  the next month.
+# draft by Claude: the page states no licence, only a disclaimer
+licenses:
+  - path: https://www.swissgrid.ch/en/home/customers/topics/bgm/balance-energy.html
+    title: >-
+      No licence stated. Swissgrid's disclaimer: data from real-time systems, billing values may
+      differ, no liability; errors are corrected in the next billing period. Name Swissgrid as the
+      source.
+resources:
+  - name: prices
+    description: One row per quarter-hour.  # draft by Claude
+    schema:
+      primaryKey: [delivery_start]
+      fields:
+        - name: delivery_start
+          type: datetime
+          description: Start of the quarter-hour, UTC.  # draft by Claude
+        - name: price_regime
+          type: string
+          description: Dual price (one price per side) or single price (one price for both sides).  # draft by Claude
+          categories:
+            - {value: dual, label: "dual price, until 2025-12-31 local"}  # draft by Claude
+            - {value: single, label: "single price, from 2026-01-01 local"}  # draft by Claude
+        - name: price_long
+          type: number
+          unit: EUR/MWh
+          # draft by Claude
+          description: >-
+            Price for the energy of a balance group that is long. A positive price: the group
+            receives it per MWh of surplus. Series BG-long of the price notice; from 2026 the single
+            price (= price_short = price_single). The notice gives ct/kWh, here x 10.
+        - name: price_short
+          type: number
+          unit: EUR/MWh
+          # draft by Claude
+          description: >-
+            Price for the energy of a balance group that is short. A positive price: the group pays
+            it per MWh of shortfall. Series BG-short of the price notice; from 2026 the single price
+            (= price_long = price_single).
+        - name: price_single
+          type: number
+          unit: EUR/MWh
+          # draft by Claude
+          description: >-
+            Series BG-AEP of the price notice: the single price. July to December 2025: the price
+            by the rules of 2026, published next to the dual price for information (Swissgrid's
+            control-area file calls it "AE-Preis per 2026"); the dual price applied. From 2026 the
+            price that applies. Null before July 2025.
+adele:
+  format_version: 1
+  resolution:
+    - {from: 2023-01-01, value: PT15M}
+  refresh:
+    every: P1D
+    # A month's file appears on the 12th to the 24th of the next month, and two files of 2026
+    # were uploaded again a month later: 93 days cover a month from its first day until well after
+    # its file appeared. Each run reads the page and three or four files of 250 KB. Proposal by Claude.
+    lookback: P93D
+    horizon: P0D
+    timeout: PT10M
+  revisions: overwrite
+  # drafts by Claude
+  warnings:
+    - >-
+      From 2026-01-01 (local) one price for both sides: price_long = price_short = price_single.
+      Before, the dual price: price_long <= price_short in every quarter-hour of 2023-2025, and an
+      average over both periods mixes two price rules.
+    - >-
+      The newest month is missing until Swissgrid publishes its price notice, on the 12th to the
+      24th of the next month (e.g. September 2026 on 2026-10-19). There is no provisional price
+      here: Swissgrid's control-area file carries one (not in adele yet).
+    - >-
+      2026-07-01 11:15 to 11:45 UTC, the only quarter-hours of 2026 with a total system imbalance
+      above 1,000 MW: ENTSO-E's imbalance price for CH (A85) is higher by 490 to 724 EUR/MWh, the
+      add-on of 10 EUR/MWh per MW above 1,000 MW. The price notice leaves it out, and so does
+      Swissgrid's control-area file. Which price was billed is not known (SED, 2026-11-01).
+    - >-
+      Extreme quarter-hours are kept as published: price_long falls to -16,505.5 EUR/MWh and
+      price_short rises to 14,864.6 EUR/MWh in 2023-2025. A mean is sensitive to them; a median
+      is not.
+  examples:
+    # drafts by Claude, results not yet confirmed by Renaud
+    - question: Average imbalance price paid by a short balance group per local month of 2025 and 2026?
+      sql: |
+        SELECT date_trunc('month', delivery_start AT TIME ZONE 'Europe/Zurich') AS month,
+               any_value(price_regime) AS regime,
+               round(avg(price_short), 2) AS avg_price_short,
+               round(median(price_short), 2) AS median_price_short
+        FROM swissgrid_imbalance_prices.prices
+        WHERE delivery_start >= TIMESTAMPTZ '2025-01-01 00:00:00+01'
+        GROUP BY 1
+        ORDER BY 1
+    - question: >-
+        In the second half of 2025, how often would the single price of 2026 (price_single) have
+        been outside the range of the dual price [price_long, price_short]?
+      sql: |
+        SELECT count(*) AS quarter_hours,
+               count(*) FILTER (WHERE price_single < price_long) AS below_long,
+               count(*) FILTER (WHERE price_single > price_short) AS above_short
+        FROM swissgrid_imbalance_prices.prices
+        WHERE delivery_start >= TIMESTAMPTZ '2025-07-01 00:00:00+02'
+          AND delivery_start <  TIMESTAMPTZ '2026-01-01 00:00:00+01'
+    - question: >-
+        Mean spread between the imbalance price of a short balance group and the CH day-ahead price,
+        per local month of 2026 (the day-ahead price is hourly until 2026-11-03, so each
+        quarter-hour takes the price of its hour)?
+      sql: |
+        SELECT date_trunc('month', i.delivery_start AT TIME ZONE 'Europe/Zurich') AS month,
+               round(avg(i.price_short - d.price), 2) AS mean_spread
+        FROM swissgrid_imbalance_prices.prices i
+        JOIN entsoe_day_ahead_prices.prices d
+          ON d.bidding_zone = 'CH'
+         AND i.delivery_start >= d.delivery_start
+         AND i.delivery_start <  d.delivery_start + d.resolution
+        WHERE i.delivery_start >= TIMESTAMPTZ '2026-01-01 00:00:00+01'
+        GROUP BY 1
+        ORDER BY 1
+    # D31: checks of checks.yaml, chosen by Claude for the trap that each one shows
+    - check: low_2026_05_19_local_time  # an extreme with its local time: the stamps mark the start of the quarter-hour
+    - check: week_2026_05_18_short  # "short" under the single price: ElCom's reading, without the TSI that adele lacks
