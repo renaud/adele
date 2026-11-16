@@ -1,0 +1,99 @@
+# Definitions (titles, descriptions, warnings, labels) are Renaud's (skills/add-dataset). Every
+# definition below is a draft by Claude (WP5.7, 2026-11-15) until he changes or confirms it.
+# Structure (keys, types, refresh) by Claude. Facts: the docstring of fetch.py and the README of
+# the swissgrid project (data/meteoswiss/README.md, sections 3 and 9).
+name: meteoswiss_nime_daily
+title: Fresh snow, snow depth and precipitation of the manual network (MeteoSwiss)  # draft by Claude
+# draft by Claude
+description: >-
+  The manual precipitation and snow network of MeteoSwiss, about 270 stations read by observers
+  each morning: fresh snow and precipitation of the day from 06 UTC to 06 UTC, and the snow
+  depth at 06 UTC (table measurements). It is the only open source of fresh snow in
+  Switzerland; most of its stations are not SwissMetNet stations. The table stations lists them
+  with position and height.
+licenses:
+  - name: CC-BY-4.0
+    path: https://creativecommons.org/licenses/by/4.0/
+    title: 'CC BY 4.0. Credit: "Source: MeteoSwiss" (https://opendatadocs.meteoswiss.ch/general/terms-of-use)'
+sources:
+  - title: MeteoSwiss open data, manual precipitation stations (STAC collection ch.meteoschweiz.ogd-nime)
+    path: https://opendatadocs.meteoswiss.ch/a-data-groundbased/a5-manual-precipitation-stations
+resources:
+  - name: measurements
+    description: One row per station and day of 06 UTC to 06 UTC.  # draft by Claude
+    schema:
+      primaryKey: [station, delivery_start]
+      fields:
+        - name: station
+          type: string
+          # draft by Claude
+          description: >-
+            Abbreviation of the station, e.g. ABG (L'Abergement). Name, position and height in the
+            table stations; KLO, PAY, ULR and VAD are missing there (they are SwissMetNet stations,
+            in meteoswiss_smn_stations.stations).
+        - name: delivery_start
+          type: datetime
+          description: Start of the day that the values cover, 06:00 UTC of reference_date. The day ends at 06:00 UTC of the next day.  # draft by Claude
+        - name: reference_date
+          type: date
+          description: The date by which MeteoSwiss names the value (the date of its reference_timestamp), the date of delivery_start (UTC).  # draft by Claude
+        - name: fresh_snow
+          type: number
+          unit: cm
+          description: Fresh snow, total from 06 UTC of reference_date to 06 UTC of the next day, whole cm (hns000d0).  # draft by Claude
+        - name: snow_depth
+          type: number
+          unit: cm
+          description: Snow depth read at 06 UTC of reference_date, at delivery_start, whole cm (hto000d0). A reading, not a mean.  # draft by Claude
+        - name: precipitation
+          type: number
+          unit: mm
+          description: Precipitation, total from 06 UTC of reference_date to 06 UTC of the next day (rre150d0).  # draft by Claude
+  - name: stations
+    description: One row per station of the manual network, as MeteoSwiss lists it today.  # draft by Claude
+    schema:
+      primaryKey: [station]
+      fields:
+        - {name: station, type: string, description: Abbreviation of the station, as in measurements.}  # draft by Claude
+        - {name: name, type: string, description: Name of the station.}  # draft by Claude
+        - {name: canton, type: string, description: Canton (two letters).}  # draft by Claude
+        - {name: wigos_id, type: string, description: WMO identifier of the station (WIGOS).}  # draft by Claude
+        - {name: station_type, type: string, description: Network of the station, as MeteoSwiss names it.}  # draft by Claude
+        - {name: data_owner, type: string, description: Owner of the data.}  # draft by Claude
+        - {name: data_since, type: date, description: First day with data at this station.}  # draft by Claude
+        - {name: height, type: number, unit: m, description: Height of the station above sea level.}  # draft by Claude
+        - {name: barometer_height, type: number, unit: m, description: Height of the barometer above sea level; empty at most stations.}  # draft by Claude
+        - {name: lv95_east, type: number, unit: m, description: Easting in the Swiss coordinate system LV95.}  # draft by Claude
+        - {name: lv95_north, type: number, unit: m, description: Northing in the Swiss coordinate system LV95.}  # draft by Claude
+        - {name: lat, type: number, unit: degree_north, description: Latitude (WGS84).}  # draft by Claude
+        - {name: lon, type: number, unit: degree_east, description: Longitude (WGS84).}  # draft by Claude
+        - {name: exposition, type: string, description: The site of the station, e.g. plain, valley, southern oriented slope.}  # draft by Claude
+        - {name: url, type: string, description: Page of the station on the MeteoSwiss site.}  # draft by Claude
+adele:
+  format_version: 2
+  resolution:  # of measurements; stations has no time column
+    - {from: 2010-01-01, value: P1D}
+  refresh:
+    every: P1D
+    # Precipitation is checked by hand around the end of the next month. Proposal by Claude.
+    lookback: P70D
+    horizon: PT0S
+  revisions: overwrite
+  # drafts by Claude
+  warnings:
+    - >-
+      A day runs from 06 UTC to 06 UTC of the next day (07:00 or 08:00 Swiss time), not the
+      calendar day. Its snow_depth is read at the start of that day.
+    - >-
+      12 stations measure only precipitation: fresh_snow and snow_depth are empty there. In 2010
+      and 2011 about half as many stations below 800 m reported fresh snow on 100 days or more as
+      from 2015 (63 and 64, against 133 to 136): a count of snow days over the years is not
+      comparable.
+    - >-
+      Values are typed by observers. Treat fresh snow above 50 cm in one day with suspicion: SWA
+      reported 224 cm on 2012-02-12 with 2.2 mm of precipitation (snow depths 222, 225, 22, 220 on
+      four days), kept as published.
+  # D31: checks of checks.yaml, one per trap; chosen by Claude (2026-11-16)
+  examples:
+    - check: cou_2026_09_precipitation  # a station of the manual network only; a month of days from 06 UTC
+    - check: aro_2023_12_fresh_snow_max  # the fresh snow of one day is the day that starts at 06 UTC

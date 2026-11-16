@@ -1,0 +1,153 @@
+# Definitions (titles, descriptions, warnings, labels) are Renaud's (skills/add-dataset). Every
+# definition below is a draft by Claude (WP5.7, 2026-11-15) until he changes or confirms it.
+# Structure (keys, types, refresh) by Claude. Facts: the docstring of fetch.py.
+name: meteoswiss_smn_stations
+title: SwissMetNet stations, parameters and data inventory (MeteoSwiss)  # draft by Claude
+# draft by Claude
+description: >-
+  The reference tables of the automatic weather stations of MeteoSwiss (SwissMetNet): the
+  stations with their position and height (stations), the parameters with their unit and
+  granularity (parameters), and which station measures which parameter from when to when
+  (inventory). They explain the codes of meteoswiss_smn_hourly, meteoswiss_smn_tenmin and
+  meteoswiss_smn_daily. Each fetch replaces the three tables with MeteoSwiss's current lists.
+licenses:
+  - name: CC-BY-4.0
+    path: https://creativecommons.org/licenses/by/4.0/
+    title: 'CC BY 4.0. Credit: "Source: MeteoSwiss" (https://opendatadocs.meteoswiss.ch/general/terms-of-use)'
+sources:
+  - title: MeteoSwiss open data, SwissMetNet (STAC collection ch.meteoschweiz.ogd-smn), metadata files
+    path: https://opendatadocs.meteoswiss.ch/a-data-groundbased/a1-automatic-weather-stations
+resources:
+  - name: stations
+    description: One row per station, as MeteoSwiss lists it today.  # draft by Claude
+    schema:
+      primaryKey: [station]
+      fields:
+        - name: station
+          type: string
+          description: Abbreviation of the station, e.g. BER, the code of the other SwissMetNet datasets.  # draft by Claude
+        - name: name
+          type: string
+          description: Name of the station, e.g. Bern / Zollikofen.  # draft by Claude
+        - name: canton
+          type: string
+          description: Canton (two letters), or a country code for stations abroad.  # draft by Claude
+        - name: wigos_id
+          type: string
+          description: WMO identifier of the station (WIGOS).  # draft by Claude
+        - name: station_type
+          type: string
+          description: Network of the station, as MeteoSwiss names it.  # draft by Claude
+        - name: data_owner
+          type: string
+          description: Owner of the data, e.g. "MeteoSchweiz, SLF".  # draft by Claude
+        - name: data_since
+          type: date
+          description: First day with data at this station, any parameter.  # draft by Claude
+        - name: height
+          type: number
+          unit: m
+          description: Height of the station above sea level.  # draft by Claude
+        - name: barometer_height
+          type: number
+          unit: m
+          description: Height of the barometer above sea level; empty where the station measures no pressure.  # draft by Claude
+        - name: lv95_east
+          type: number
+          unit: m
+          description: Easting in the Swiss coordinate system LV95.  # draft by Claude
+        - name: lv95_north
+          type: number
+          unit: m
+          description: Northing in the Swiss coordinate system LV95.  # draft by Claude
+        - name: lat
+          type: number
+          unit: degree_north
+          description: Latitude (WGS84).  # draft by Claude
+        - name: lon
+          type: number
+          unit: degree_east
+          description: Longitude (WGS84).  # draft by Claude
+        - name: exposition
+          type: string
+          description: The site of the station, e.g. plain, crest, valley, southern oriented slope.  # draft by Claude
+        - name: url
+          type: string
+          description: Page of the station on the MeteoSwiss site.  # draft by Claude
+  - name: parameters
+    description: One row per parameter of SwissMetNet (each granularity is a parameter of its own).  # draft by Claude
+    schema:
+      primaryKey: [parameter]
+      fields:
+        - name: parameter
+          type: string
+          description: MeteoSwiss's short name, e.g. gre000h0 (global radiation, hourly mean).  # draft by Claude
+        - name: description
+          type: string
+          description: MeteoSwiss's description, in English.  # draft by Claude
+        - name: parameter_group
+          type: string
+          description: Group, e.g. Radiation, Temperature, Precipitation.  # draft by Claude
+        - name: granularity
+          type: string
+          description: The length of the interval of the values.  # draft by Claude
+          categories:  # labels: draft by Claude
+            - {value: T, label: 10 minutes}
+            - {value: H, label: hour}
+            - {value: D, label: day}
+            - {value: M, label: month}
+            - {value: Y, label: year}
+        - name: decimals
+          type: integer
+          description: Number of decimals with which MeteoSwiss publishes the values.  # draft by Claude
+        - name: datatype
+          type: string
+          description: Integer or Float, as MeteoSwiss publishes the values.  # draft by Claude
+        - name: unit
+          type: string
+          description: Unit, as MeteoSwiss writes it (W/m², °C, hPa).  # draft by Claude
+  - name: inventory
+    description: One row per station and parameter that the station measures or measured.  # draft by Claude
+    schema:
+      primaryKey: [station, parameter]
+      fields:
+        - name: station
+          type: string
+          description: Abbreviation of the station, as in stations.  # draft by Claude
+        - name: parameter
+          type: string
+          description: Short name of the parameter, as in parameters.  # draft by Claude
+        - name: meas_cat_nr
+          type: integer
+          description: MeteoSwiss's number of the measurement category; 1 on every row (2026-11-15).  # draft by Claude
+        - name: data_since
+          type: datetime
+          description: First value of this parameter at this station, UTC.  # draft by Claude
+        - name: data_till
+          type: datetime
+          # draft by Claude
+          description: >-
+            Last value, UTC. Empty while the station still measures the parameter. It can also
+            mark an outage: MeteoSwiss sets it while a sensor sends no values, and empties it again
+            when the values come back (BUS, daily precipitation: set to 2026-11-03 in the list of
+            2026-11-15, empty again on 2026-11-16).
+        - name: owner
+          type: string
+          description: Owner of the data.  # draft by Claude
+adele:
+  format_version: 2
+  refresh:
+    every: P1D
+    lookback: P1D  # no time column: each fetch returns the whole tables
+    horizon: PT0S
+  revisions: overwrite
+  # drafts by Claude
+  warnings:
+    - >-
+      The tables hold MeteoSwiss's current lists, not their history: a station that MeteoSwiss
+      removes leaves stations, and its rows in the measurement datasets stay.
+    - >-
+      Some stations of the measurement datasets are not in stations (159 stations have files,
+      158 are listed, 2026-11-15). The missing one is MLJ (Le Moléson / Les Joux): hourly and
+      daily precipitation and snow depth from 2026-10-01 to 2026-11-01, in neither stations nor
+      inventory.

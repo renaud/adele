@@ -1,0 +1,142 @@
+# Definitions (titles, descriptions, warnings, labels) are Renaud's (skills/add-dataset). Every
+# definition below is a draft by Claude (WP5.7, 2026-11-15) until he changes or confirms it.
+# Structure (keys, types, refresh) by Claude. Facts: the docstring of fetch.py, the MeteoSwiss
+# parameter list, and the README of the swissgrid project (data/meteoswiss/README.md, section 5).
+name: meteoswiss_smn_daily
+title: Daily values of the SwissMetNet weather stations (MeteoSwiss)  # draft by Claude
+# draft by Claude
+description: >-
+  Daily values of the automatic weather stations of MeteoSwiss (SwissMetNet, about 160
+  stations): sunshine, global radiation, temperature, humidity, wind, precipitation, snow depth,
+  pressure and foehn index. Most values cover the UTC day (from 01:00 or 02:00 to the same hour
+  of the next day in Swiss time, not the local calendar day); precipitation_06utc and
+  snow_depth_06utc follow the morning measurement at 06 UTC. Values as MeteoSwiss publishes
+  them, without cleaning. Names, positions and heights of the stations:
+  meteoswiss_smn_stations.stations.
+licenses:
+  - name: CC-BY-4.0
+    path: https://creativecommons.org/licenses/by/4.0/
+    title: 'CC BY 4.0. Credit: "Source: MeteoSwiss" (https://opendatadocs.meteoswiss.ch/general/terms-of-use)'
+sources:
+  - title: MeteoSwiss open data, SwissMetNet (STAC collection ch.meteoschweiz.ogd-smn)
+    path: https://opendatadocs.meteoswiss.ch/a-data-groundbased/a1-automatic-weather-stations
+resources:
+  - name: measurements
+    description: One row per station and day.  # draft by Claude
+    schema:
+      primaryKey: [station, delivery_start]
+      fields:
+        - name: station
+          type: string
+          description: Abbreviation of the station, e.g. BER. Name, position and height in meteoswiss_smn_stations.stations.  # draft by Claude
+        - name: delivery_start
+          type: datetime
+          # draft by Claude
+          description: >-
+            Start of the UTC day that the values cover, [delivery_start, delivery_start + 1 day).
+            From 2018 it is reference_date 00:00 UTC; before 2018 MeteoSwiss's day ran 20 minutes
+            earlier, from 23:40 UTC of the day before, and delivery_start is at 23:40. Filter and
+            group by reference_date, not by the date of delivery_start.
+        - name: reference_date
+          type: date
+          # draft by Claude
+          description: >-
+            The date by which MeteoSwiss names the value (the date of its reference_timestamp).
+            Equal to the date of delivery_start from 2018, one day later before 2018. A UTC date,
+            not a local one. MeteoSwiss's monthly and yearly values sum or average the days of the
+            month or year by this date.
+        - name: sunshine
+          type: number
+          unit: min
+          description: Sunshine duration, total of the day (sre000d0).  # draft by Claude
+        - name: global_radiation
+          type: number
+          unit: W/m2
+          description: Global radiation, mean over the 24 hours of the day, night included (gre000d0).  # draft by Claude
+        - name: temperature
+          type: number
+          unit: °C
+          description: Air temperature 2 m above ground, mean of the day (tre200d0).  # draft by Claude
+        - name: temperature_min
+          type: number
+          unit: °C
+          description: Air temperature 2 m above ground, lowest of the day (tre200dn).  # draft by Claude
+        - name: temperature_max
+          type: number
+          unit: °C
+          description: Air temperature 2 m above ground, highest of the day (tre200dx).  # draft by Claude
+        - name: humidity
+          type: number
+          unit: '%'
+          description: Relative humidity 2 m above ground, mean of the day (ure200d0).  # draft by Claude
+        - name: wind_speed
+          type: number
+          unit: m/s
+          description: Wind speed (scalar), mean of the day (fkl010d0).  # draft by Claude
+        - name: gust
+          type: number
+          unit: m/s
+          description: Highest one-second gust of the day (fkl010d1).  # draft by Claude
+        - name: precipitation
+          type: number
+          unit: mm
+          description: Precipitation, total of the UTC day, the same day as the other values (rka150d0).  # draft by Claude
+        - name: precipitation_06utc
+          type: number
+          unit: mm
+          # draft by Claude
+          description: >-
+            Precipitation, total from 06 UTC of reference_date to 06 UTC of the next day
+            (rre150d0): not the window of delivery_start. Before 2018 from 05:40 to 05:40 UTC. The
+            same window as meteoswiss_nime_daily. MeteoSwiss's monthly and yearly precipitation
+            (climate bulletins) is the sum of this column over the days of the period by
+            reference_date: 284 of 293 published figures match it, 176 the sum of precipitation.
+        - name: snow_depth_06utc
+          type: number
+          unit: cm
+          # draft by Claude
+          description: >-
+            Snow depth measured automatically, read at 06 UTC of reference_date (htoautd0), at
+            05:40 UTC before 2018 (it equals the hourly reading of 05:40 in meteoswiss_smn_hourly on
+            every snow day of 2015-2017): a reading, not a mean. Small negative values are sensor
+            noise around zero snow.
+        - name: pressure_qfe
+          type: number
+          unit: hPa
+          description: Air pressure at the height of the barometer (QFE), mean of the day (prestad0).  # draft by Claude
+        - name: pressure_qff
+          type: number
+          unit: hPa
+          description: Air pressure reduced to sea level (QFF), mean of the day (pp0qffd0).  # draft by Claude
+        - name: foehn
+          type: number
+          unit: min
+          description: Foehn index, minutes of the day that MeteoSwiss diagnoses as foehn (wcc006d0).  # draft by Claude
+adele:
+  format_version: 1
+  resolution:
+    - {from: 2010-01-01, value: P1D}
+  refresh:
+    every: P1D
+    # As meteoswiss_smn_hourly: precipitation is checked by hand around the end of the next
+    # month. Proposal by Claude.
+    lookback: P70D
+    horizon: PT0S
+  revisions: overwrite
+  # drafts by Claude
+  warnings:
+    # for the footer, once D20 is built
+    - >-
+      A day is the UTC day, not the local calendar day, and before 2018 it starts at 23:40 UTC of
+      the day before. Filter and group by reference_date, not by the date of delivery_start.
+    - >-
+      precipitation covers the UTC day; precipitation_06utc runs from 06 UTC to 06 UTC of the
+      next day. Don't add or compare the two as if they covered the same day.
+    - >-
+      Values of the last two months can still change: MeteoSwiss checks precipitation by hand
+      around the end of the next month. adele fetches the last 70 days again each day.
+  # D31: checks of checks.yaml, one per trap; chosen by Claude (2026-11-16)
+  examples:
+    - check: ber_2016_temperature  # before 2018: a year is the days by reference_date, not by delivery_start
+    - check: ber_2026_09_precipitation  # MeteoSwiss's monthly precipitation sums precipitation_06utc
+    - check: gve_2026_09_sunshine  # sunshine in minutes per day: divide by 60 for hours

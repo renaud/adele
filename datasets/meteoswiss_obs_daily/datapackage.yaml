@@ -1,0 +1,97 @@
+# Definitions (titles, descriptions, warnings, labels) are Renaud's (skills/add-dataset). Every
+# definition below is a draft by Claude (WP5.7, 2026-11-15) until he changes or confirms it.
+# Structure (keys, types, refresh) by Claude. Facts: the docstring of fetch.py and the README of
+# the swissgrid project (data/meteoswiss/README.md, sections 3, 9 and 11).
+name: meteoswiss_obs_daily
+title: Daily visual weather observations, cloud cover and fog days (MeteoSwiss)  # draft by Claude
+# draft by Claude
+description: >-
+  Daily aggregates of the visual observations of MeteoSwiss at about 20 stations: mean cloud
+  cover, and whether the day had fog, rain, snowfall, rain and snow, hail or snow cover, and
+  whether it was serene or dark. Observers look at the sky 3 to 8 times a day; MeteoSwiss
+  publishes only the daily aggregates. 12 of the stations stop at the end of 2025 or earlier.
+licenses:
+  - name: CC-BY-4.0
+    path: https://creativecommons.org/licenses/by/4.0/
+    title: 'CC BY 4.0. Credit: "Source: MeteoSwiss" (https://opendatadocs.meteoswiss.ch/general/terms-of-use)'
+sources:
+  - title: MeteoSwiss open data, meteorological visual observations (STAC collection ch.meteoschweiz.ogd-obs)
+    path: https://opendatadocs.meteoswiss.ch/a-data-groundbased/a8-meteorological-visual-observations
+resources:
+  - name: measurements
+    description: One row per station and calendar day.  # draft by Claude
+    adele:
+      timezone: Europe/Zurich  # assumed: MeteoSwiss does not state the zone of these days (D26)
+    schema:
+      primaryKey: [station, delivery_date]
+      fields:
+        - name: station
+          type: string
+          # draft by Claude
+          description: >-
+            Abbreviation of the station, e.g. BAS (Basel / Binningen). All but TAV are SwissMetNet
+            stations: names, positions and heights in meteoswiss_smn_stations.stations. TAV is
+            Tavanasa (Graubünden, 46.7508 N, 9.0455 E, from MeteoSwiss's STAC item): it is in no
+            station list of MeteoSwiss, and its observations end on 2025-12-31.
+        - name: delivery_date
+          type: date
+          # draft by Claude
+          description: >-
+            The calendar day of the observations. MeteoSwiss does not state which hours make the
+            day; the zone Europe/Zurich is assumed. The observations fall in daytime, so the UTC
+            date is the same.
+        - name: cloud_cover
+          type: number
+          unit: '%'
+          # draft by Claude
+          description: >-
+            Total cloud cover, mean of the day's observations, in steps of 100/24 % (nto000d0).
+            One value of 133 % (SIO, 2011-12-18), kept as published.
+        - name: fog_day
+          type: boolean
+          # draft by Claude
+          description: >-
+            Day with fog (w5p002d0): fog seen at one observation or more (horizontal visibility
+            under 1,000 m, MeteoSwiss Technical Report 266). A morning fog that lifted counts; the
+            duration doesn't. Empty: not observed, not "no fog".
+        - name: serene_day
+          type: boolean
+          description: Serene day, mean cloud cover below 20 % (nto002d0).  # draft by Claude
+        - name: dark_day
+          type: boolean
+          description: Dark day, mean cloud cover above 80 % (nto008d0).  # draft by Claude
+        - name: snow_cover_day
+          type: boolean
+          description: Day with snow cover (est000d0).  # draft by Claude
+        - name: rain_day
+          type: boolean
+          description: Day with rain (w1p012d0).  # draft by Claude
+        - name: snowfall_day
+          type: boolean
+          description: Day with snowfall (w2p002d0).  # draft by Claude
+        - name: rain_and_snow_day
+          type: boolean
+          description: Day with rain and snow (w2p001d0).  # draft by Claude
+        - name: hail_day
+          type: boolean
+          description: Day with hail (w3p002d0).  # draft by Claude
+adele:
+  format_version: 2
+  refresh:
+    every: P1D
+    lookback: P70D  # as the other daily MeteoSwiss datasets. Proposal by Claude.
+    horizon: PT0S
+  revisions: overwrite
+  # drafts by Claude
+  warnings:
+    - >-
+      Only ALT, BAS, CHU, GSB, JUN, SAE and SMA report after 2025. A Plateau station with a fog
+      flag after 2025: none (BUS and KLO stop on 2025-12-31, PAY on 2018-04-30, SMA's fog flag
+      on 2014-05-31).
+    - >-
+      A fog day is not a stratus day at every station: on November-February days with fog, the
+      median sunshine is 1 to 4 min at BUS, PAY and SMA, but 22 min at KLO (25.5 on other days),
+      and higher than on other days at VAD (swissgrid project, from SwissMetNet's daily sunshine).
+    - >-
+      The flags are empty on 16 to 40 % of the days at AIG, LUG, MER, ROB, SAM, ULR and VAD, in
+      every month. Empty means not observed: don't count it as false.

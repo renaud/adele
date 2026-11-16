@@ -1,0 +1,243 @@
+period,kind,station_name,value,file,page
+2015,temperature_mean_c,Bern,10.0,klimabulletin_year_2015.pdf,5
+2015,temperature_mean_c,Zürich,10.6,klimabulletin_year_2015.pdf,5
+2015,temperature_mean_c,Genève,11.6,klimabulletin_year_2015.pdf,5
+2015,temperature_mean_c,Basel,11.7,klimabulletin_year_2015.pdf,5
+2015,temperature_mean_c,Engelberg,7.8,klimabulletin_year_2015.pdf,5
+2015,temperature_mean_c,Sion,11.5,klimabulletin_year_2015.pdf,5
+2015,temperature_mean_c,Lugano,13.8,klimabulletin_year_2015.pdf,5
+2015,temperature_mean_c,Samedan,3.4,klimabulletin_year_2015.pdf,5
+2015,sunshine_h,Bern,2077,klimabulletin_year_2015.pdf,5
+2015,sunshine_h,Zürich,1946,klimabulletin_year_2015.pdf,5
+2015,sunshine_h,Genève,1996,klimabulletin_year_2015.pdf,5
+2015,sunshine_h,Basel,1945,klimabulletin_year_2015.pdf,5
+2015,sunshine_h,Engelberg,1500,klimabulletin_year_2015.pdf,5
+2015,sunshine_h,Sion,2249,klimabulletin_year_2015.pdf,5
+2015,sunshine_h,Lugano,2302,klimabulletin_year_2015.pdf,5
+2015,sunshine_h,Samedan,1957,klimabulletin_year_2015.pdf,5
+2015,precipitation_mm,Bern,768,klimabulletin_year_2015.pdf,5
+2015,precipitation_mm,Zürich,918,klimabulletin_year_2015.pdf,5
+2015,precipitation_mm,Genève,686,klimabulletin_year_2015.pdf,5
+2015,precipitation_mm,Basel,645,klimabulletin_year_2015.pdf,5
+2015,precipitation_mm,Engelberg,1435,klimabulletin_year_2015.pdf,5
+2015,precipitation_mm,Sion,500,klimabulletin_year_2015.pdf,5
+2015,precipitation_mm,Lugano,1232,klimabulletin_year_2015.pdf,5
+2015,precipitation_mm,Samedan,626,klimabulletin_year_2015.pdf,5
+2016,temperature_mean_c,Bern,9.4,klimabulletin_year_2016.pdf,5
+2016,temperature_mean_c,Zürich,9.9,klimabulletin_year_2016.pdf,5
+2016,temperature_mean_c,Genève,11.1,klimabulletin_year_2016.pdf,5
+2016,temperature_mean_c,Basel,10.9,klimabulletin_year_2016.pdf,5
+2016,temperature_mean_c,Engelberg,7.3,klimabulletin_year_2016.pdf,5
+2016,temperature_mean_c,Sion,11.2,klimabulletin_year_2016.pdf,5
+2016,temperature_mean_c,Lugano,13.3,klimabulletin_year_2016.pdf,5
+2016,temperature_mean_c,Samedan,2.8,klimabulletin_year_2016.pdf,5
+2016,sunshine_h,Bern,1760,klimabulletin_year_2016.pdf,5
+2016,sunshine_h,Zürich,1642,klimabulletin_year_2016.pdf,5
+2016,sunshine_h,Genève,1821,klimabulletin_year_2016.pdf,5
+2016,sunshine_h,Basel,1640,klimabulletin_year_2016.pdf,5
+2016,sunshine_h,Engelberg,1357,klimabulletin_year_2016.pdf,5
+2016,sunshine_h,Sion,2086,klimabulletin_year_2016.pdf,5
+2016,sunshine_h,Lugano,2138,klimabulletin_year_2016.pdf,5
+2016,sunshine_h,Samedan,1773,klimabulletin_year_2016.pdf,5
+2016,precipitation_mm,Bern,1056,klimabulletin_year_2016.pdf,5
+2016,precipitation_mm,Zürich,1297,klimabulletin_year_2016.pdf,5
+2016,precipitation_mm,Genève,886,klimabulletin_year_2016.pdf,5
+2016,precipitation_mm,Basel,997,klimabulletin_year_2016.pdf,5
+2016,precipitation_mm,Engelberg,1612,klimabulletin_year_2016.pdf,5
+2016,precipitation_mm,Sion,587,klimabulletin_year_2016.pdf,5
+2016,precipitation_mm,Lugano,1681,klimabulletin_year_2016.pdf,5
+2016,precipitation_mm,Samedan,750,klimabulletin_year_2016.pdf,5
+2017,temperature_mean_c,Bern,9.7,klimabulletin_year_2017.pdf,7
+2017,temperature_mean_c,Zürich,10.2,klimabulletin_year_2017.pdf,7
+2017,temperature_mean_c,Genève,11.3,klimabulletin_year_2017.pdf,7
+2017,temperature_mean_c,Basel,11.4,klimabulletin_year_2017.pdf,7
+2017,temperature_mean_c,Engelberg,7.2,klimabulletin_year_2017.pdf,7
+2017,temperature_mean_c,Sion,11.4,klimabulletin_year_2017.pdf,7
+2017,temperature_mean_c,Lugano,13.5,klimabulletin_year_2017.pdf,7
+2017,temperature_mean_c,Samedan,2.7,klimabulletin_year_2017.pdf,7
+2017,sunshine_h,Bern,2006,klimabulletin_year_2017.pdf,7
+2017,sunshine_h,Zürich,1828,klimabulletin_year_2017.pdf,7
+2017,sunshine_h,Genève,2090,klimabulletin_year_2017.pdf,7
+2017,sunshine_h,Basel,1844,klimabulletin_year_2017.pdf,7
+2017,sunshine_h,Engelberg,1491,klimabulletin_year_2017.pdf,7
+2017,sunshine_h,Sion,2231,klimabulletin_year_2017.pdf,7
+2017,sunshine_h,Lugano,2416,klimabulletin_year_2017.pdf,7
+2017,sunshine_h,Samedan,1914,klimabulletin_year_2017.pdf,7
+2017,precipitation_mm,Bern,854,klimabulletin_year_2017.pdf,7
+2017,precipitation_mm,Zürich,1107,klimabulletin_year_2017.pdf,7
+2017,precipitation_mm,Genève,693,klimabulletin_year_2017.pdf,7
+2017,precipitation_mm,Basel,765,klimabulletin_year_2017.pdf,7
+2017,precipitation_mm,Engelberg,1727,klimabulletin_year_2017.pdf,7
+2017,precipitation_mm,Sion,567,klimabulletin_year_2017.pdf,7
+2017,precipitation_mm,Lugano,1509,klimabulletin_year_2017.pdf,7
+2017,precipitation_mm,Samedan,710,klimabulletin_year_2017.pdf,7
+2018,temperature_mean_c,Bern,10.6,klimabulletin_year_2018.pdf,7
+2018,temperature_mean_c,Zürich,11.1,klimabulletin_year_2018.pdf,7
+2018,temperature_mean_c,Genève,12.3,klimabulletin_year_2018.pdf,7
+2018,temperature_mean_c,Basel,12.3,klimabulletin_year_2018.pdf,7
+2018,temperature_mean_c,Engelberg,8.1,klimabulletin_year_2018.pdf,7
+2018,temperature_mean_c,Sion,12.5,klimabulletin_year_2018.pdf,7
+2018,temperature_mean_c,Lugano,13.9,klimabulletin_year_2018.pdf,7
+2018,temperature_mean_c,Samedan,3.2,klimabulletin_year_2018.pdf,7
+2018,sunshine_h,Bern,1969,klimabulletin_year_2018.pdf,7
+2018,sunshine_h,Zürich,1921,klimabulletin_year_2018.pdf,7
+2018,sunshine_h,Genève,1979,klimabulletin_year_2018.pdf,7
+2018,sunshine_h,Basel,1924,klimabulletin_year_2018.pdf,7
+2018,sunshine_h,Engelberg,1471,klimabulletin_year_2018.pdf,7
+2018,sunshine_h,Sion,2271,klimabulletin_year_2018.pdf,7
+2018,sunshine_h,Lugano,2171,klimabulletin_year_2018.pdf,7
+2018,sunshine_h,Samedan,1744,klimabulletin_year_2018.pdf,7
+2018,precipitation_mm,Bern,907,klimabulletin_year_2018.pdf,7
+2018,precipitation_mm,Zürich,897,klimabulletin_year_2018.pdf,7
+2018,precipitation_mm,Genève,864,klimabulletin_year_2018.pdf,7
+2018,precipitation_mm,Basel,698,klimabulletin_year_2018.pdf,7
+2018,precipitation_mm,Engelberg,1451,klimabulletin_year_2018.pdf,7
+2018,precipitation_mm,Sion,633,klimabulletin_year_2018.pdf,7
+2018,precipitation_mm,Lugano,1472,klimabulletin_year_2018.pdf,7
+2020,temperature_mean_c,Bern,10.3,klimabulletin_year_2020.pdf,7
+2020,temperature_mean_c,Zürich,10.9,klimabulletin_year_2020.pdf,7
+2020,temperature_mean_c,Genève,12.2,klimabulletin_year_2020.pdf,7
+2020,temperature_mean_c,Basel,12.1,klimabulletin_year_2020.pdf,7
+2020,temperature_mean_c,Engelberg,7.9,klimabulletin_year_2020.pdf,7
+2020,temperature_mean_c,Sion,11.6,klimabulletin_year_2020.pdf,7
+2020,temperature_mean_c,Lugano,13.7,klimabulletin_year_2020.pdf,7
+2020,temperature_mean_c,Samedan,3.0,klimabulletin_year_2020.pdf,7
+2020,sunshine_h,Bern,2155,klimabulletin_year_2020.pdf,7
+2020,sunshine_h,Zürich,2056,klimabulletin_year_2020.pdf,7
+2020,sunshine_h,Genève,2113,klimabulletin_year_2020.pdf,7
+2020,sunshine_h,Basel,2057,klimabulletin_year_2020.pdf,7
+2020,sunshine_h,Engelberg,1517,klimabulletin_year_2020.pdf,7
+2020,sunshine_h,Sion,2279,klimabulletin_year_2020.pdf,7
+2020,sunshine_h,Lugano,2340,klimabulletin_year_2020.pdf,7
+2020,sunshine_h,Samedan,1931,klimabulletin_year_2020.pdf,7
+2020,precipitation_mm,Bern,1037,klimabulletin_year_2020.pdf,7
+2020,precipitation_mm,Zürich,860,klimabulletin_year_2020.pdf,7
+2020,precipitation_mm,Genève,794,klimabulletin_year_2020.pdf,7
+2020,precipitation_mm,Basel,676,klimabulletin_year_2020.pdf,7
+2020,precipitation_mm,Engelberg,1557,klimabulletin_year_2020.pdf,7
+2020,precipitation_mm,Sion,545,klimabulletin_year_2020.pdf,7
+2020,precipitation_mm,Lugano,1542,klimabulletin_year_2020.pdf,7
+2020,precipitation_mm,Samedan,734,klimabulletin_year_2020.pdf,7
+2021,temperature_mean_c,Bern,9.2,klimabulletin_year_2021.pdf,8
+2021,temperature_mean_c,Zürich,9.6,klimabulletin_year_2021.pdf,8
+2021,temperature_mean_c,Genève,10.9,klimabulletin_year_2021.pdf,8
+2021,temperature_mean_c,Basel,10.6,klimabulletin_year_2021.pdf,8
+2021,temperature_mean_c,Engelberg,6.6,klimabulletin_year_2021.pdf,8
+2021,temperature_mean_c,Sion,10.3,klimabulletin_year_2021.pdf,8
+2021,temperature_mean_c,Lugano,13.2,klimabulletin_year_2021.pdf,8
+2021,temperature_mean_c,Samedan,1.8,klimabulletin_year_2021.pdf,8
+2021,sunshine_h,Bern,1862,klimabulletin_year_2021.pdf,8
+2021,sunshine_h,Zürich,1734,klimabulletin_year_2021.pdf,8
+2021,sunshine_h,Genève,1950,klimabulletin_year_2021.pdf,8
+2021,sunshine_h,Basel,1671,klimabulletin_year_2021.pdf,8
+2021,sunshine_h,Engelberg,1362,klimabulletin_year_2021.pdf,8
+2021,sunshine_h,Sion,2181,klimabulletin_year_2021.pdf,8
+2021,sunshine_h,Lugano,2296,klimabulletin_year_2021.pdf,8
+2021,sunshine_h,Samedan,1835,klimabulletin_year_2021.pdf,8
+2021,precipitation_mm,Bern,1137,klimabulletin_year_2021.pdf,8
+2021,precipitation_mm,Zürich,1127,klimabulletin_year_2021.pdf,8
+2021,precipitation_mm,Genève,867,klimabulletin_year_2021.pdf,8
+2021,precipitation_mm,Basel,922,klimabulletin_year_2021.pdf,8
+2021,precipitation_mm,Engelberg,1679,klimabulletin_year_2021.pdf,8
+2021,precipitation_mm,Sion,696,klimabulletin_year_2021.pdf,8
+2021,precipitation_mm,Lugano,1444,klimabulletin_year_2021.pdf,8
+2021,precipitation_mm,Samedan,647,klimabulletin_year_2021.pdf,8
+2023,temperature_mean_c,Bern,11.1,klimabulletin_year_2023.pdf,11
+2023,temperature_mean_c,Zürich,11.4,klimabulletin_year_2023.pdf,11
+2023,temperature_mean_c,Genève,12.7,klimabulletin_year_2023.pdf,11
+2023,temperature_mean_c,Basel,12.7,klimabulletin_year_2023.pdf,11
+2023,temperature_mean_c,Engelberg,8.3,klimabulletin_year_2023.pdf,11
+2023,temperature_mean_c,Sion,11.8,klimabulletin_year_2023.pdf,11
+2023,temperature_mean_c,Lugano,14.3,klimabulletin_year_2023.pdf,11
+2023,temperature_mean_c,Samedan,3.8,klimabulletin_year_2023.pdf,11
+2023,sunshine_h,Bern,1993,klimabulletin_year_2023.pdf,11
+2023,sunshine_h,Zürich,1812,klimabulletin_year_2023.pdf,11
+2023,sunshine_h,Genève,2059,klimabulletin_year_2023.pdf,11
+2023,sunshine_h,Basel,1789,klimabulletin_year_2023.pdf,11
+2023,sunshine_h,Engelberg,1407,klimabulletin_year_2023.pdf,11
+2023,sunshine_h,Sion,2182,klimabulletin_year_2023.pdf,11
+2023,sunshine_h,Lugano,2309,klimabulletin_year_2023.pdf,11
+2023,sunshine_h,Samedan,1745,klimabulletin_year_2023.pdf,11
+2023,precipitation_mm,Bern,1080,klimabulletin_year_2023.pdf,11
+2023,precipitation_mm,Zürich,1160,klimabulletin_year_2023.pdf,11
+2023,precipitation_mm,Genève,1016,klimabulletin_year_2023.pdf,11
+2023,precipitation_mm,Basel,775,klimabulletin_year_2023.pdf,11
+2023,precipitation_mm,Engelberg,1834,klimabulletin_year_2023.pdf,11
+2023,precipitation_mm,Sion,822,klimabulletin_year_2023.pdf,11
+2023,precipitation_mm,Lugano,1462,klimabulletin_year_2023.pdf,11
+2023,precipitation_mm,Samedan,872,klimabulletin_year_2023.pdf,11
+2024,temperature_mean_c,Bern,10.6,klimabulletin_year_2024.pdf,9
+2024,temperature_mean_c,Zürich,11.0,klimabulletin_year_2024.pdf,9
+2024,temperature_mean_c,Genève,12.1,klimabulletin_year_2024.pdf,9
+2024,temperature_mean_c,Basel,12.2,klimabulletin_year_2024.pdf,9
+2024,temperature_mean_c,Engelberg,8.4,klimabulletin_year_2024.pdf,9
+2024,temperature_mean_c,Sion,11.7,klimabulletin_year_2024.pdf,9
+2024,temperature_mean_c,Lugano,13.9,klimabulletin_year_2024.pdf,9
+2024,temperature_mean_c,Samedan,3.8,klimabulletin_year_2024.pdf,9
+2024,sunshine_h,Bern,1542,klimabulletin_year_2024.pdf,9
+2024,sunshine_h,Zürich,1508,klimabulletin_year_2024.pdf,9
+2024,sunshine_h,Genève,1693,klimabulletin_year_2024.pdf,9
+2024,sunshine_h,Basel,1539,klimabulletin_year_2024.pdf,9
+2024,sunshine_h,Engelberg,1263,klimabulletin_year_2024.pdf,9
+2024,sunshine_h,Sion,1965,klimabulletin_year_2024.pdf,9
+2024,sunshine_h,Lugano,2019,klimabulletin_year_2024.pdf,9
+2024,sunshine_h,Samedan,1589,klimabulletin_year_2024.pdf,9
+2024,precipitation_mm,Bern,1022,klimabulletin_year_2024.pdf,9
+2024,precipitation_mm,Zürich,1281,klimabulletin_year_2024.pdf,9
+2024,precipitation_mm,Genève,908,klimabulletin_year_2024.pdf,9
+2024,precipitation_mm,Basel,831,klimabulletin_year_2024.pdf,9
+2024,precipitation_mm,Engelberg,1762,klimabulletin_year_2024.pdf,9
+2024,precipitation_mm,Sion,635,klimabulletin_year_2024.pdf,9
+2024,precipitation_mm,Lugano,1786,klimabulletin_year_2024.pdf,9
+2024,precipitation_mm,Samedan,782,klimabulletin_year_2024.pdf,9
+2025-03,temperature_mean_c,Bern,6.5,klimabulletin_2025-03.pdf,6
+2025-03,temperature_mean_c,Zürich,7.3,klimabulletin_2025-03.pdf,6
+2025-03,temperature_mean_c,Genève,7.9,klimabulletin_2025-03.pdf,6
+2025-03,temperature_mean_c,Basel,8.2,klimabulletin_2025-03.pdf,6
+2025-03,temperature_mean_c,Engelberg,4.5,klimabulletin_2025-03.pdf,6
+2025-03,temperature_mean_c,Sion,9.0,klimabulletin_2025-03.pdf,6
+2025-03,temperature_mean_c,Lugano,9.9,klimabulletin_2025-03.pdf,6
+2025-03,temperature_mean_c,Samedan,-1.2,klimabulletin_2025-03.pdf,6
+2025-03,sunshine_h,Bern,161,klimabulletin_2025-03.pdf,6
+2025-03,sunshine_h,Zürich,151,klimabulletin_2025-03.pdf,6
+2025-03,sunshine_h,Genève,173,klimabulletin_2025-03.pdf,6
+2025-03,sunshine_h,Basel,147,klimabulletin_2025-03.pdf,6
+2025-03,sunshine_h,Engelberg,135,klimabulletin_2025-03.pdf,6
+2025-03,sunshine_h,Sion,228,klimabulletin_2025-03.pdf,6
+2025-03,sunshine_h,Lugano,178,klimabulletin_2025-03.pdf,6
+2025-03,sunshine_h,Samedan,158,klimabulletin_2025-03.pdf,6
+2025-03,precipitation_mm,Bern,22,klimabulletin_2025-03.pdf,6
+2025-03,precipitation_mm,Zürich,29,klimabulletin_2025-03.pdf,6
+2025-03,precipitation_mm,Genève,31,klimabulletin_2025-03.pdf,6
+2025-03,precipitation_mm,Basel,35,klimabulletin_2025-03.pdf,6
+2025-03,precipitation_mm,Engelberg,44,klimabulletin_2025-03.pdf,6
+2025-03,precipitation_mm,Sion,4,klimabulletin_2025-03.pdf,6
+2025-03,precipitation_mm,Lugano,123,klimabulletin_2025-03.pdf,6
+2025-03,precipitation_mm,Samedan,25,klimabulletin_2025-03.pdf,6
+2025-06,temperature_mean_c,Jungfraujoch,2.6,klimabulletin_2025-06.pdf,record sentence
+2025-06,precipitation_mm,Thun,29.3,klimabulletin_2025-06.pdf,record sentence
+2025-12,temperature_mean_c,Andermatt,0.3,klimabulletin_2025-12.pdf,record sentence
+2026-04,precipitation_mm,Château-d'Oex,14.2,klimabulletin_2026-04.pdf,record sentence
+2026-04,precipitation_mm,Grimsel Hospiz,23.5,klimabulletin_2026-04.pdf,record sentence
+2026-04,precipitation_mm,Grindelwald,14.2,klimabulletin_2026-04.pdf,record sentence
+2026-04,precipitation_mm,Kandersteg,11.6,klimabulletin_2026-04.pdf,record sentence
+2026-04,precipitation_mm,Lauterbrunnen,8.3,klimabulletin_2026-04.pdf,record sentence
+2026-04,sunshine_h,Pully,284.4,klimabulletin_2026-04.pdf,record sentence
+2026-09,temperature_mean_c,Chur,18.6,klimabulletin_2026-09.pdf,record sentence
+2026-09,temperature_mean_c,Grächen,14.0,klimabulletin_2026-09.pdf,record sentence
+2026-09,temperature_mean_c,Locarno / Monti,21.1,klimabulletin_2026-09.pdf,record sentence
+2026-09,temperature_mean_c,S. Bernardino,12.1,klimabulletin_2026-09.pdf,record sentence
+2026-09,precipitation_mm,Airolo,7.4,klimabulletin_2026-09.pdf,record sentence
+2026-09,precipitation_mm,Braunwald,45.0,klimabulletin_2026-09.pdf,record sentence
+2026-09,precipitation_mm,La Chaux-de-Fonds,28.2,klimabulletin_2026-09.pdf,record sentence
+2026-09,precipitation_mm,Couvet,15.4,klimabulletin_2026-09.pdf,record sentence
+2026-09,precipitation_mm,Longirod,10.8,klimabulletin_2026-09.pdf,record sentence
+2026-09,sunshine_h,Pully,258.3,klimabulletin_2026-09.pdf,record sentence
+2023-12,fresh_snow_max_cm,Arosa,65,klimabulletin_2023-12.pdf,record sentence
+2023-12,fresh_snow_max_cm,Elm,48,klimabulletin_2023-12.pdf,record sentence
+2023-12,fresh_snow_max_cm,St. Gallen,30,klimabulletin_2023-12.pdf,record sentence
+2023-12,fresh_snow_max_cm,Zürich / Fluntern,26,klimabulletin_2023-12.pdf,record sentence
+2024-01,fresh_snow_max_cm,Genève / Cointrin,15,klimabulletin_2024-01.pdf,record sentence
+2024-11,fresh_snow_max_cm,Bosco/Gurin,58,klimabulletin_2024-11.pdf,record sentence
+2024-11,fresh_snow_max_cm,Luzern,42,klimabulletin_2024-11.pdf,record sentence
+2024-11,fresh_snow_max_cm,Basel / Binningen,27,klimabulletin_2024-11.pdf,record sentence

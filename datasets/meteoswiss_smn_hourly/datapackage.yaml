@@ -1,0 +1,168 @@
+# Definitions (titles, descriptions, warnings, labels) are Renaud's (skills/add-dataset). Every
+# definition below is a draft by Claude (WP5.7, 2026-11-15) until he changes or confirms it.
+# Structure (keys, types, refresh) by Claude. Sources of the facts: the docstring of fetch.py, the
+# MeteoSwiss parameter list (ogd-smn_meta_parameters.csv) and the README of the swissgrid project
+# (data/meteoswiss/README.md, sections 3, 5 and 9), whose numbers are cited with that name.
+name: meteoswiss_smn_hourly
+title: Hourly measurements of the SwissMetNet weather stations (MeteoSwiss)  # draft by Claude
+# draft by Claude
+description: >-
+  Hourly values of the automatic weather stations of MeteoSwiss (SwissMetNet, about 160
+  stations): global, diffuse and longwave radiation, sunshine duration, temperature, humidity,
+  pressure, wind, precipitation and the foehn index (table measurements), and the snow depth
+  read at each full hour (table snow_depth). Values as MeteoSwiss publishes them in its open
+  data, without cleaning. The names, positions and heights of the stations, and which station
+  measures what since when, are in the dataset meteoswiss_smn_stations.
+licenses:
+  - name: CC-BY-4.0
+    path: https://creativecommons.org/licenses/by/4.0/
+    title: 'CC BY 4.0. Credit: "Source: MeteoSwiss" (https://opendatadocs.meteoswiss.ch/general/terms-of-use)'
+sources:
+  - title: MeteoSwiss open data, SwissMetNet (STAC collection ch.meteoschweiz.ogd-smn)
+    path: https://opendatadocs.meteoswiss.ch/a-data-groundbased/a1-automatic-weather-stations
+resources:
+  - name: measurements
+    description: One row per station and hour.  # draft by Claude
+    schema:
+      primaryKey: [station, delivery_start]
+      fields:
+        - name: station
+          type: string
+          # draft by Claude
+          description: >-
+            Abbreviation of the station, e.g. BER (Bern / Zollikofen), KLO (Zurich / Kloten). Name,
+            position and height: meteoswiss_smn_stations.stations.
+        - name: delivery_start
+          type: datetime
+          # draft by Claude
+          description: >-
+            Start of the hour that the values cover, UTC. From 2018-01-01 a clock hour:
+            [delivery_start, delivery_start + 1 h). Before 2018 MeteoSwiss computed hourly values
+            on the SYNOP schedule, from minute 40 to minute 40 (10:40 to 11:40), so delivery_start
+            is at minute 40. MeteoSwiss stamps the end of the hour; adele stores its start.
+        - name: global_radiation
+          type: number
+          unit: W/m2
+          description: Global radiation on a horizontal surface, mean over the hour (gre000h0).  # draft by Claude
+        - name: diffuse_radiation
+          type: number
+          unit: W/m2
+          description: Diffuse radiation on a horizontal surface, mean over the hour (ods000h0).  # draft by Claude
+        - name: longwave_radiation
+          type: number
+          unit: W/m2
+          # draft by Claude
+          description: >-
+            Incoming longwave radiation, mean over the hour (oli000h0). High at night under low
+            cloud or fog.
+        - name: sunshine
+          type: number
+          unit: min
+          description: Sunshine duration in the hour, 0 to 60 (sre000h0).  # draft by Claude
+        - name: temperature
+          type: number
+          unit: °C
+          description: Air temperature 2 m above ground, mean over the hour (tre200h0).  # draft by Claude
+        - name: humidity
+          type: number
+          unit: '%'
+          description: Relative humidity 2 m above ground, mean over the hour (ure200h0).  # draft by Claude
+        - name: pressure_qfe
+          type: number
+          unit: hPa
+          description: Air pressure at the height of the barometer (QFE), mean over the hour (prestah0).  # draft by Claude
+        - name: pressure_qff
+          type: number
+          unit: hPa
+          # draft by Claude
+          description: >-
+            Air pressure reduced to sea level (QFF), mean over the hour (pp0qffh0). Compare
+            stations with this one, not with pressure_qfe: e.g. GVE minus KLO is strongly negative
+            in bise, LUG minus SMA strongly positive in south foehn.
+        - name: wind_speed
+          type: number
+          unit: m/s
+          description: Wind speed (scalar), mean over the hour (fkl010h0).  # draft by Claude
+        - name: wind_direction
+          type: number
+          unit: degree
+          description: Direction from which the wind blows, mean over the hour (dkl010h0). 0 and 360 are north.  # draft by Claude
+        - name: gust
+          type: number
+          unit: m/s
+          description: Highest one-second gust in the hour (fkl010h1).  # draft by Claude
+        - name: precipitation
+          type: number
+          unit: mm
+          description: Precipitation, total of the hour (rre150h0).  # draft by Claude
+        - name: foehn
+          type: number
+          unit: min
+          # draft by Claude
+          description: >-
+            Foehn index (wcc006h0): minutes of the hour that MeteoSwiss diagnoses as foehn. Only at
+            some stations in foehn valleys and their surroundings.
+  - name: snow_depth
+    description: One row per station and full hour at which the automatic snow depth was read.  # draft by Claude
+    schema:
+      primaryKey: [station, valid_at]
+      fields:
+        - name: station
+          type: string
+          description: Abbreviation of the station, as in measurements.  # draft by Claude
+        - name: valid_at
+          type: datetime
+          # draft by Claude
+          description: >-
+            The instant of the reading, UTC: the end of MeteoSwiss's hour. From 2018 a full hour,
+            the end of the hour of measurements whose delivery_start is valid_at - 1 h. Before 2018
+            at minute 40, the end of the SYNOP hour whose delivery_start is valid_at - 1 h: the
+            daily snow depth "at 06 UTC" equals the reading of 05:40 on every snow day of
+            2015-2017 (MeteoSwiss stamps it 05:00) and the reading of 06:00 from 2018.
+        - name: snow_depth
+          type: number
+          unit: cm
+          # draft by Claude
+          description: >-
+            Snow depth measured automatically, read at valid_at (htoauths, MeteoSwiss's "hourly
+            current value"). Not a mean over the hour. Small negative values are sensor noise
+            around zero snow.
+adele:
+  format_version: 1
+  resolution:  # of measurements; snow_depth holds instants (valid_at)
+    - {from: 2015-01-01, value: PT1H}
+  refresh:
+    every: P1D
+    # MeteoSwiss checks values during 5 days, and daily precipitation by hand around the end of
+    # the next month (FAQ); radiation values changed up to 33 days late (LUZ, October 2026).
+    # 70 days catch both. Proposal by Claude.
+    lookback: P70D
+    horizon: PT0S
+  revisions: overwrite
+  # drafts by Claude
+  warnings:
+    # for the footer, once D20 is built ({text: ..., footer: true})
+    - >-
+      Before 2018-01-01 an hourly value covers minute 40 to minute 40 (delivery_start at 10:40 for
+      10:40-11:40), from 2018 a clock hour. A join with another hourly table on delivery_start
+      finds no row before 2018.
+    - >-
+      Values of the last two months can still change: MeteoSwiss checks the data during 5 days
+      and the precipitation by hand around the end of the next month. adele fetches the last 70
+      days again each day and keeps the latest value.
+    - >-
+      A column is empty at a station that does not measure it, and stations start and stop at
+      different dates: count the stations behind an average over several stations.
+    - >-
+      MeteoSwiss's monthly precipitation (climate bulletins) counts days from 06 to 06 UTC: to
+      reproduce it from hours, sum from 06 UTC of the first day to 06 UTC of the first day of the
+      next month (278 of 293 published figures match, 176 with the UTC month).
+    - >-
+      For a monthly or yearly total of precipitation or sunshine, use meteoswiss_smn_daily: the
+      hourly files miss values that the daily files hold (Basel 2024: 29 mm of precipitation,
+      Engelberg May 2025: 50 mm, Locarno/Monti June 2025: 8 h of sunshine).
+  # D31: checks of checks.yaml, one per trap; chosen by Claude (2026-11-16)
+  examples:
+    - check: ber_2026_09_precipitation  # a month of precipitation runs from 06 UTC to 06 UTC
+    - check: gve_2026_09_sunshine  # sunshine in minutes per hour: divide by 60 for hours
+    - check: ber_2026_09_temperature  # a mean of hourly means over the UTC month

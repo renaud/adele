@@ -1,0 +1,73 @@
+# Definitions (titles, descriptions, warnings, labels) are Renaud's (skills/add-dataset). Every
+# definition below is a draft by Claude (WP5.7, 2026-11-15) until he changes or confirms it.
+# Structure (keys, types, refresh) by Claude. Facts: the docstring of fetch.py.
+name: meteoswiss_smn_tenmin
+title: 10-minute global radiation and sunshine at the SwissMetNet stations (MeteoSwiss)  # draft by Claude
+# draft by Claude
+description: >-
+  Global radiation and sunshine duration per 10 minutes at the automatic weather stations of
+  MeteoSwiss (SwissMetNet) that measure them, about 135 stations. Values as MeteoSwiss publishes
+  them in its open data, without cleaning. Names, positions and heights of the stations:
+  meteoswiss_smn_stations.stations. Hourly values of the same and other parameters:
+  meteoswiss_smn_hourly.
+licenses:
+  - name: CC-BY-4.0
+    path: https://creativecommons.org/licenses/by/4.0/
+    title: 'CC BY 4.0. Credit: "Source: MeteoSwiss" (https://opendatadocs.meteoswiss.ch/general/terms-of-use)'
+sources:
+  - title: MeteoSwiss open data, SwissMetNet (STAC collection ch.meteoschweiz.ogd-smn)
+    path: https://opendatadocs.meteoswiss.ch/a-data-groundbased/a1-automatic-weather-stations
+resources:
+  - name: measurements
+    description: One row per station and 10 minutes.  # draft by Claude
+    schema:
+      primaryKey: [station, delivery_start]
+      fields:
+        - name: station
+          type: string
+          description: Abbreviation of the station, e.g. BER. Name, position and height in meteoswiss_smn_stations.stations.  # draft by Claude
+        - name: delivery_start
+          type: datetime
+          # draft by Claude
+          description: >-
+            Start of the 10 minutes that the values cover, UTC: [delivery_start, delivery_start +
+            10 min). MeteoSwiss stamps the end; adele stores the start.
+        - name: global_radiation
+          type: number
+          unit: W/m2
+          # draft by Claude
+          description: >-
+            Global radiation on a horizontal surface, mean over the 10 minutes (gre000z0). The
+            mean of the six values of an hour is the hourly value of meteoswiss_smn_hourly.
+        - name: sunshine
+          type: number
+          unit: min
+          description: Sunshine duration in the 10 minutes, 0 to 10 (sre000z0). Empty at the stations that measure no sunshine.  # draft by Claude
+adele:
+  format_version: 1
+  resolution:
+    - {from: 2023-10-01, value: PT10M}  # the start of the backfill (WP5 list)
+  refresh:
+    every: P1D
+    # Radiation is not checked by hand like precipitation: 35 days cover the 5 days of checks and
+    # the latest correction seen (33 days, LUZ, October 2026), and keep the window inside the
+    # recent files from 5 February, before the decade files are rewritten (2026: 18 February).
+    # So a scheduled run never reads the decade files (5.8 GB). Proposal by Claude.
+    lookback: P35D
+    horizon: PT0S
+  revisions: overwrite
+  # drafts by Claude
+  warnings:
+    - >-
+      Values of the last weeks can still change: MeteoSwiss checks the data during 5 days.
+      adele fetches the last 35 days again each day and keeps the latest value.
+    - >-
+      Global radiation at night is not exactly 0 at every station (a few W/m2), and it can be
+      slightly negative (MOA 2024: -11 W/m2). Clip at 0 before a sum of energy if that matters.
+    - >-
+      For a monthly or yearly total of sunshine, use meteoswiss_smn_daily: the 10-minute files can
+      miss values that the daily files hold (Locarno/Monti, June 2025: 254.8 h against 262.4 h).
+  # D31: checks of checks.yaml, one per trap; chosen by Claude (2026-11-16)
+  examples:
+    - check: gve_2026_09_sunshine  # sunshine in minutes per 10 minutes: divide by 60 for hours
+    - check: ber_2024_sunshine  # a UTC year of 10-minute values
