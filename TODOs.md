@@ -14,6 +14,14 @@
   `adele-server import`, `swissgrid_tsi`, `swissgrid_balance_daily`, `swissgrid_balance`; tried
   on the Mac. Next: Renaud confirms units, stamps, ids; step 6 (import and 7 days side by side
   on steacher1) after WP1. `docs/work-packages/WP4-files-overwritten-or-revised.md`"
+- WP5.1 (in `main`, f7f9dbe): review the drafts of the five `datasets/entsoe_*` descriptors
+  (WP7), the switch to `append-only` for the two neighbour datasets, the refresh proposals and
+  finding 1 (ElCom's labels swapped for 2017-2021). "Left to do" of
+  `docs/work-packages/WP5.1-entsoe.md`.
+- PLAN.md, row WP5.1 (proposal): "built and in `main`: five ENTSO-E datasets (imbalance prices
+  CH and neighbours, activated balancing prices, balancing state, neighbours' imbalance volume,
+  installed capacity), 79 published figures as checks; backfilled on the Mac. Next: Renaud's
+  review of the drafts; install on steacher1. `docs/work-packages/WP5.1-entsoe.md`"
 
 ## For other sessions: WP4 landed after WP2 (2026-11-15)
 
@@ -174,6 +182,15 @@ Next, state at the end of 2026-11-15:
 - WP1 closed on 2026-11-16 after 17 hours of fetches, not a week (Renaud). What waited for
   "after WP1" or "after 2026-11-22" can start: WP3 on steacher1 (V1), WP4 step 6, WP5 on
   steacher1. WP1's steps 6 and 8 are in V1.
+- WP5.1 (2026-11-16): five ENTSO-E datasets in `main` (f7f9dbe), backfilled on the Mac only (in
+  the `data_nosync/` of the worktree `.claude/worktrees/wp5.1`). For steacher1, another agent
+  (Renaud): install `entsoe_imbalance_prices`, `entsoe_activated_balancing_prices`,
+  `entsoe_balancing_state`, `entsoe_imbalance_volume_neighbours`, `entsoe_installed_capacity`
+  with their timers, backfill from 2014-12-31 (the first local hour of 2015), then
+  `adele-server check` on the three with `checks.yaml`. Open question 3 of WP5-datasets.md is
+  answered there: the neighbours' A86 and A85 are revised, so both are `append-only`
+  (proposal). Renaud has no reports of his own for these series; copying the findings into
+  WP5-datasets.md is not needed for now (Renaud).
 
 Next for Claude (decided 2026-11-14, not built):
 
