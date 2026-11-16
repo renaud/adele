@@ -191,6 +191,20 @@ Next, state at the end of 2026-11-15:
   answered there: the neighbours' A86 and A85 are revised, so both are `append-only`
   (proposal). Renaud has no reports of his own for these series; copying the findings into
   WP5-datasets.md is not needed for now (Renaud).
+- WP5.4 (2026-11-16, in `main`, 5833d88), found while building `energy_charts_intraday_prices`:
+  ENTSO-E's CH day-ahead price in `entsoe_day_ahead_prices` is one hour late from 2017-04-27
+  22:00 to 2017-10-29 01:00 UTC (4,140 hours) and on about ten days of summer 2015 (277 hours).
+  There, Energy-Charts' CH price at t equals ENTSO-E's at t + 1 h; per month of 2017, ENTSO-E's CH
+  follows the hourly changes of DE_AT_LU at a lag of one hour from May to October, Energy-Charts'
+  CH at lag 0 (`docs/work-packages/WP5.4-prices-outside-entsoe.md`, Findings). The checks don't
+  see it: they are means and counts. To do: Renaud decides between moving those stretches back
+  one hour in `datasets/entsoe_day_ahead_prices/fetch.py` (with a warning) and keeping them as
+  served (with a warning).
+- WP5.4: the 34 checks of 2026 in `datasets/swissgrid_imbalance_prices/checks.yaml` (17 weeks)
+  split the quarter-hours by the single price against the CH day-ahead price, a stand-in for
+  ElCom's split by the state of the control area (TSI < 0 short, > 0 long). `swissgrid_balance`
+  (WP4) carries the TSI: once it holds 2026 on the server, switch these checks to it and add the
+  8 weeks left out (`qa/published_figures_swissgrid_imbalance_prices.md`, Differences).
 
 Next for Claude (decided 2026-11-14, not built):
 
