@@ -1,0 +1,364 @@
+# Definitions (titles, descriptions, labels, warnings) are Renaud's (skills/add-dataset). Every
+# line marked "# draft by Claude" is a draft by Claude (WP5.5, 2026-11-15) until he changes or
+# confirms it. Structure (tables, keys, types, refresh) by Claude. Sources of the facts: the
+# docstring of fetch.py, and swissgrid_project/data/pronovo/README.md (files read on 2026-10-31
+# and 2026-11-01).
+name: pronovo_production
+title: Measured production of Swiss plants per technology at 15 minutes, and their capacity (Pronovo)  # draft by Claude
+# draft by Claude
+description: >-
+  Pronovo's "Lastgangprofile nach Technologien": the metered production of the generating plants
+  in Switzerland, summed per technology, per quarter-hour, from 2020 (table by_technology); the
+  PV per canton from 2023 (pv_by_canton); the installed capacity and the number of units at the
+  end of each month from 2023 (capacity_by_technology, pv_capacity_by_canton). Pronovo publishes a
+  provisional file per month and, after each quarter, a definitive file for its three months,
+  which adds the plants that delivered late. Every version that adele fetched is kept (revisions:
+  append-only); the latest view holds the definitive value where Pronovo has published one.
+# draft by Claude: no open licence. Pronovo's legal notice (read 2026-10-31): "Für den privaten
+# Gebrauch ist die Weiterverwendung mit vollständiger Quellenangabe erlaubt"; any other use needs
+# Pronovo's written consent.
+licenses:
+  - path: https://pronovo.ch/haftungsausschluss/
+    title: "Pronovo AG: reuse for private use with the source named (Source: Pronovo AG); any other use needs Pronovo's written consent"
+resources:
+  - name: by_technology
+    description: National production per technology and quarter-hour, from the national CSV of each file.  # draft by Claude
+    schema:
+      primaryKey: [delivery_start, technology]
+      fields:
+        - name: delivery_start
+          type: datetime
+          # draft by Claude
+          description: >-
+            Start of the quarter-hour, UTC. Pronovo stamps the end of the quarter-hour; adele
+            subtracts 15 minutes.
+        - name: technology
+          type: string
+          # draft by Claude
+          description: >-
+            Technology, from the name in the file (technology_src). Pronovo changed its names
+            twice: 2020-2022 (renewables only; hydro as one hydro_total in 2020), by machine type
+            from January to March 2023, by energy source from April 2023. Equivalent hydro types
+            share one value across the schemes.
+          categories:  # draft by Claude
+            - {value: pv, label: "Photovoltaics (Photovoltaik)"}
+            - {value: wind, label: "Wind (Wind, Windturbine, Windenergie)"}
+            - {value: hydro_total, label: "Hydro, all types, 2020 only (Wasser)"}
+            - {value: hydro_run_of_river, label: "Run-of-river hydro (Durchlaufwasser, Durchlaufkraftwerk)"}
+            - {value: hydro_storage, label: "Storage hydro (Speicherkraft, Speicherkraftwerk)"}
+            - {value: hydro_pumped_storage, label: "Pumped-storage hydro, production (Pumpspeicherkraft, Pumpspeicherkraftwerk)"}
+            - {value: hydro_diversion, label: "Diversion hydro (Ausleitwasser, Ausleitkraftwerk)"}
+            - {value: hydro_residual_flow, label: "Residual-flow hydro (Dotierwasser, Dotierwasserkraftwerk)"}
+            - {value: hydro_drinking_water, label: "Drinking-water hydro (Trinkwasser, Trinkwasserkraftwerk)"}
+            - {value: hydro_wastewater, label: "Wastewater hydro (Abwasser, Abwasserkraft, Abwasserkraftwerk)"}
+            - {value: nuclear, label: "Nuclear (Leichtwasserreaktor, Kernenergie)"}
+            - {value: biomass_total, label: "Biomass, all types, January to April 2020 (Biomasse)"}
+            - {value: biogas, label: "Biogas (Biogas)"}
+            - {value: sewage_gas, label: "Sewage gas (Klärgas)"}
+            - {value: wood, label: "Wood (Holzenergie)"}
+            - {value: biomass_energy_crops, label: "Energy crops, 2020-2022 (Energiepflanze)"}
+            - {value: biomass_forest_agri_waste, label: "Forest and farm waste (Forst- und Landwirtschaftliche Abfälle)"}
+            - {value: biomass_other, label: "Other biomass (Übrige Biomasse)"}
+            - {value: waste_total, label: "Waste incineration, January to March 2023 (Kehrichtverbrennung)"}
+            - {value: waste_renewable, label: "Waste incineration, renewable part (Kehrichtverbrennung (erneuerbar))"}
+            - {value: waste_nonrenewable, label: "Waste incineration, non-renewable part (Kehrichtverbrennung (nicht erneuerbar))"}
+            - {value: fossil_gas, label: "Gaseous fossil fuels (Gasförmige fossile Energieträger)"}
+            - {value: fossil_liquid, label: "Liquid fossil fuels (Flüssige fossile Energieträger)"}
+            - {value: fossil_other, label: "Other fossil fuels (Übrige fossile Energieträger)"}
+            - {value: thermal_ccgt, label: "Combined-cycle gas turbine (Gas- und Dampfkombikraftwerk)"}
+            - {value: thermal_gas_turbine, label: "Gas turbine (Gasturbine)"}
+            - {value: thermal_gas_steam_turbine, label: "Natural gas steam turbine (Erdgas Dampfturbine)"}
+            - {value: thermal_oil_steam_turbine, label: "Oil steam turbine (Erdöl Dampfturbine)"}
+            - {value: thermal_combustion_engine, label: "Combustion engine (Verbrennungsmotor)"}
+            - {value: thermal_orc, label: "ORC steam turbine (ORC-Dampfturbine)"}
+            - {value: fuel_cell, label: "Fuel cell (Brennstoffzelle)"}
+            - {value: geothermal, label: "Geothermal (Geothermie)"}
+            - {value: unspecified, label: "Unspecified technology (Nicht spezifizierte Technologie)"}
+        - name: technology_src
+          type: string
+          description: Name of the technology in Pronovo's file, as published (German).  # draft by Claude
+        - name: group
+          type: string
+          # draft by Claude
+          description: >-
+            Group of the technology, for sums. The fossil plants are in thermal (by machine type)
+            from January to March 2023 and in fossil (by fuel) from April 2023.
+          categories:  # draft by Claude
+            - {value: pv, label: Photovoltaics}
+            - {value: wind, label: Wind}
+            - {value: hydro, label: Hydro}
+            - {value: nuclear, label: Nuclear}
+            - {value: biomass, label: Biomass}
+            - {value: waste, label: Waste incineration}
+            - {value: fossil, label: "Fossil fuels, by fuel (from April 2023)"}
+            - {value: thermal, label: "Thermal plants, by machine type (January to March 2023)"}
+            - {value: other, label: Other}
+        - name: production_mwh
+          type: number
+          unit: MWh
+          # draft by Claude
+          description: >-
+            Energy delivered by the plants in the quarter-hour (meter register -A); for plants
+            with only a surplus meter, their feed-in into the grid. Pronovo calls the profiles
+            gross production ("Bruttoproduktion"); for nuclear the value equals BFE's net
+            production within 0.0 to 1.4 % per month (2023-2026, months with every unit in the
+            file). Summable.
+        - name: production_mw
+          type: number
+          unit: MW
+          description: Mean power over the quarter-hour, production_mwh x 4.  # draft by Claude
+        - name: auxiliary_mwh
+          type: number
+          unit: MWh
+          # draft by Claude
+          description: >-
+            Energy drawn by the plants in the quarter-hour (meter register +A, auxiliary
+            supply). Null for 2020-2022: those files have no such column. Negative in a few
+            provisional files (booking errors, it seems). BFE's reference market prices use the
+            net production, production_mwh - auxiliary_mwh.
+        - name: version
+          type: string
+          description: The file that the value comes from.  # draft by Claude
+          categories:  # draft by Claude
+            - {value: prov, label: "provisional: the monthly file, published 1 to 22 days after the month"}
+            - {value: def, label: "definitive: the quarterly file, published after the quarter, with the plants that delivered late"}
+            - {value: archive, label: "2020-2022: the monthly file of Pronovo's archive; no definitive file exists for these years, and its values equal Pronovo's annual file"}
+        - name: suspect
+          type: string
+          # draft by Claude
+          description: >-
+            A known problem of the value, null for none. The value is kept as published; leave
+            these rows out of sums, maxima and plots.
+          categories:  # draft by Claude
+            - {value: spike, label: "a single quarter-hour that is not physical (PV at about 790 MW at local midnight on 20 and 21 Sep 2022; waste 1,519 MW on 31 Mar 2022)"}
+            - {value: pv_level_2021_08, label: "PV about twice too high, local dates 1-7 Aug 2021 (energy per unit of irradiance 2.1 to 4.3 times the surrounding month)"}
+            - {value: pv_national_missing_plants, label: "national PV of Sep 2024 misses plants that the canton files hold (the cantons sum to 1.50 times the national PV): use pv_by_canton"}
+            - {value: nuclear_missing_unit, label: "nuclear of Sep 2024, Feb 2025 and Mar 2025 misses one unit (1,980 instead of 3,015 MW in the file): 0.66 of BFE's monthly nuclear production"}
+  - name: pv_by_canton
+    description: PV production per canton and quarter-hour, from the 26 canton CSVs of each file, from 2023.  # draft by Claude
+    adele:
+      resolution:
+        - {from: "2023-01-01", value: PT15M}
+    schema:
+      primaryKey: [delivery_start, canton]
+      fields:
+        - name: delivery_start
+          type: datetime
+          description: Start of the quarter-hour, UTC (Pronovo stamps the end).  # draft by Claude
+        - name: canton
+          type: string
+          description: Canton of the plants.  # draft by Claude
+          categories:  # draft by Claude
+            - {value: AG, label: Aargau}
+            - {value: AI, label: Appenzell Innerrhoden}
+            - {value: AR, label: Appenzell Ausserrhoden}
+            - {value: BE, label: Bern}
+            - {value: BL, label: Basel-Landschaft}
+            - {value: BS, label: Basel-Stadt}
+            - {value: FR, label: Fribourg}
+            - {value: GE, label: Genève}
+            - {value: GL, label: Glarus}
+            - {value: GR, label: Graubünden}
+            - {value: JU, label: Jura}
+            - {value: LU, label: Luzern}
+            - {value: NE, label: Neuchâtel}
+            - {value: NW, label: Nidwalden}
+            - {value: OW, label: Obwalden}
+            - {value: SG, label: St. Gallen}
+            - {value: SH, label: Schaffhausen}
+            - {value: SO, label: Solothurn}
+            - {value: SZ, label: Schwyz}
+            - {value: TG, label: Thurgau}
+            - {value: TI, label: Ticino}
+            - {value: UR, label: Uri}
+            - {value: VD, label: Vaud}
+            - {value: VS, label: Valais}
+            - {value: ZG, label: Zug}
+            - {value: ZH, label: Zürich}
+        - name: production_mwh
+          type: number
+          unit: MWh
+          description: Energy delivered by the PV plants of the canton in the quarter-hour (register -A). Summable.  # draft by Claude
+        - name: production_mw
+          type: number
+          unit: MW
+          description: Mean power over the quarter-hour, production_mwh x 4.  # draft by Claude
+        - name: auxiliary_mwh
+          type: number
+          unit: MWh
+          description: Energy drawn by the PV plants of the canton in the quarter-hour (register +A).  # draft by Claude
+        - name: version
+          type: string
+          description: The file that the value comes from.  # draft by Claude
+          categories:  # draft by Claude
+            - {value: prov, label: "provisional: the monthly file"}
+            - {value: def, label: "definitive: the quarterly file"}
+  - name: capacity_by_technology
+    description: Installed capacity and number of units per technology at the end of each month, from the national CSV, from 2023.  # draft by Claude
+    adele:
+      timezone: Europe/Zurich
+    schema:
+      primaryKey: [delivery_month, technology]
+      fields:
+        - name: delivery_month
+          type: date
+          # draft by Claude
+          description: >-
+            Local calendar month (Europe/Zurich), stored as its first day. The values are those of
+            the month's last quarter-hour in the file: the plants of that file at the end of the
+            month.
+        - name: technology
+          type: string
+          description: Technology, as in by_technology.  # draft by Claude
+        - name: technology_src
+          type: string
+          description: Name of the technology in Pronovo's file, as published (German).  # draft by Claude
+        - name: group
+          type: string
+          description: Group of the technology, as in by_technology.  # draft by Claude
+        - name: capacity_mva
+          type: number
+          unit: MVA
+          # draft by Claude
+          description: >-
+            Installed capacity of the plants in the file, as apparent power, from the files of
+            2023 to 2025 (Leistung in kVA); null in the files of 2026, which give kW. Whether the
+            figures changed definition with the unit is not known.
+        - name: capacity_mw
+          type: number
+          unit: MW
+          description: Installed capacity of the plants in the file, from the files of 2026 (Leistung in kW); null before.  # draft by Claude
+        - name: units
+          type: integer
+          description: Number of plants in the file (Anzahl).  # draft by Claude
+        - name: version
+          type: string
+          description: The file that the value comes from.  # draft by Claude
+          categories:  # draft by Claude
+            - {value: prov, label: "provisional: the monthly file"}
+            - {value: def, label: "definitive: the quarterly file"}
+  - name: pv_capacity_by_canton
+    description: Installed PV capacity and number of PV plants per canton at the end of each month, from the canton CSVs, from 2023.  # draft by Claude
+    adele:
+      timezone: Europe/Zurich
+    schema:
+      primaryKey: [delivery_month, canton]
+      fields:
+        - name: delivery_month
+          type: date
+          description: Local calendar month (Europe/Zurich), stored as its first day; the values of its last quarter-hour.  # draft by Claude
+        - name: canton
+          type: string
+          description: Canton of the plants, as in pv_by_canton.  # draft by Claude
+        - name: capacity_mva
+          type: number
+          unit: MVA
+          description: Installed PV capacity, from the files of 2023 to 2025 (kVA); null in the files of 2026.  # draft by Claude
+        - name: capacity_mw
+          type: number
+          unit: MW
+          description: Installed PV capacity, from the files of 2026 (kW); null before.  # draft by Claude
+        - name: units
+          type: integer
+          description: Number of PV plants in the file (Anzahl).  # draft by Claude
+        - name: version
+          type: string
+          description: The file that the value comes from.  # draft by Claude
+          categories:  # draft by Claude
+            - {value: prov, label: "provisional: the monthly file"}
+            - {value: def, label: "definitive: the quarterly file"}
+adele:
+  format_version: 2
+  resolution:  # by_technology; pv_by_canton sets its own; the tables by month take theirs from delivery_month
+    - {from: "2020-01-01", value: PT15M}
+  refresh:
+    every: P1D  # a provisional file per month and a definitive one per quarter, at unknown hours
+    # Proposal by Claude: the definitive file of a quarter came up to 60 days after it (Q4 2025),
+    # and a file can be issued again. 400 days catch a re-issue of the last 13 months; about 5
+    # definitive zips of 4 MB each per fetch. Also the time for which a failed stretch is retried.
+    lookback: P400D
+    horizon: P0D
+    timeout: PT15M
+  revisions: append-only
+  # drafts by Claude
+  # The first one is meant for the query footer ({text, footer: true}) once D20 is built.
+  warnings:
+    - >-
+      Pronovo covers about half of the Swiss PV fleet (its PV energy is 0.45 to 0.51 of the
+      official statistics, 2020-2025), and its set of plants changes from month to month: it
+      drops in the third month of a quarter (PV capacity 2,423 MW in Sep 2024 after 3,943 MW in
+      August, 3,919 MW in Sep 2025 after 5,235 MW). Before comparing levels across months,
+      divide by the capacity of the same month (capacity_by_technology).
+    - >-
+      The definitive file adds the plants that delivered late: PV +1.6 % to +13.5 % (median
+      +5.0 %) above the provisional file in the first two months of a quarter, +0.1 % to +8.0 %
+      for the other technologies together; the third month is usually the same. The latest view
+      gives the definitive value where it exists; version says which file.
+    - >-
+      Nuclear, fossil and thermal plants are in the data only from 2023: the files of 2020-2022
+      hold renewables only. Hydro is one hydro_total in 2020 and split by type from 2021; whether
+      both cover the same plants was not checked.
+    - >-
+      waste_renewable and waste_nonrenewable are equal in every quarter-hour from April 2023, and
+      their sum is close to waste_total of January to March 2023 (about 180 MW): one measured
+      total split in two equal parts, it seems, not two measurements. The files of 2020-2022 hold
+      waste_renewable only, at 89 to 151 MW as a monthly mean; what it covers is not known.
+    - >-
+      The 26 cantons sum to 97.6 to 98.8 % of the national PV from April 2023 to December 2024
+      (except Sep 2024, see suspect) and to the national PV from 2025. Glarus has no PV for June
+      2023 in any file.
+    - >-
+      PV is not zero at night: 0.05 MW on average in 2020, 2.5 MW in Jan-Sep 2026, up to 8.7 MW
+      in a quarter-hour (home batteries behind PV meters, it seems). Subtract the night level
+      near sunrise and sunset.
+    - >-
+      ENTSO-E's Swiss PV (actual generation per type) is this series times a factor per month,
+      from February 2025: one can't check the other.
+    - >-
+      Against BFE's monthly balance: nuclear equals BFE's within 1.4 % in every month from 2023,
+      except Sep 2024 and Feb-Mar 2025, where one unit is missing from the file (suspect); hydro is
+      0.76 to 0.94 of BFE's, but 0.59 to 0.68 in Sep 2024, Feb-Mar 2025 and Sep 2025 (plants
+      missing from the file, not marked); wind 0.94 to 1.00 of BFE's per year (2023-2025).
+    - >-
+      The capacity of the other technologies changes too: nuclear 1,980 MW instead of 3,015 MW
+      in Sep 2024, Feb-Mar 2025 and Sep 2025 (in Sep 2025 the missing unit was off, so the energy
+      is complete), pumped storage 3,933 to 8,314 MW.
+  # Questions and SQL drafted by Claude (2026-11-15), run on the backfill of that day; no
+  # verified_at until Renaud confirms the results.
+  examples:
+    - question: PV energy per local month of 2025, and per MVA of the capacity in the same month?  # draft by Claude
+      sql: |
+        SELECT c.delivery_month,
+               round(sum(p.production_mwh) / 1000, 1) AS pv_gwh,
+               any_value(c.capacity_mva) AS capacity_mva,
+               round(sum(p.production_mwh) / any_value(c.capacity_mva), 1) AS mwh_per_mva
+        FROM pronovo_production.by_technology AS p
+        JOIN pronovo_production.capacity_by_technology AS c
+          ON c.technology = p.technology
+         AND c.delivery_month = date_trunc('month', p.delivery_start AT TIME ZONE 'Europe/Zurich')
+        WHERE p.technology = 'pv' AND p.suspect IS NULL
+          AND p.delivery_start >= TIMESTAMPTZ '2025-01-01 00:00:00+01'
+          AND p.delivery_start <  TIMESTAMPTZ '2026-01-01 00:00:00+01'
+        GROUP BY 1
+        ORDER BY 1
+    - question: PV of the 26 cantons against the national PV, per local month of 2024?  # draft by Claude
+      sql: |
+        WITH n AS (
+          SELECT date_trunc('month', delivery_start AT TIME ZONE 'Europe/Zurich') AS m, sum(production_mwh) AS national
+          FROM pronovo_production.by_technology
+          WHERE technology = 'pv'
+            AND delivery_start >= TIMESTAMPTZ '2024-01-01 00:00:00+01'
+            AND delivery_start <  TIMESTAMPTZ '2025-01-01 00:00:00+01'
+          GROUP BY 1),
+        k AS (
+          SELECT date_trunc('month', delivery_start AT TIME ZONE 'Europe/Zurich') AS m, sum(production_mwh) AS cantons
+          FROM pronovo_production.pv_by_canton
+          WHERE delivery_start >= TIMESTAMPTZ '2024-01-01 00:00:00+01'
+            AND delivery_start <  TIMESTAMPTZ '2025-01-01 00:00:00+01'
+          GROUP BY 1)
+        SELECT CAST(m AS DATE) AS local_month, round(national / 1000, 1) AS national_gwh,
+               round(cantons / 1000, 1) AS cantons_gwh, round(cantons / national, 3) AS ratio
+        FROM n JOIN k USING (m)
+        ORDER BY 1
+    - check: hydro_2020_11_kwh  # Pronovo's own sum: the month is local; on the UTC month it differs by 931 MWh
+    - check: rmp_biomass_2025_06_mwh  # BFE's volume: net production (-A minus +A), five categories
