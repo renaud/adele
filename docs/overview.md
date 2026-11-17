@@ -1,44 +1,31 @@
-# adele in two pictures
+# The two figures of the README
 
-A first read of what adele is about. The reference is [SPEC.md](../SPEC.md), and the reasons
-are in [DECISIONS.md](../DECISIONS.md).
+The figures are in [README.md](../README.md), section "From a source to an answer":
+`overview.svg` (figure 1, from a source to an answer) and `agent-session.svg` (figure 2, what
+an agent reads). This page says how to keep them true.
 
-Status: drawn by Claude on 2026-11-14 from SPEC.md, DECISIONS.md (D1 to D24) and the server
-code of that day. Both figures are SVG files written by hand. To change a text, edit the file.
+Status: drawn by Claude from SPEC.md, DECISIONS.md and the server code. Figure 2 dates from
+2026-11-14 (D1 to D24). Figure 1 was redrawn on 2026-11-17 (D1 to D34), in the layout that
+Renaud chose among three: a flow from left to right with few words. Both figures are SVG
+files written by hand. To change a text, edit the file.
 
-## 1. From a source to an answer
+Figure 1 leaves out on purpose (Renaud, 2026-11-17): a title and a subtitle, a legend, labels
+on the arrows, the status, "always on", and what is not built (`adele pull`). The arrows
+between boxes are dark grey. The CLI box has the colour of the agent.
 
-![adele: from a source to an answer](overview.svg)
-
-For each dataset, adele has two inputs. The first is the rows that `fetch.py` gets from the
-source. The second is what a person who knows the dataset declared about it, in
-`datapackage.yaml` and `checks.yaml`. The server compares the two in the stage `check`. An agent
-then gets the declaration and the data together, with a status that says whether the last fetch
-and the last checks passed.
-
-Not built on 2026-11-14: `adele pull`, and the email to the admin (a change of status is written
-to `alerts.log`).
-
-## 2. What an agent reads
-
-![adele: what an agent reads](agent-session.svg)
-
-The text is what the server printed on 2026-11-14, shortened: lines are left out and long lines
-are wrapped. The colours show where each value comes from. A person wrote the amber values in
-the dataset folder. The server computed the blue values: from the stored data (resolution,
-coverage, sample rows, the stored type), from the fetches (freshness) and from the checks
-(status, "all match").
+Figure 2 has no title inside the image either (Renaud, 2026-11-17): the heading of the README
+is its title. Since that day, the commands stand further apart than the lines of one answer,
+so that a reader sees four separate calls.
 
 ## Keeping the figures true
 
-Open on 2026-11-14: the README does not show figure 1. The line to add, e.g. under "What adele
-does": `![adele: from a source to an answer](docs/overview.svg)`.
-
 Update figure 1 when:
 
-- `adele pull` is built: remove the dashed circle and "(not built yet)" from step 4.
-- the status `stale` is built: the status row shows only `ok` and `failing`.
-- the email to the admin is built: remove the "Not built" line above.
+- `adele pull` is built: add it as line 4 of the box "adele CLI".
+- a dataset comes from a new source: the box "Sources" has one chip for each of the 8 sources
+  of `datasets/` on 2026-11-17, and its last line names their kinds (ENTSO-E and Open-Meteo
+  are APIs; Swissgrid, Pronovo, MeteoSwiss and Energy-Charts publish files; ECMWF and
+  WeatherNext 3 are Zarr stores).
 
 Update figure 2 when:
 
@@ -73,13 +60,31 @@ Editing the SVG files:
   `stroke-width="2"` on the element. Sizes and stroke widths are therefore classes.
 - The dark colours are the rules inside `@media (prefers-color-scheme: dark)`. Every colour of
   the light variant needs its dark rule.
-- Figure 2: a line of the session holds up to 88 characters. Line n has its baseline at
-  y = 132 + 17 n, and a note sits on the line that it explains.
+- Figure 1: the comment at the top of the file gives the two rows and their columns. A small
+  drawing (the robot, the person, the drawing of a stage) is a `<g class="ic ...">` that is
+  placed with `transform`. Blue is the sources, amber is the dataset folder, and purple is the
+  agent and its CLI.
+- Figure 1: a text must stay inside its box when the reader's font is wider than the one of
+  macOS. On 2026-11-17 the texts fitted with the system fonts and with Verdana as a wide
+  stand-in.
+- Figure 2: a line of the session holds up to 88 characters. A command starts a block: list
+  at y 100, describe at 233, the two queries at 672 and 873. Inside a block, each line is 17
+  lower than the one before, and the next command comes 48 after the last line. A note sits on
+  the line that it explains, so it moves with its block.
 
-Checking a render (both were checked this way on 2026-11-14, not in VS Code's preview and not on
-a git host):
+Checking a render (figure 2 was checked on 2026-11-14 with the first and the third way, both
+figures on 2026-11-17 with the first and the last; neither in VS Code's preview nor on a git
+host):
 
 - `rsvg-convert -z 2 docs/overview.svg -o out.png`, then look at the PNG.
 - Dark: render a copy in which the rules of the `@media` block stand outside the block.
 - WebKit, with the system fonts: `qlmanage -t -s 1920 -o <dir> <file.svg>`. It crops a wide
   figure to a square, so give the copy a square `viewBox`.
+- Chromium, with the system fonts: Playwright's `chrome-headless-shell` with
+  `--screenshot=out.png --window-size=960,476 --force-device-scale-factor=2
+  --virtual-time-budget=8000` and the path of the SVG file.
+- A text that leaves its box (done for figure 1 on 2026-11-17, with a script that was not
+  kept): an HTML page that holds the SVG inline, and a script in it that compares `getBBox()`
+  of every `<text>` with every `<rect>` and with the other texts. `chrome-headless-shell
+  --dump-dom` prints the result. The same page with `svg text { font-family: Verdana
+  !important }` stands for a reader whose font is wider.

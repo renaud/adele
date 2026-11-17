@@ -1,187 +1,181 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="960" height="560" viewBox="0 0 960 560" role="img" aria-labelledby="title desc">
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="476" viewBox="0 0 960 476" role="img" aria-labelledby="title desc">
   <title id="title">adele: from a source to an answer</title>
-  <desc id="desc">A person who knows a dataset writes its folder: datapackage.yaml, fetch.py and checks.yaml. The adele server fetches the rows from the source, checks them against that declaration, stores them as Parquet and serves the dataset card and SQL queries to agents. A fetch or a check that fails sets the status of the dataset to failing.</desc>
+  <desc id="desc">The adele server gets rows from public sources and passes them through four stages: fetch, check, store and serve. A person who knows a dataset writes its folder (datapackage.yaml, fetch.py and checks.yaml), and the stage check compares the rows with it. An agent asks the server and gets answers. It runs the adele CLI: adele list, adele describe and adele query.</desc>
 
-  <!-- Hand-written. Colours are classes, with a dark variant at the end of the style block.
-       Grid: left column x 20-240, server x 300-692, agent x 744-940. Stage rows are 68 high, 22 apart. -->
+  <!-- Hand-written. Colours, sizes and stroke widths are classes, with a dark variant at the end of the style block.
+       Row 1 (y 20-236): sources x 20-204, server x 240-716, agent x 772-940. A stage of the server is 96 wide, and the next one starts 116 further.
+       Row 2 (y 266-456): dataset folder x 20-470, CLI x 500-940. The three lines of both boxes share their baselines (370, 402, 434). -->
   <style>
-    text { font-family: system-ui, -apple-system, "Segoe UI", Helvetica, Arial, sans-serif; font-size: 12.5px; fill: #1f2328 }
-    .mono { font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace; font-size: 12px }
-    .h { font-size: 14px; font-weight: 600 }
+    text { font-family: system-ui, -apple-system, "Segoe UI", Helvetica, Arial, sans-serif; font-size: 13px; fill: #1f2328 }
+    .mono { font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace; font-size: 12.5px }
+    .sm { font-size: 11px }
+    .s12 { font-size: 12px }
+    .chip { font-size: 12.5px }
+    .h { font-size: 15px; font-weight: 600 }
+    .hh { font-size: 17px; font-weight: 600 }
     .b { font-weight: 600 }
-    .title { font-size: 22px }
-    .sub { font-size: 13.5px }
-    .lab { font-size: 12px }
-    .num { font-size: 11px; font-weight: 600 }
+    .num { font-size: 11.5px; font-weight: 600 }
     .m { fill: #59636e }
     .bg { fill: #ffffff }
-    .frame { fill: #f6f8fa; stroke: #d0d7de }
-    .stage { fill: #ffffff; stroke: #d0d7de }
+    .chassis { fill: #f6f8fa; stroke: #8c959f; stroke-width: 1.5 }
+    .bezel { fill: #24292f }
+    .on-bezel { fill: #ffffff }
+    .unit { fill: #ffffff; stroke: #d0d7de }
     .hinge { stroke: #1f2328; stroke-width: 1.5 }
+    .led { fill: #2da44e }
     .src { fill: #ddf4ff; stroke: #54aeff }
+    .src-in { fill: #ffffff; stroke: #54aeff }
     .decl { fill: #fff8c5; stroke: #d4a72c }
-    .t-data { fill: #0969da }
+    .agent { fill: #fbefff; stroke: #c297ff }
     .t-decl { fill: #9a6700 }
-    .ok { fill: #1a7f37 }
-    .bad { fill: #cf222e }
-    .l { fill: none; stroke: #1f2328; stroke-width: 1.5 }
-    .l-data { fill: none; stroke: #0969da; stroke-width: 1.5 }
-    .l-decl { fill: none; stroke: #9a6700; stroke-width: 1.5 }
-    .l-m { fill: none; stroke: #59636e; stroke-width: 1.2 }
-    .glyph { stroke-width: 1.3 }
-    .key { stroke-width: 2.5 }
-    .sep { stroke: #d0d7de; stroke-dasharray: 3 3 }
-    .a { fill: #1f2328 }
-    .a-data { fill: #0969da }
-    .a-decl { fill: #9a6700 }
+    .ic { fill: none; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round }
+    .ic-decl { stroke: #9a6700 }
+    .ic-agent { stroke: #8250df }
+    .ic-n { stroke: #1f2328 }
+    .f-agent { fill: #8250df; stroke: none }
+    .l { fill: none; stroke: #57606a; stroke-width: 1.6 }
+    .a { fill: #57606a }
+    .l-num { fill: none; stroke: #8250df; stroke-width: 1.2 }
     @media (prefers-color-scheme: dark) {
       text { fill: #e6edf3 }
       .m { fill: #9198a1 }
       .bg { fill: #0d1117 }
-      .frame { fill: #161b22; stroke: #30363d }
-      .stage { fill: #0d1117; stroke: #30363d }
+      .chassis { fill: #161b22; stroke: #6e7681 }
+      .bezel { fill: #30363d }
+      .on-bezel { fill: #ffffff }
+      .unit { fill: #0d1117; stroke: #30363d }
       .hinge { stroke: #e6edf3 }
+      .led { fill: #3fb950 }
       .src { fill: #10243e; stroke: #1f6feb }
+      .src-in { fill: #0d1117; stroke: #1f6feb }
       .decl { fill: #2b2111; stroke: #9e6a03 }
-      .t-data { fill: #58a6ff }
+      .agent { fill: #231a3a; stroke: #8957e5 }
       .t-decl { fill: #d29922 }
-      .ok { fill: #3fb950 }
-      .bad { fill: #f85149 }
-      .l { stroke: #e6edf3 }
-      .l-data { stroke: #58a6ff }
-      .l-decl { stroke: #d29922 }
-      .l-m { stroke: #9198a1 }
-      .sep { stroke: #30363d }
-      .a { fill: #e6edf3 }
-      .a-data { fill: #58a6ff }
-      .a-decl { fill: #d29922 }
+      .ic-decl { stroke: #d29922 }
+      .ic-agent { stroke: #a371f7 }
+      .ic-n { stroke: #e6edf3 }
+      .f-agent { fill: #a371f7 }
+      .l { stroke: #9198a1 }
+      .a { fill: #9198a1 }
+      .l-num { stroke: #a371f7 }
     }
   </style>
 
   <defs>
     <marker id="a" markerUnits="userSpaceOnUse" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path class="a" d="M0 0.5 L8 4 L0 7.5 z"/></marker>
-    <marker id="a-data" markerUnits="userSpaceOnUse" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path class="a-data" d="M0 0.5 L8 4 L0 7.5 z"/></marker>
-    <marker id="a-decl" markerUnits="userSpaceOnUse" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path class="a-decl" d="M0 0.5 L8 4 L0 7.5 z"/></marker>
   </defs>
 
-  <rect class="bg" width="960" height="560"/>
+  <rect class="bg" width="960" height="476"/>
 
-  <!-- title -->
-  <text x="20" y="38" class="title"><tspan class="b">adele</tspan><tspan class="m" font-size="15" dx="10">agentic data layer</tspan></text>
-  <text x="20" y="62" class="m sub">A person declares what a dataset is. The server fetches the data, checks it against the declaration and serves both to agents.</text>
+  <!-- sources: one chip per source -->
+  <rect class="src" x="20" y="20" width="184" height="216" rx="8"/>
+  <text x="32" y="44" class="h">Sources</text>
+  <text x="192" y="44" class="m" text-anchor="end">public data</text>
+  <rect class="src-in" x="32" y="56" width="68" height="24" rx="12"/>
+  <text x="66" y="72.5" class="chip" text-anchor="middle">ENTSO-E</text>
+  <rect class="src-in" x="106" y="56" width="76" height="24" rx="12"/>
+  <text x="144" y="72.5" class="chip" text-anchor="middle">Swissgrid</text>
+  <rect class="src-in" x="32" y="86" width="66" height="24" rx="12"/>
+  <text x="65" y="102.5" class="chip" text-anchor="middle">Pronovo</text>
+  <rect class="src-in" x="104" y="86" width="86" height="24" rx="12"/>
+  <text x="147" y="102.5" class="chip" text-anchor="middle">MeteoSwiss</text>
+  <rect class="src-in" x="32" y="116" width="88" height="24" rx="12"/>
+  <text x="76" y="132.5" class="chip" text-anchor="middle">Open-Meteo</text>
+  <rect class="src-in" x="126" y="116" width="62" height="24" rx="12"/>
+  <text x="157" y="132.5" class="chip" text-anchor="middle">ECMWF</text>
+  <rect class="src-in" x="32" y="146" width="102" height="24" rx="12"/>
+  <text x="83" y="162.5" class="chip" text-anchor="middle">Energy-Charts</text>
+  <rect class="src-in" x="32" y="176" width="106" height="24" rx="12"/>
+  <text x="85" y="192.5" class="chip" text-anchor="middle">WeatherNext 3</text>
+  <text x="32" y="222" class="m s12">APIs, files, Zarr stores</text>
 
-  <!-- sources -->
-  <rect class="src" x="20" y="84" width="220" height="108" rx="8"/>
-  <ellipse class="l-data" cx="42" cy="101" rx="8" ry="3"/>
-  <path class="l-data" d="M34 101 v10 a8 3 0 0 0 16 0 v-10"/>
-  <text x="58" y="111" class="h">Sources</text>
-  <text x="34" y="135">Public data on electricity</text>
-  <text x="34" y="152">markets: APIs, csv, xlsx,</text>
-  <text x="34" y="169">Parquet, SQL databases.</text>
+  <!-- server: one appliance, four stages -->
+  <rect class="chassis" x="240" y="20" width="476" height="216" rx="10"/>
+  <path class="bezel" d="M240 30 a10 10 0 0 1 10 -10 h456 a10 10 0 0 1 10 10 v28 h-476 z"/>
+  <circle class="led" cx="262" cy="39" r="4.5"/>
+  <text x="276" y="45" class="hh on-bezel">adele server</text>
 
-  <!-- dataset folder -->
-  <rect class="decl" x="20" y="214" width="220" height="248" rx="8"/>
-  <circle class="l-decl" cx="42" cy="233" r="4.5"/>
-  <path class="l-decl" d="M33.5 247 a8.5 7.5 0 0 1 17 0"/>
-  <text x="58" y="243" class="h">Dataset folder</text>
-  <text x="34" y="266" class="m">written by a person who knows</text>
-  <text x="34" y="282" class="m">the dataset, kept in git</text>
-  <text x="34" y="310" class="mono b">datapackage.yaml</text>
-  <text x="34" y="327">what a row is, units, codes,</text>
-  <text x="34" y="343">warnings, example queries</text>
-  <text x="34" y="371" class="mono b">fetch.py</text>
-  <text x="34" y="388">gets rows from the source</text>
-  <text x="34" y="416" class="mono b">checks.yaml</text>
-  <text x="34" y="433">figures published by others</text>
-  <text x="34" y="449">that the data must reproduce</text>
+  <rect class="unit" x="256" y="74" width="96" height="146" rx="6"/>
+  <g class="ic ic-n" transform="translate(284.5 92) scale(1.3)"><path d="M15 4 v15 M8.5 12.5 l6.5 6.5 l6.5 -6.5 M5 22 v4 h20 v-4"/></g>
+  <text x="304" y="162" class="h" text-anchor="middle">fetch</text>
+  <text x="304" y="182" class="m s12" text-anchor="middle">by fetch.py,</text>
+  <text x="304" y="197" class="m s12" text-anchor="middle">on a schedule</text>
 
-  <!-- legend -->
-  <line class="l-data key" x1="20" y1="494" x2="44" y2="494"/>
-  <text x="52" y="498" class="m">data from the source</text>
-  <line class="l-decl key" x1="20" y1="516" x2="44" y2="516"/>
-  <text x="52" y="520" class="m">what the person declared</text>
+  <rect class="unit hinge" x="372" y="74" width="96" height="146" rx="6"/>
+  <g class="ic ic-n" transform="translate(400.5 92) scale(1.3)"><circle cx="15" cy="15" r="11.5"/><path d="M9.5 15.5 l4 4 l7.5 -8.5"/></g>
+  <text x="420" y="162" class="h" text-anchor="middle">check</text>
+  <text x="420" y="182" class="m s12" text-anchor="middle">against the</text>
+  <text x="420" y="197" class="m s12" text-anchor="middle">declaration</text>
 
-  <!-- server -->
-  <rect class="frame" x="300" y="84" width="392" height="456" rx="10"/>
-  <text x="316" y="111" class="h">adele server</text>
-  <text x="676" y="111" class="m" text-anchor="end">always on</text>
+  <rect class="unit" x="488" y="74" width="96" height="146" rx="6"/>
+  <g class="ic ic-n" transform="translate(516.5 92) scale(1.3)"><ellipse cx="15" cy="7.5" rx="10" ry="4"/><path d="M5 7.5 v15 a10 4 0 0 0 20 0 v-15 M5 15 a10 4 0 0 0 20 0"/></g>
+  <text x="536" y="162" class="h" text-anchor="middle">store</text>
+  <text x="536" y="182" class="m s12" text-anchor="middle">Parquet files,</text>
+  <text x="536" y="197" class="m s12" text-anchor="middle">time in UTC</text>
 
-  <rect class="stage" x="316" y="124" width="360" height="68" rx="6"/>
-  <text x="332" y="163" class="h">fetch</text>
-  <text x="396" y="154">runs <tspan class="mono">fetch.py</tspan> on each scheduled refresh;</text>
-  <text x="396" y="171">the lookback catches revised values</text>
+  <rect class="unit" x="604" y="74" width="96" height="146" rx="6"/>
+  <g class="ic ic-n" transform="translate(632.5 92) scale(1.3)"><path d="M5 10.5 h19 M19.5 6 l4.5 4.5 l-4.5 4.5 M25 19.5 h-19 M10.5 15 l-4.5 4.5 l4.5 4.5"/></g>
+  <text x="652" y="162" class="h" text-anchor="middle">serve</text>
+  <text x="652" y="182" class="m s12" text-anchor="middle">the card, and</text>
+  <text x="652" y="197" class="m s12" text-anchor="middle">capped SQL</text>
 
-  <rect class="stage hinge" x="316" y="214" width="360" height="68" rx="6"/>
-  <text x="332" y="253" class="h">check</text>
-  <text x="396" y="244">rows against the declaration: types, key,</text>
-  <text x="396" y="261">codes, example queries, published figures</text>
-
-  <rect class="stage" x="316" y="304" width="360" height="68" rx="6"/>
-  <text x="332" y="343" class="h">store</text>
-  <text x="396" y="334">one convention for time (UTC) and units;</text>
-  <text x="396" y="351">Parquet, one file per month or day</text>
-
-  <rect class="stage" x="316" y="394" width="360" height="68" rx="6"/>
-  <text x="332" y="433" class="h">serve</text>
-  <text x="396" y="424">the dataset card, and DuckDB SQL that is</text>
-  <text x="396" y="441">read-only and capped (rows, time, memory)</text>
-
-  <line class="l-data" x1="496" y1="194" x2="496" y2="212" marker-end="url(#a-data)"/>
-  <line class="l-data" x1="496" y1="284" x2="496" y2="302" marker-end="url(#a-data)"/>
-  <line class="l-data" x1="496" y1="374" x2="496" y2="392" marker-end="url(#a-data)"/>
-
-  <line class="sep" x1="316" y1="474" x2="676" y2="474"/>
-  <text x="332" y="507" class="h">status</text>
-  <text x="396" y="498"><tspan class="ok">&#9679;</tspan> ok or <tspan class="bad">&#9679;</tspan> failing, shown in every answer.</text>
-  <text x="396" y="515">A failed fetch or check alerts the admin.</text>
-
-  <!-- inputs -->
-  <line class="l-data" x1="240" y1="158" x2="314" y2="158" marker-end="url(#a-data)"/>
-  <text x="270" y="151" class="t-data lab" text-anchor="middle">rows</text>
-  <line class="l-decl" x1="240" y1="248" x2="314" y2="248" marker-end="url(#a-decl)"/>
-  <text x="270" y="241" class="t-decl lab" text-anchor="middle">declares</text>
+  <!-- arrows: sources to fetch, stage to stage, folder to check, serve and agent, agent to CLI -->
+  <line class="l" x1="204" y1="147" x2="254" y2="147" marker-end="url(#a)"/>
+  <line class="l" x1="354" y1="147" x2="370" y2="147" marker-end="url(#a)"/>
+  <line class="l" x1="470" y1="147" x2="486" y2="147" marker-end="url(#a)"/>
+  <line class="l" x1="586" y1="147" x2="602" y2="147" marker-end="url(#a)"/>
+  <line class="l" x1="420" y1="286" x2="420" y2="222" marker-end="url(#a)"/>
+  <line class="l" x1="772" y1="136" x2="702" y2="136" marker-end="url(#a)"/>
+  <line class="l" x1="700" y1="158" x2="770" y2="158" marker-end="url(#a)"/>
+  <line class="l" x1="856" y1="236" x2="856" y2="284" marker-end="url(#a)"/>
 
   <!-- agent -->
-  <rect class="frame" x="744" y="84" width="196" height="456" rx="10"/>
-  <rect class="l glyph" x="758" y="98" width="18" height="14" rx="3"/>
-  <path class="l glyph" d="M762 102 l3.5 3 l-3.5 3 M768 108.5 h4.5"/>
-  <text x="784" y="111" class="h">Agent</text>
-  <text x="758" y="133" class="m">uses the adele CLI,</text>
-  <text x="758" y="149" class="m">taught by the adele skill</text>
+  <rect class="agent" x="772" y="20" width="168" height="216" rx="10"/>
+  <g class="ic ic-agent" transform="translate(812 46) scale(2)">
+    <circle class="f-agent" cx="22" cy="4" r="2.6"/>
+    <path d="M22 6.5 v5"/>
+    <rect x="6" y="11.5" width="32" height="25" rx="7"/>
+    <circle class="f-agent" cx="16" cy="22.5" r="3"/>
+    <circle class="f-agent" cx="28" cy="22.5" r="3"/>
+    <path d="M17 30 h10"/>
+    <path d="M2.5 20 v8 M41.5 20 v8"/>
+  </g>
+  <text x="856" y="168" class="hh" text-anchor="middle">Agent</text>
+  <text x="856" y="189" class="m" text-anchor="middle">taught by the</text>
+  <text x="856" y="205" class="m" text-anchor="middle">adele skill</text>
 
-  <circle class="l-m" cx="766" cy="176" r="8"/>
-  <text x="766" y="180" class="num" text-anchor="middle">1</text>
-  <text x="781" y="180" class="mono b">adele list</text>
-  <text x="758" y="198">what exists, and how fresh</text>
+  <!-- dataset folder -->
+  <path class="decl box" d="M20 274 a8 8 0 0 1 8 -8 h104 l14 20 h316 a8 8 0 0 1 8 8 v154 a8 8 0 0 1 -8 8 h-434 a8 8 0 0 1 -8 -8 z"/>
+  <text x="32" y="281" class="mono sm t-decl">datasets/&lt;id&gt;/</text>
+  <g class="ic ic-decl" transform="translate(32 298)">
+    <circle cx="9" cy="5" r="3.8"/>
+    <path d="M1.5 17 a7.5 6.5 0 0 1 15 0"/>
+  </g>
+  <text x="58" y="313" class="h">Dataset folder</text>
+  <text x="34" y="334" class="m">written by a person who knows the dataset</text>
+  <text x="34" y="370" class="mono b">datapackage.yaml</text>
+  <text x="176" y="370">what a row is, units, codes, warnings</text>
+  <text x="34" y="402" class="mono b">fetch.py</text>
+  <text x="176" y="402">gets the rows from the source</text>
+  <text x="34" y="434" class="mono b">checks.yaml</text>
+  <text x="176" y="434">published figures that the data reproduces</text>
 
-  <circle class="l-m" cx="766" cy="224" r="8"/>
-  <text x="766" y="228" class="num" text-anchor="middle">2</text>
-  <text x="781" y="228" class="mono b">adele describe &lt;id&gt;</text>
-  <text x="758" y="246">the card: grain, units,</text>
-  <text x="758" y="262">warnings, sample rows</text>
+  <!-- the CLI: what the agent runs -->
+  <rect class="agent" x="500" y="286" width="440" height="170" rx="10"/>
+  <text x="514" y="313" class="h">adele CLI</text>
 
-  <circle class="l-m" cx="766" cy="288" r="8"/>
-  <text x="766" y="292" class="num" text-anchor="middle">3</text>
-  <text x="781" y="292" class="mono b">adele query "&lt;sql&gt;"</text>
-  <text x="758" y="310">rows, followed by units,</text>
-  <text x="758" y="326">warnings and freshness</text>
+  <circle class="l-num" cx="522" cy="366" r="8"/>
+  <text x="522" y="370" class="num" text-anchor="middle">1</text>
+  <text x="537" y="370" class="mono b">adele list</text>
+  <text x="704" y="370">what exists, and how fresh</text>
 
-  <circle class="l-m" cx="766" cy="352" r="8" stroke-dasharray="3 2.5"/>
-  <text x="766" y="356" class="num m" text-anchor="middle">4</text>
-  <text x="781" y="356" class="mono b m">adele pull &lt;id&gt;</text>
-  <text x="758" y="374" class="m">a local copy of the Parquet</text>
-  <text x="758" y="390" class="m">files (not built yet)</text>
+  <circle class="l-num" cx="522" cy="398" r="8"/>
+  <text x="522" y="402" class="num" text-anchor="middle">2</text>
+  <text x="537" y="402" class="mono b">adele describe &lt;id&gt;</text>
+  <text x="704" y="402">the card: grain, units, warnings</text>
 
-  <line class="sep" x1="758" y1="402" x2="926" y2="402"/>
-  <text x="758" y="424" class="m">over HTTPS, with one API</text>
-  <text x="758" y="440" class="m">key per team member</text>
-  <line class="sep" x1="758" y1="474" x2="926" y2="474"/>
-  <text x="758" y="498" class="m">Four steps, each one cheap</text>
-  <text x="758" y="515" class="m">in tokens.</text>
-
-  <!-- questions and answers -->
-  <line class="l" x1="744" y1="417" x2="678" y2="417" marker-end="url(#a)"/>
-  <text x="718" y="410" class="lab" text-anchor="middle">SQL</text>
-  <line class="l" x1="676" y1="439" x2="742" y2="439" marker-end="url(#a)"/>
-  <text x="718" y="455" class="lab" text-anchor="middle">answer</text>
+  <circle class="l-num" cx="522" cy="430" r="8"/>
+  <text x="522" y="434" class="num" text-anchor="middle">3</text>
+  <text x="537" y="434" class="mono b">adele query "&lt;sql&gt;"</text>
+  <text x="704" y="434">rows, then units and warnings</text>
 </svg>
