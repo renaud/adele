@@ -152,6 +152,11 @@ not datasets: `adele-fetch@openmeteo-backfill` (rows 3 to 8 in this order, by
 (`journalctl -u adele-fetch@openmeteo-backfill.service`); `finish` removes the drop-ins once both
 have stopped.
 
+Replaced on 2026-11-17 by the update of steacher1 to `main` (`deploy/update-main.sh`, then
+`deploy/backfill.sh`): the lane `openmeteo` runs the same plan in `adele-fetch@openmeteo-backfill`
+with the five openmeteo timers on; the lane `ens` runs the ENS backfill in the dataset's own unit
+and enables its timer after it.
+
 ## Open
 
 1. Every definition is a draft by Claude: titles, descriptions, warnings, labels.

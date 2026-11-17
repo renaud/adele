@@ -194,9 +194,9 @@ versions only.
 
 Next, state at the end of 2026-11-15:
 
-- A real fetch of both datasets with the code of D25 and D27 (Renaud: "very soon"). Until then
-  the new window, the pieces of weathernext3 and the fixed runner path are tested on synthetic
-  data only.
+- ~~A real fetch of both datasets with the code of D25 and D27~~ done on steacher1 (WP1,
+  2026-11-15): the first scheduled weathernext3 fetch caught up `[00:24, 17:11)` in 17 pieces,
+  then 17 hours of hourly fetches without a hole.
 - The work packages are in `PLAN.md`, which Renaud edits himself. Claude's proposal for the
   order of the three server builds: WP3 (versions), then WP4 (the Swissgrid files, which need
   WP3), then WP2 (table shapes). `append-only` can be built during the week of unattended
@@ -299,6 +299,16 @@ Next, state at the end of 2026-11-15:
 - WP1 closed on 2026-11-16 after 17 hours of fetches, not a week (Renaud). What waited for
   "after WP1" or "after 2026-11-22" can start: WP3 on steacher1 (V1), WP4 step 6, WP5 on
   steacher1. WP1's steps 6 and 8 are in V1.
+- The update of steacher1 to `main` (Claude, 2026-11-17, at Renaud's request: "let's move
+  forward even if that breaks a few things"): written, not run yet. Phase A,
+  `deploy/update-main.sh` (code, units, secrets, the two running timers); phase B,
+  `deploy/backfill.sh` (lanes entsoe, files, ens, openmeteo, then swissgrid once Renaud has
+  confirmed WP4's three points and named the poller's folder; each timer after its backfill).
+  It brings the 30 datasets in `main`; WP5.6, WP5.8 and WP5.9 come later, each as one more lane.
+  Replaces the steacher1 steps of the WP3, WP4 (step 6), WP5.1 to WP5.7 and WP5.10 docs, and
+  `deploy/wp5.10-backfill.sh`. After it: `describe entsoe_load` after 1-2 days (V1), WP4's 7 days
+  side by side, the WP1 leftovers (V1), the CPU of about 32 ticks a minute and the memory at the
+  top of the hour.
 - WP5.1 (2026-11-16): five ENTSO-E datasets in `main` (f7f9dbe), backfilled on the Mac only (in
   the `data_nosync/` of the worktree `.claude/worktrees/wp5.1`). For steacher1, another agent
   (Renaud): install `entsoe_imbalance_prices`, `entsoe_activated_balancing_prices`,
@@ -376,18 +386,19 @@ Found on 2026-11-14 by subagents (docs/datasets-inventory.md, sections 4 and 5),
   `query_table` and `histogram`. Left over from that work:
   - a query over the row cap that ends with `;` or with a `--` comment fails (older defect: the
     server counts with `SELECT count(*) FROM (<query>)`).
-  - `deploy/adele-server.service` sets no working directory, so DuckDB's `.tmp` would be `/.tmp`,
-    which is read-only there: a query that needs temporary files would fail (not tried).
+  - ~~`deploy/adele-server.service` sets no working directory~~ fixed in WP1 step 2: both units
+    have `WorkingDirectory=/tmp` (private per unit, `PrivateTmp=yes`).
   - scalar functions are on no list (814; none found that writes).
 
 Fetch scheduling (G5), investigated 2026-11-15 by a subagent. Decided and built the same day
 (D27): one systemd timer and one service per dataset, `fetch <id> --if-due`, "due" in whole
-periods of `every`, `adele.refresh.timeout`, a backfill that holds the lock. 317 tests pass. Not
-done: nothing ran on steacher1, and no real fetch ran with this code. Files in
-`deploy/scheduling-poc/`: draft units, a test script for a Linux server, the prototypes and
-their numbers. The claims about systemd were tested once in a Docker container on the Mac
-(systemd 255 under emulation, 27 checks passed: `deploy/scheduling-poc/container-test/`), not
-on steacher1. One claim was wrong: `KillMode=mixed` does not wait for the children.
+periods of `every`, `adele.refresh.timeout`, a backfill that holds the lock. 317 tests pass. Files
+in `deploy/scheduling-poc/`: draft units, a test script for a Linux server, the prototypes and
+their numbers. The claims about systemd were tested in a Docker container on the Mac (systemd
+255 under emulation, 27 checks passed: `deploy/scheduling-poc/container-test/`), then on
+steacher1 (WP1 step 3, 27 of 27: `deploy/scheduling-poc/result-steacher1.txt`). One claim was
+wrong: `KillMode=mixed` does not wait for the children. Running on steacher1 since 2026-11-15
+(WP1).
 
 - Candidates: one timer and one service per dataset (`adele-fetch@<id>`, the subagent's
   recommendation and Claude's since then), a scheduler that stays running (best numbers, but a

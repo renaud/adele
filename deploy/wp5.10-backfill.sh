@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+# Replaced on 2026-11-17 by deploy/backfill.sh (lanes openmeteo and ens, the same plan) in the update
+# of steacher1 to main: don't run both.
 # WP5.10 (docs/work-packages/WP5.10-weather-forecasts.md): the six datasets of weather forecasts on
 # steacher1. Push main first (it must hold WP5.10), then run as root from the repository root on the Mac:
 #   ssh s 'sudo bash -s start'  < deploy/wp5.10-backfill.sh 2>&1 | tee deploy/wp5.10-start.txt

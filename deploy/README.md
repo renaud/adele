@@ -125,6 +125,24 @@ file to `/etc/adele/gcloud-adc.json`. If those credentials carry a quota project
 which `ProtectHome=yes` hides from the units. So the install sets `UV_PYTHON_INSTALL_DIR=/opt/uv-python`
 for `uv sync` too (on steacher1: `.venv/bin/python` --> `/opt/uv-python/cpython-3.13.9-linux-x86_64-gnu`).
 
+## Update to a new `main`
+
+Written 2026-11-17 for the update from 32237db to `main` (WP2 to WP5): two root scripts, run by
+the admin; their headers say what each step does.
+
+```bash
+# Phase A, the code: stop the running timers, backup to /root, pull, uv sync, units, secrets
+# per dataset (copied within env.d, never printed), validate, restart, timers again
+ssh s 'sudo bash -s' < deploy/update-main.sh 2>&1 | tee deploy/update-main.txt
+# Phase B, the new datasets: backfills in lanes (transient units adele-backfill-<lane>), each
+# dataset's timer once its backfill has ended; results in /var/lib/adele-deploy/backfill.tsv
+ssh s 'sudo bash /opt/adele/deploy/backfill.sh start' 2>&1 | tee deploy/backfill-start.txt
+ssh s 'sudo bash /opt/adele/deploy/backfill.sh report' 2>&1 | tee deploy/backfill-report.txt
+```
+
+A later update with no new dataset needs only phase A. A new dataset alone: its secrets file,
+its backfill, its timer (the items of a lane in `backfill.sh`).
+
 ## Access from outside: HTTPS through Caddy
 
 Not done, and out of date (2026-11-16). Ports 80 and 443 of steacher1 serve another site, so
