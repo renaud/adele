@@ -157,11 +157,12 @@ have stopped.
 1. Every definition is a draft by Claude: titles, descriptions, warnings, labels.
 2. SGP's stuck backfill (processes 29318 and 79650): stop it, or fix `fetch_openmeteo.py:179`.
    With these datasets, its ERA5 and CAMS steps are no longer needed.
-3. Checks for the forecasts (Renaud asked how, 2026-11-16): options in the reply of that day;
-   the candidates of `qa/published_figures_openmeteo.md` and the counts of dynamical.org's
-   validation report become checks once the backfill covers their periods.
-4. ENS: the backfill reads about 140 GB for 19 variables (about 22 GB for the first 3). Leads
-   beyond 48 h cost no more reading (one chunk holds all leads), only storage.
+3. Checks for the forecasts (Renaud asked how, 2026-11-16): the options and Claude's
+   recommendation are in `qa/published_figures_openmeteo.md` (last two sections); Renaud has not
+   chosen yet.
+4. The backfill on steacher1: push main, then `ssh s 'sudo bash -s start' < deploy/wp5.10-backfill.sh`.
+   ENS with all 19 variables (Renaud, 2026-11-16: "all 19"; about 140 GB read, about 2 days).
+   Leads beyond 48 h would cost no more reading (one chunk holds all leads), only storage.
 
 ## Log
 
@@ -181,5 +182,6 @@ inside the runner (CAMS, 2 x 79 calls), the driver on 2 CAMS windows, 3 ENS runs
 variables (133,036 rows each, 2 to 4 minutes each). The run of 2026-10-20 is again equal to SGP's
 extract at Payerne (867 rows; radiation, cloud cover, temperature), and it reproduces SGP's
 published figure for that run (`ECMWF_BASELINE.md`: ensemble mean GHI at lead 12 196 W/m2,
-p10-p90 126-264): 196.2, 126.5 and 264.0. The old local ENS tables `radiation` and `weather` stay in `data_nosync/ecmwf_ifs_ens/`
-(the delete was refused; 4.9 MB, unused).
+p10-p90 126-264): 196.2, 126.5 and 264.0. The old local ENS tables `radiation` and `weather`
+stay in `data_nosync/ecmwf_ifs_ens/` of the worktree (the delete was refused; 4.9 MB, unused).
+Landed in `main` the same day (6ef3c3f), after a TODOs.md commit of Renaud's.

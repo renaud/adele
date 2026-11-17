@@ -10,6 +10,12 @@ The meaning is rarely in the rows. From a table of day-ahead prices, an agent ca
 
 In adele, a dataset is curated by a domain expert. They write down all its tricks and traps so that an agent can use the data unambiguously.
 
+## From a source to an answer
+
+![adele: from a source to an answer](docs/overview.svg)
+
+The reference is [SPEC.md](SPEC.md), and the reasons are in [DECISIONS.md](DECISIONS.md).
+
 ## Principles
 
 - Quality over quantity: manually curated datasets that agents can "trust".
@@ -19,13 +25,8 @@ In adele, a dataset is curated by a domain expert. They write down all its trick
 - One convention for all datasets: time, units and codes are normalized at ingestion, so an agent learns the rules once.
 - Boring standards: Parquet, DuckDB SQL, Frictionless: formats that agents already know, nothing invented.
 
-## From a source to an answer
 
-![adele: from a source to an answer](docs/overview.svg)
-
-The reference is [SPEC.md](SPEC.md), and the reasons are in [DECISIONS.md](DECISIONS.md).
-
-### What an agent reads
+## What an agent reads
 
 ![adele: what an agent reads](docs/agent-session.svg)
 

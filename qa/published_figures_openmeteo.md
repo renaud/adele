@@ -56,3 +56,29 @@ From SGP's QA C1 and C4 (t1, 79 points, `delivery_start` or `valid_at` from 2024
 
 Temperature is not a candidate: Open-Meteo changed 1 to 2 % of the values by 0.1 degC within two
 weeks.
+
+## Candidate checks for `ecmwf_ifs_ens` (options given to Renaud on 2026-11-16, not decided)
+
+Renaud asked how the forecasts can get checks. The options, by Claude; none is in a checks.yaml yet:
+
+1. dynamical.org's validation report (https://dynamical.org/catalog/ecmwf-ifs-ens-forecast-15-day-0-25-degree/validation/,
+   2026-08-19), counted over the whole grid, independently of adele: 871 runs from 2024-04-01 to
+   2026-08-19; 645 complete for wind gusts and precipitation type (from 2024-11-13); 272 for cloud
+   cover (from 2025-11-21); 870 for precipitation (one incomplete, 2026-07-12); 51 members. Tests
+   lost runs, members and variables that go empty, not the values. Pass only once the ENS backfill
+   covers 2024-04-01 to 2026-08-19.
+2. SGP's figure for the run of 2026-10-20 (`semester_project/sem project/03_WN3/ECMWF_BASELINE.md`,
+   2026-10-25): at Payerne (grid point 46.75 N, 7.00 E), GHI at lead 12 (09 to 12 UTC), ensemble
+   mean 196 W/m2, p10 to p90 126 to 264. adele reproduced it on 2026-11-16: 196.2, 126.5, 264.0
+   (`avg`, `quantile_cont` over the 51 members of `three_hourly`, station PAY, lead_h 12). Could go in
+   at once (tolerance 1 W/m2). Tests units, lead and members; same archive and Renaud's own project,
+   so it tests adele's pipeline, not the archive.
+3. Open-Meteo's ensemble API (ECMWF IFS 0.25, 51 members), a second redistribution of the same
+   forecast: spot values as figures. Not probed: whether it serves past 00 UTC runs, and whether
+   its values are raw or interpolated.
+4. Not recommended: skill against measurements compared with ECMWF's published scores (other
+   stations and periods, so a difference is no error).
+
+Claude's recommendation: 2 now, 1 after the ENS backfill, 3 only if a probe shows raw values. For
+ERA5 and CAMS no figure was found yet (a published Saharan dust episode with values at Swiss
+stations would need a search).
