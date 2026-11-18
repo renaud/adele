@@ -8,10 +8,10 @@ and `docs/datasets-inventory.md` (gap G3). Renaud's answers of 2026-11-15 are in
 
 - Built in the worktree `wp3` (branch `wp3`, from `880da30`), with tests on synthetic data,
   layout c included. Decision D30 in `DECISIONS.md`. Lands in `main` on 2026-11-15, during
-  WP1's week (Renaud relaxed the rule of the WP1 doc); WP3 reaches steacher1 only once WP1 is
+  WP1's week (Renaud relaxed the rule of the WP1 doc); WP3 reaches the server only once WP1 is
   done.
 - Step 4 (the first real dataset): `datasets/entsoe_load`, measured, backfilled on the Mac,
-  50 published figures as checks. The backfill and 1-2 days of fetches on steacher1 wait for
+  50 published figures as checks. The backfill and 1-2 days of fetches on the server wait for
   the end of WP1 (`TODOs.md`, V1).
 
 ## Goal
@@ -28,7 +28,7 @@ the Swissgrid year file for WP4.
 - `overwrite` and `none` (D15) stay as they are. An `append-only` fetch reads the same window as
   `overwrite`, [last - lookback, now + horizon): the lookback is what catches revisions.
 - Design points 1, 2, 3 and 5 below, and the answers a to e: D30.
-- The build runs on the Mac with synthetic data, next to WP1. It goes to steacher1 once WP1 is
+- The build runs on the Mac with synthetic data, next to WP1. It goes to the server once WP1 is
   done.
 
 ## Design
@@ -108,7 +108,7 @@ spread between runs was not measured: differences of a few milliseconds mean not
 
 Layout b answers the latest view from the files without versions (first column), with
 93 + 153 = 246 MB on disk. The count of the first column is fast because Parquet stores the
-number of rows of each file. steacher1 has 4 slower cores: the absolute times there will be
+number of rows of each file. The server has 4 slower cores: the absolute times there will be
 higher, the ratios are what the criterion uses.
 
 The merge of c was timed after c was built, in a second run of the script; c's view there is
@@ -156,7 +156,7 @@ in the merge; switching from a to c now costs only code, because no real dataset
    - Tests: `server/tests/test_versions.py`, and one in `test_e2e.py` for `--as-of` through HTTP.
 4. **First real dataset.** Decided (Renaud, 2026-11-15): ENTSO-E actual load and day-ahead
    forecast for CH (A65), the dataset planned for POC 2. Its descriptor and `fetch.py` belong
-   to WP6, done here for this one dataset. Backfill from 2015 on steacher1, then 1-2 days of
+   to WP6, done here for this one dataset. Backfill from 2015 on the server, then 1-2 days of
    fetches (Renaud: "we won't wait a week, just 1-2 days"). Whether a revision happens in that
    time depends on ENTSO-E: none was seen in 15 days (below).
    - Done in the worktree (2026-11-15): `datasets/entsoe_load/` (`datapackage.yaml`,
@@ -166,9 +166,9 @@ in the merge; switching from a to c now costs only code, because no real dataset
    - QA (2026-11-15, instead of Renaud checking the examples): `checks.yaml` with 50 published
      figures, all reproduced (ENTSO-E Statistical Factsheets 2019-2025, Kazmi & Tao 2022,
      Tzortzis et al. 2023); the figures left out and why: `qa/published_figures_entsoe_load.md`.
-   - To do once WP1 is done: the backfill and 1-2 days of fetches on steacher1 (`TODOs.md`, V1).
+   - To do once WP1 is done: the backfill and 1-2 days of fetches on the server (`TODOs.md`, V1).
    - Landing in `main`: Renaud relaxed the rule of the WP1 doc ("WP3 lands in `main` after the
-     week") on 2026-11-15; WP3 still reaches steacher1 only once WP1 is done.
+     week") on 2026-11-15; WP3 still reaches the server only once WP1 is done.
 
 ## How late ENTSO-E corrects the load (2026-11-15)
 
@@ -190,7 +190,7 @@ later". No measure backs it: POC 2 was planned, not built, so it left no data. W
 So in 15 days ENTSO-E corrected no value of the Swiss load, old or recent. A later correction
 (months) can't be ruled out, but no month changed between 2026-10-31 and 2026-11-15, the
 turn of a month included. The lookback can't be set from the corrections; it is P14D, which
-costs two small requests per hour. The 1-2 days on steacher1 will most likely store no
+costs two small requests per hour. The 1-2 days on the server will most likely store no
 second version of a real value: the tests on synthetic data stand for that part. Some recent
 hours look wrong (the actual load at night on 2026-11-03, 11-10 and 11-14 is about half of
 the forecast, `fetch.py`); if ENTSO-E corrects them, adele will store the versions.
@@ -218,7 +218,7 @@ The list of `SPEC.md` also lacks `none` (D15).
   `versions_since` and an `as_of` over a dataset without versions are refused. Done.
 - The measure of point 4 is in this file. Done.
 - Point 4 decided, and built if it is not a. Done: c.
-- The first dataset was fetched for 1-2 days on steacher1. If ENTSO-E revised a value in that
+- The first dataset was fetched for 1-2 days on the server. If ENTSO-E revised a value in that
   time, a query with an `as_of` before the revision returns the old value; if not, the tests on
   synthetic data stand for it.
 - `describe` and the skill explain how to read the versions. Done.
@@ -327,10 +327,10 @@ Decided by Claude:
    `entsoe_day_ahead_prices`, so that the two join; only CH for now.
 2. The value stays in MW, the mean power of the hour, as served. POC 2 planned MW --> MWh at
    ingestion; MW keeps the value independent of the resolution. Renaud decides before the
-   backfill on steacher1 (a later change of unit can't convert stored versions, answer d).
+   backfill on the server (a later change of unit can't convert stored versions, answer d).
 3. The actual load before 2024-12-31 23:00 UTC moves back one hour (end stamps), as in the
    swissgrid project, whose evidence is cited in `fetch.py`. Also to confirm before the
-   backfill on steacher1, for the same reason.
+   backfill on the server, for the same reason.
 4. `fetch.py` parses the XML itself (curve types A01 and A03) and uses entsoe-py only for the
    requests; it refuses another unit, curve type or resolution.
 5. Lookback P14D (above), horizon P2D, every PT1H.

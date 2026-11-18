@@ -19,7 +19,7 @@ each choice are in the docstrings of the `fetch.py`; the comparisons with the sw
 All six descriptors validate; a second fetch of the same window changes nothing (Previous Runs:
 0 of 637,056 rows; Single Runs: no run asked again); 17 tests on synthetic answers
 (`server/tests/test_openmeteo_fetch.py`), 425 tests in all. Every definition in the descriptors is
-a draft by Claude. Not yet on steacher1 (WP1's week runs until 2026-11-22) and not backfilled:
+a draft by Claude. Not yet on the server (WP1's week runs until 2026-11-22) and not backfilled:
 the backfill takes about a month of Open-Meteo's free tier (below).
 
 ## What Claude chose
@@ -79,13 +79,13 @@ the backfill takes about a month of Open-Meteo's free tier (below).
     page doesn't say how points count).
 14. **The call budget is in the fetchers** (Renaud, 2026-11-16: "put directly in the Python code,
     in the fetcher"), not in the server. The openmeteo_* fetches of one machine write each request
-    in one file (`$XDG_STATE_HOME/adele/openmeteo-calls.tsv`; steacher1: `/var/cache/adele/state`,
+    in one file (`$XDG_STATE_HOME/adele/openmeteo-calls.tsv`; on the server: `/var/cache/adele/state`,
     set in the fetch unit, since `adele` has no home) and keep together under 500 calls per
     minute, 4,000 per hour and 9,000 per 24 h (rolling windows, so a calendar day stays under them
     too; 9,000 x 31 days stays under the month's 300,000). A window that ended more than 14 days
     ago is a backfill and stops at 7,500 per 24 h: the scheduled fetches (about 1,300 a day) always
     find calls left. A wait longer than 20 minutes fails the fetch with `BudgetSpent` and the time
-    from which the request fits, since a fetch may last 30 minutes on steacher1
+    from which the request fits, since a fetch may last 30 minutes on the server
     (`fetch_timeout_s`).
 15. **The backfill is one script**, `deploy/wp5.10-backfill.sh` (root, Renaud), which runs
     `deploy/backfill_by_window.py`: one `adele-server backfill` per window, and after a
@@ -124,7 +124,7 @@ the backfill takes about a month of Open-Meteo's free tier (below).
 - The answers of the Previous Runs API run 3 days into the future for previous_day1 and
   previous_day2 too (from the latest run that qualifies).
 
-## Backfill on steacher1 (when WP1 is done)
+## Backfill on the server (when WP1 is done)
 
 Calls estimated from the `fetch.py` (their weight and requests), windows of 13 or 14 days:
 
@@ -142,7 +142,7 @@ Calls estimated from the `fetch.py` (their weight and requests), windows of 13 o
 About 220,000 calls: 30 days at 7,500 calls a day (choice 14), beside the scheduled fetches of
 the four datasets (Previous Runs 616, Single Runs about 190, ERA5 and CAMS 158 each, the cells 158
 a day on average). Renaud chose on 2026-11-16 to run every row ("let's take the time"), on
-steacher1, as soon as it is online, and not to import SGP's downloads.
+the server, as soon as it is online, and not to import SGP's downloads.
 
 How: land WP5.10, push main, then `ssh s 'sudo bash -s start' < deploy/wp5.10-backfill.sh`. It
 pulls main into `/opt/adele`, installs the fetch unit (with `XDG_STATE_HOME`), restarts the query
@@ -152,7 +152,7 @@ not datasets: `adele-fetch@openmeteo-backfill` (rows 3 to 8 in this order, by
 (`journalctl -u adele-fetch@openmeteo-backfill.service`); `finish` removes the drop-ins once both
 have stopped.
 
-Replaced on 2026-11-17 by the update of steacher1 to `main` (`deploy/update-main.sh`, then
+Replaced on 2026-11-17 by the update of the server to `main` (`deploy/update-main.sh`, then
 `deploy/backfill.sh`): the lane `openmeteo` runs the same plan in `adele-fetch@openmeteo-backfill`
 with the five openmeteo timers on; the lane `ens` runs the ENS backfill in the dataset's own unit
 and enables its timer after it.
@@ -165,7 +165,7 @@ and enables its timer after it.
 3. Checks for the forecasts (Renaud asked how, 2026-11-16): the options and Claude's
    recommendation are in `qa/published_figures_openmeteo.md` (last two sections); Renaud has not
    chosen yet.
-4. The backfill on steacher1: push main, then `ssh s 'sudo bash -s start' < deploy/wp5.10-backfill.sh`.
+4. The backfill on the server: push main, then `ssh s 'sudo bash -s start' < deploy/wp5.10-backfill.sh`.
    ENS with all 19 variables (Renaud, 2026-11-16: "all 19"; about 140 GB read, about 2 days).
    Leads beyond 48 h would cost no more reading (one chunk holds all leads), only storage.
 
@@ -180,7 +180,7 @@ the day's 10,000 calls from the Mac's IP were used.
 ### 2026-11-16, after Renaud's answers
 
 Renaud: the budget may go into the fetchers; no import of SGP's downloads; backfill everything on
-steacher1 as soon as it is online (he expects it on 2026-11-17); ENS gets more variables; he asked
+the server as soon as it is online (he expects it on 2026-11-17); ENS gets more variables; he asked
 how the forecasts can get checks. Built: the shared call ledger (choice 14), the driver and the
 root script (choice 15), ENS with 19 variables (choice 10). On the Mac: the ledger written from
 inside the runner (CAMS, 2 x 79 calls), the driver on 2 CAMS windows, 3 ENS runs with 19

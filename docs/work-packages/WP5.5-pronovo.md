@@ -23,7 +23,7 @@ The descriptor validates; a second fetch of the same window stores nothing; a sc
 days) takes about a minute; 168 checks pass (156 of them BFE's monthly volumes of its reference
 market prices, computed from the same files); 11 tests on synthetic files
 (`server/tests/test_pronovo_fetch.py`). Every definition is a draft by Claude. Not yet on
-steacher1 (WP1's week, then WP3 there).
+the server (WP1's week, then WP3 there).
 
 ## What Claude chose
 
@@ -83,4 +83,4 @@ steacher1 (WP1's week, then WP3 there).
 3. Pronovo's raw data of issued guarantees of origin (2024, 2025): larger than WebFetch can load;
    a download script in the main session, then a comparison (another set of plants: net, every
    registered plant).
-4. Backfill on steacher1 after WP1's week and WP3 there, and `review-dataset` before publishing.
+4. Backfill on the server after WP1's week and WP3 there, and `review-dataset` before publishing.

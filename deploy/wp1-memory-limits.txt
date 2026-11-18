@@ -15,7 +15,7 @@ Fast-forward
  deploy/wp1-step5-start.txt                    |  25 +++++
  deploy/wp1-step5-uid-fix.sh                   |  77 +++++++++++++
  deploy/wp1-step5-uid-fix.txt                  |   7 ++
- docs/work-packages/WP1-server-on-steacher1.md | 112 ++++++++++++++++++-
+ docs/work-packages/WP1-server-on-server.md | 112 ++++++++++++++++++-
  docs/work-packages/WP3-versions.md            | 106 ++++++++++++++++++
  13 files changed, 893 insertions(+), 21 deletions(-)
  create mode 100644 deploy/wp1-memory-limits.sh

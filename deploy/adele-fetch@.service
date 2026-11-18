@@ -1,4 +1,4 @@
-# Runs on steacher1 since 2026-11-15 (WP1). One instance per dataset: adele-fetch@<dataset id>.service,
+# Runs on the server since 2026-11-15 (WP1). One instance per dataset: adele-fetch@<dataset id>.service,
 # started every minute by adele-fetch@<dataset id>.timer (D27). Instances of different datasets
 # run side by side. systemd does not start an instance again while it runs, and the lock of the
 # dataset in the server covers the same case a second time.

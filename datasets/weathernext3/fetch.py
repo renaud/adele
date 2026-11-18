@@ -36,7 +36,7 @@ Measured 2026-11-13 (docs/weathernext3.md):
   Application Default Credentials carry a quota project, GCS bills reads to it: on the Mac its
   billing account is disabled, and every chunk read fails with 403 "The billing account for the
   owning project is disabled". So the quota project is dropped here.
-- Bandwidth: 120-150 MB/s from steacher1; 5.8 MB/s for one chunk and 10.5 MB/s for 24 chunks in
+- Bandwidth: 120-150 MB/s from the server; 5.8 MB/s for one chunk and 10.5 MB/s for 24 chunks in
   parallel from the Mac (2026-11-13): 7 min per run.
 """
 from __future__ import annotations

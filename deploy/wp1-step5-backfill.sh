@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# WP1, step 5 (docs/work-packages/WP1-server-on-steacher1.md): the backfills, then the timers.
+# WP1, step 5 (docs/work-packages/WP1-server.md): the backfills, then the timers.
 # Two modes, run as root from the repository root on the Mac:
 #   ssh s 'sudo bash -s start'  < deploy/wp1-step5-backfill.sh 2>&1 | tee deploy/wp1-step5-start.txt
 #   ssh s 'sudo bash -s finish' < deploy/wp1-step5-backfill.sh 2>&1 | tee deploy/wp1-step5-finish.txt

@@ -11,7 +11,7 @@ decided.
 - 3 datasets are in adele: `entsoe_day_ahead_prices` and `weathernext3` (no build),
   `entsoe_load` (WP3, `append-only`). The EPEX monthly report is in adele as checks of the
   day-ahead prices, not as a dataset.
-- WP1 runs its week on steacher1 until 2026-11-22. WP3 is in `main`. WP2 is decided (D22, D26),
+- WP1 runs its week on the server until 2026-11-22. WP3 is in `main`. WP2 is decided (D22, D26),
   not built.
 
 ## Goal and assumption
@@ -23,7 +23,7 @@ By the definitions of `PLAN.md`, the 18 datasets that need WP2 or WP3 belong to 
 puts them in WP5 because those builds are assumed done; `PLAN.md` is not changed. WP4 is not
 assumed: its 8 datasets and 7 others are under "Not in WP5".
 
-Each dataset: a descriptor and a `fetch.py` (`skills/add-dataset`), a backfill on steacher1
+Each dataset: a descriptor and a `fetch.py` (`skills/add-dataset`), a backfill on the server
 (`PLAN.md`). Its checks from published figures (WP8) and what its data means (WP7, Renaud's) go
 with it.
 
@@ -185,7 +185,7 @@ the zone of their days (D26: the author writes the most likely one).
 
 Built on 2026-11-16 in the worktree `wp5.10`: six datasets (ERA5 and CAMS apart), not backfilled
 (about 220,000 Open-Meteo calls, a month of the free tier; `deploy/wp5.10-backfill.sh` runs it on
-steacher1). See `WP5.10-weather-forecasts.md`.
+the server). See `WP5.10-weather-forecasts.md`.
 
 Shared: the 79 stations and their grid cells (`stations.csv`), and the run and the lead in the
 key. The three Open-Meteo datasets share one budget of 10,000 calls a day: fine with a fetch per
@@ -203,7 +203,7 @@ day. Their backfill (105,000 calls over 11 to 12 days) was a script in Renaud's 
 ## Done when
 
 - Each dataset of the sub-packages has its `datapackage.yaml` and `fetch.py`, passes
-  `uv run adele-server validate`, is backfilled on steacher1 and fetched there on its schedule.
+  `uv run adele-server validate`, is backfilled on the server and fetched there on its schedule.
 - Each has its checks from published figures (WP8), and its curation is done or on its way
   (WP7).
 
@@ -279,10 +279,10 @@ request:
 - 125 published figures as checks: 11 + 14 for CH, 100 for the neighbours.
   `qa/published_figures_entsoe_wind_solar_forecast*.md`.
 - D34: 14 CH checks read `entsoe_generation` (WP5.2), so until WP5.2 is in `main` they fail
-  where the forecast data exists without it. On steacher1, install WP5.2 with WP5.3 or before
+  where the forecast data exists without it. On the server, install WP5.2 with WP5.3 or before
   it. The server removes the declared secrets from what `fetch.py` prints.
 - `forecast_versions`: not built (open question 6).
-- Left: Renaud's review of the definitions (drafts by Claude, WP7); the backfill on steacher1
+- Left: Renaud's review of the definitions (drafts by Claude, WP7); the backfill on the server
   after WP1.
 
 ### 2026-11-16, WP5.2 in `main`
@@ -299,7 +299,7 @@ Built by Claude in the worktree `wp5.2` (2026-11-15/16), landed after WP5.3:
 - The 12 choices of the build (German border as the country DE, both directions on one row, the
   IT day-ahead of 2025 repeated in quarter-hours, ...): `docs/work-packages/WP5.2-entsoe-revised-series.md`.
 - Left: Renaud's review of the definitions (drafts by Claude, WP7); the checks of the imbalance;
-  the backfill on steacher1 after WP1.
+  the backfill on the server after WP1.
 
 ### 2026-11-16, WP5.10 in `main`
 
@@ -308,5 +308,5 @@ Built by Claude in the worktree `wp5.10`: `openmeteo_previous_runs`, `openmeteo_
 19 variables of the archive). ERA5 and CAMS are two datasets (open question 5, for that row);
 `variables.csv` went into the field descriptions. Values equal to the swissgrid project's
 downloads where it has them. The openmeteo_* fetches keep the call budget of the machine
-themselves. Not backfilled: `deploy/wp5.10-backfill.sh` runs every row on steacher1 (about 30
+themselves. Not backfilled: `deploy/wp5.10-backfill.sh` runs every row on the server (about 30
 days of Open-Meteo's free tier); see `WP5.10-weather-forecasts.md`.

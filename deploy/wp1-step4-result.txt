@@ -14,7 +14,7 @@ uv 0.9.8
 == 5. the code in /opt/adele
 Python 3.13 is already installed
 Already up to date.
-f1766c9 2026-11-15 WP1 steps 0-3: unit fixes, user claude and sc-run, systemd test on steacher1 (27 of 27)
+f1766c9 2026-11-15 WP1 steps 0-3: unit fixes, user claude and sc-run, systemd test on server (27 of 27)
 lrwxrwxrwx 1 root root 61 Nov 15 11:58 /opt/adele/server/.venv/bin/python -> /opt/uv-python/cpython-3.13.9-linux-x86_64-gnu/bin/python3.13
 == 6. config (kept if it exists: it holds the API key)
 kept: /etc/adele/adele-server.toml

@@ -8,12 +8,12 @@
   year in a zone (D26), tables without a time column (D22), an `adele:` block per table, format
   version 2. Next: the first such dataset in WP6. `docs/work-packages/WP2-table-shapes.md`"
 - SPEC.md: paste the three texts of WP4 (Adding a dataset, Storage, Revisions), in
-  `docs/work-packages/WP4-files-overwritten-or-revised.md`, section "Text for `SPEC.md`". Then
-  confirm the three points of its section "To confirm before steacher1".
+  `docs/work-packages/WP4-files-overwritten-or-revised.md`, section "Text for `SPEC.md`". (The
+  three points of "To confirm before the server": confirmed 2026-11-17, imports started the same day.)
 - PLAN.md, row WP4 (proposal): "built and in `main` (D33): raw answers (`adele.raw: keep`),
   `adele-server import`, `swissgrid_tsi`, `swissgrid_balance_daily`, `swissgrid_balance`; tried
   on the Mac. Next: Renaud confirms units, stamps, ids; step 6 (import and 7 days side by side
-  on steacher1) after WP1. `docs/work-packages/WP4-files-overwritten-or-revised.md`"
+  on the server) after WP1. `docs/work-packages/WP4-files-overwritten-or-revised.md`"
 - WP5.1 (in `main`, f7f9dbe): review the drafts of the five `datasets/entsoe_*` descriptors
   (WP7), the switch to `append-only` for the two neighbour datasets, the refresh proposals and
   finding 1 (ElCom's labels swapped for 2017-2021). "Left to do" of
@@ -21,14 +21,14 @@
 - PLAN.md, row WP5.1 (proposal): "built and in `main`: five ENTSO-E datasets (imbalance prices
   CH and neighbours, activated balancing prices, balancing state, neighbours' imbalance volume,
   installed capacity), 79 published figures as checks; backfilled on the Mac. Next: Renaud's
-  review of the drafts; install on steacher1. `docs/work-packages/WP5.1-entsoe.md`"
+  review of the drafts; install on the server. `docs/work-packages/WP5.1-entsoe.md`"
 - WP5.3 (in `main`, 2026-11-16): review the drafts of `entsoe_wind_solar_forecast` and
   `entsoe_wind_solar_forecast_neighbours` (WP7: titles, descriptions, labels, 13 warnings,
-  examples). On steacher1, install WP5.2 (`entsoe_generation`) with WP5.3 or before it (D34).
+  examples). On the server, install WP5.2 (`entsoe_generation`) with WP5.3 or before it (D34).
 - PLAN.md, row WP5.3 (proposal): "built and in `main`: ENTSO-E wind and solar forecasts (A69),
   CH and 16 neighbouring areas, `append-only`, 125 published figures as checks; backfilled on
   the Mac. `forecast_versions` not built. Next: Renaud's review of the drafts; backfill on
-  steacher1. `docs/work-packages/WP5-datasets.md`"
+  the server. `docs/work-packages/WP5-datasets.md`"
 - WP5.5 (in `main`, 53fc780): review the drafts of `pronovo_production` (WP7: titles,
   descriptions, labels, 9 warnings, 3 examples without `verified_at`) and the choices 1, 3, 4
   and 7 of `docs/work-packages/WP5.5-pronovo.md`; send any report of yours with figures from
@@ -36,18 +36,18 @@
 - PLAN.md, row WP5.5 (proposal): "built and in `main`: `pronovo_production` (production per
   technology and PV per canton at 15 minutes, capacity per month), `append-only`, 168 published
   figures as checks (156 of them BFE's reference market prices, computed from the same files);
-  backfilled on the Mac. Next: Renaud's review of the drafts; backfill on steacher1.
+  backfilled on the Mac. Next: Renaud's review of the drafts; backfill on the server.
   `docs/work-packages/WP5.5-pronovo.md`"
 - WP5.7 (in `main`, 00ca540): review the drafts of the six `datasets/meteoswiss_*` descriptors
   (WP7: titles, descriptions, warnings, examples), the zone of `meteoswiss_obs_daily`'s days
   (Europe/Zurich, assumed), and whether 2,120 checks are too many (the generator can keep a
   subset). The 9 choices and what is open: `docs/work-packages/WP5.7-meteoswiss-stations.md`.
-  Backfill on steacher1: the commands are in that file (the 10-minute decade files took 30
+  Backfill on the server: the commands are in that file (the 10-minute decade files took 30
   minutes at 3.3 MB/s on the Mac: `fetch_timeout_s` 7,200 there).
 - PLAN.md, row WP5.7 (proposal): "built and in `main`: six MeteoSwiss station datasets
   (SwissMetNet hourly, 10 minutes, daily and its reference lists; manual network; visual
   observations), 2,120 published figures from the climate bulletins as checks; backfilled on the
-  Mac. Next: Renaud's review of the drafts; backfill on steacher1.
+  Mac. Next: Renaud's review of the drafts; backfill on the server.
   `docs/work-packages/WP5.7-meteoswiss-stations.md`"
 - `skills/review-dataset` (proposal by Claude, 2026-11-16): for a dataset with reference lists,
   check that every station and parameter code of the data is in them, and the inventory dates
@@ -63,6 +63,17 @@
   Claude only on a conflict or a failure; (3) a faster suite (V0 below); (4) `merge=union` in
   `.gitattributes` for `TODOs.md` and `skills/common-traps.md`, decisions numbered at landing;
   (5) 3-4 WPs open at once instead of 10.
+
+## For other sessions: the server has no name in git (2026-11-17)
+
+- The repository is public. Renaud: everything about the machine goes into `SERVER.md` at the
+  root of the main checkout (not in git: read it there): its address, accounts, paths outside
+  adele, the other services. Tracked files say "the server", never its host name.
+  The WP1 doc is now `docs/work-packages/WP1-server.md`, and the systemd test's result is
+  `deploy/scheduling-poc/result-server.txt`. Before landing,
+  replace the host name in your new text: wp5.6 (`datasets/bfe_pv_forecast/fetch.py`, its WP
+  doc), wp5.8 (2 lines, its WP doc), wp5.9 (1 line, `datasets/dwd_gwl_hess_brezowsky/fetch.py`,
+  its WP doc).
 
 ## For other sessions: landing wp5.10 (2026-11-16)
 
@@ -151,7 +162,7 @@ inside the server (cron instead), `stale`, backups, column profiles, `search`.
    (`datasets/<id>/checks.yaml`; a drift sets the status to failing). No 3-run agent QA. The
    20 agent questions (20 of 20 right, one run each) stay as a regression set: rerun once when
    the skill or the describe card changes (about 4 USD).
-6. Linux server (steacher1, decided 2026-11-13): one week of daily fetches, unattended. Then
+6. Linux server (decided 2026-11-13): one week of daily fetches, unattended. Then
    three faults on purpose (a renamed column, a duplicated row, an undeclared zone code); each
    must set status to failing. Access: HTTPS through Caddy (decided 2026-11-13,
    `deploy/README.md`); ask IT before opening ports 80 and 443.
@@ -161,13 +172,13 @@ every fetch; agents answer the regression questions correctly; a week of daily f
 correct freshness; the three faults are caught.
 
 WeatherNext 3, the next dataset (2026-11-13: CH only, all 24 runs per day, a sample of a few
-days now, more on steacher1): notes in `docs/weathernext3.md`. Decided 2026-11-13: window on
+days now, more on the server): notes in `docs/weathernext3.md`. Decided 2026-11-13: window on
 init_time (D14), defaults of the sample plus runs of 2024-2025, `revisions: none` (fetch
 only runs not stored yet), partitions by day, a `checkpoint` column, ssrd and cloud cover
 (total, low) for now, clouds in their own table with `valid_at`; no temperature or wind yet.
 History of the clouds later. Done 2026-11-13: the sample (9 solar runs, clouds of 2 runs),
-definitions accepted 2026-11-14. Open: whether the pass-1 pull of 2026-10-28 ran on steacher1
-(Renaud checks). Done 2026-11-15: the backfill on steacher1 (the 2024-2025 runs, every run from
+definitions accepted 2026-11-14. Open: whether the pass-1 pull of 2026-10-28 ran on the server
+(Renaud checks). Done 2026-11-15: the backfill on the server (the 2024-2025 runs, every run from
 2026-11-12 00 UTC), with the clouds of all 9 sample runs (WP1 log).
 
 Packaging: one repository per dataset (decided 2026-11-13; reasons: owners without access to
@@ -194,19 +205,19 @@ versions only.
 
 Next, state at the end of 2026-11-15:
 
-- ~~A real fetch of both datasets with the code of D25 and D27~~ done on steacher1 (WP1,
+- ~~A real fetch of both datasets with the code of D25 and D27~~ done on the server (WP1,
   2026-11-15): the first scheduled weathernext3 fetch caught up `[00:24, 17:11)` in 17 pieces,
   then 17 hours of hourly fetches without a hole.
 - The work packages are in `PLAN.md`, which Renaud edits himself. Claude's proposal for the
   order of the three server builds: WP3 (versions), then WP4 (the Swissgrid files, which need
   WP3), then WP2 (table shapes). `append-only` can be built during the week of unattended
-  fetches on steacher1. Revised proposal (Claude, 2026-11-15, not decided): WP2 before WP4.
+  fetches on the server. Revised proposal (Claude, 2026-11-15, not decided): WP2 before WP4.
   WP2 is decided (D22, D26) and frees 13 datasets (9 by D22 and D26 alone: the other 4 need a
   period with its own end, a state at a date, or are derived; `docs/work-packages/WP5-datasets.md`,
   open question 2); WP4 frees 8 and has three open questions
   (raw answers G4, whole files G6, who takes over from the poller), and the Swissgrid poller
   keeps every version meanwhile. During WP1's week: WP5 on the Mac (27 datasets that fit
-  today, ENTSO-E first), installed on steacher1 after 2026-11-22.
+  today, ENTSO-E first), installed on the server after 2026-11-22.
 - The ENTSO-E series that are revised (`qa/revisions_entsoe_ch.md`, measured 2026-11-15):
   generation per type (A75), physical flows (A11), scheduled exchanges (A09), imbalance volume
   (A86). Renaud agreed to build their datasets ("b: ok, for the series that a shows to be
@@ -214,7 +225,7 @@ Next, state at the end of 2026-11-15:
   day in the worktree `wp5.2` (WP5.2), on the Mac: `entsoe_generation`, `entsoe_physical_flows`,
   `entsoe_scheduled_exchanges`, `entsoe_imbalance_volume`, backfilled from 2015, 68 published
   figures as checks (none found for the imbalance). The 12 choices of the build and what is
-  open: `docs/work-packages/WP5.2-entsoe-revised-series.md`. steacher1 after WP1. Found on the
+  open: `docs/work-packages/WP5.2-entsoe-revised-series.md`. On the server after WP1. Found on the
   way, for WP4's `swissgrid_balance` (no checks yet): ElCom's yearly counts of quarter-hours per
   bin of 100 MW beyond +-500 MW of Swissgrid's control area balance, 2017-2025, and Swissgrid's
   monthly counts of 2024-2026 (`qa/published_figures_wp52_sources.md`, section 4).
@@ -222,7 +233,7 @@ Next, state at the end of 2026-11-15:
   79 stations of the swissgrid project (`docs/work-packages/WP5.10-weather-forecasts.md`). For
   Renaud: the definitions (drafts), checks for the forecasts (options given on 2026-11-16), and
   the swissgrid project's Open-Meteo backfill, stuck since 2026-11-06 (`fetch_openmeteo.py:179`).
-  The backfill on steacher1 (all rows, about 220,000 Open-Meteo calls, about 30 days, and ENS
+  The backfill on the server (all rows, about 220,000 Open-Meteo calls, about 30 days, and ENS
   about 140 GB read) is one root script, `deploy/wp5.10-backfill.sh`, after land and push. The
   openmeteo_* fetches keep their call budget themselves, in a file shared on the machine.
 - WP5 split into datasets (Claude, 2026-11-15, at Renaud's request; a proposal, not decided):
@@ -247,11 +258,11 @@ Next, state at the end of 2026-11-15:
   2. Checks that read another dataset: yes (D34). WP5.2 is in `main` since 2026-11-16
      (5e46433): the 25 CH checks pass with `main`'s descriptors on the two backfills (Claude,
      and the WP5.2 session at its landing). A catalog without `entsoe_generation` still fails
-     the 14: on steacher1, install WP5.2 with WP5.3 or before it.
+     the 14: on the server, install WP5.2 with WP5.3 or before it.
   3. The server removes the declared secrets from what `fetch.py` prints (D34,
      `ingest.redact`). The token was printed once in Claude's session of 2026-11-15: rotate it
      if that matters.
-  Next: the backfill on steacher1 after WP1 (the neighbours: 12 windows of about 5 min).
+  Next: the backfill on the server after WP1 (the neighbours: 12 windows of about 5 min).
 - `entsoe_imbalance_volume`: write its `checks.yaml` (Renaud, 2026-11-16). Two searches found
   no published figure computed from A86 for CH (`qa/published_figures_entsoe_imbalance_volume.md`:
   ElCom and DNV use Swissgrid's data, ENTSO-E and Compass Lexecon draw CH only in charts). Ways:
@@ -281,36 +292,47 @@ Next, state at the end of 2026-11-15:
   the poller and how long both run. Also: the checks run after every fetch, changed rows or not
   (`server/src/adele_server/ingest.py`, `_settle`): 1,440 runs a day for a dataset fetched every
   minute. Measures on the poller's files use the copies in `swiss_energy_data` (WP1: nothing
-  runs on steacher1 during the week). Production waits for WP1; the poller keeps every version
+  runs on the server during the week). Production waits for WP1; the poller keeps every version
   meanwhile. Proposed way: a WP4 doc with these points, a critic, Renaud's answers, as for WP3.
 - WP4 (2026-11-15): the doc `docs/work-packages/WP4-files-overwritten-or-revised.md`, Renaud's
   "all points 1-8 ok", built and in `main` (D33, 6d213e9): `adele.raw: keep` with
   `download`/`parse`, the archive `_raw/`, `adele-server import`, the datasets `swissgrid_tsi`,
-  `swissgrid_balance_daily`, `swissgrid_balance`; tried on the Mac. Before steacher1, Renaud
+  `swissgrid_balance_daily`, `swissgrid_balance`; tried on the Mac. Before the server, Renaud
   confirms the prices in EUR/MWh, the 5-minute stamps as starts, the three ids (the doc, "To
-  confirm before steacher1"). Then step 6 of the doc after WP1: copy of the poller's archive,
+  confirm before the server"). Then step 6 of the doc after WP1: copy of the poller's archive,
   import, timers, 7 days side by side, a comparison script, the files out of the poller.
 - `PLAN.md`, the table "Order and state": updated on 2026-11-15 by Claude at Renaud's request
   (WP1 steps 0-5 done, the week runs until 2026-11-22, step 6 waits for the port; WP3 in
-  `main`, then 1-2 days of fetches on steacher1 once WP1 is done, V1 below).
-- `main` holds code that steacher1 doesn't run since 72f2b1a (D31), and WP3 (D30) since its
+  `main`, then 1-2 days of fetches on the server once WP1 is done, V1 below).
+- `main` holds code that the server doesn't run since 72f2b1a (D31), and WP3 (D30) since its
   landing on 2026-11-15 (Renaud relaxed "after the week"). A WP1 fix now comes from a branch
-  made at 32237db (`WP1-server-on-steacher1.md`).
+  made at 32237db (`WP1-server.md`).
 - WP1 closed on 2026-11-16 after 17 hours of fetches, not a week (Renaud). What waited for
-  "after WP1" or "after 2026-11-22" can start: WP3 on steacher1 (V1), WP4 step 6, WP5 on
-  steacher1. WP1's steps 6 and 8 are in V1.
-- The update of steacher1 to `main` (Claude, 2026-11-17, at Renaud's request: "let's move
+  "after WP1" or "after 2026-11-22" can start: WP3 on the server (V1), WP4 step 6, WP5 on
+  the server. WP1's steps 6 and 8 are in V1.
+- The update of the server to `main` (Claude, 2026-11-17, at Renaud's request: "let's move
   forward even if that breaks a few things"): written, not run yet. Phase A,
   `deploy/update-main.sh` (code, units, secrets, the two running timers); phase B,
   `deploy/backfill.sh` (lanes entsoe, files, ens, openmeteo, then swissgrid once Renaud has
   confirmed WP4's three points and named the poller's folder; each timer after its backfill).
   It brings the 30 datasets in `main`; WP5.6, WP5.8 and WP5.9 come later, each as one more lane.
-  Replaces the steacher1 steps of the WP3, WP4 (step 6), WP5.1 to WP5.7 and WP5.10 docs, and
+  Replaces the steps on the server of the WP3, WP4 (step 6), WP5.1 to WP5.7 and WP5.10 docs, and
   `deploy/wp5.10-backfill.sh`. After it: `describe entsoe_load` after 1-2 days (V1), WP4's 7 days
   side by side, the WP1 leftovers (V1), the CPU of about 32 ticks a minute and the memory at the
   top of the hour.
+  Ran on 2026-11-17: phase A at 16:45 UTC (f934845, 32 descriptors valid), phase B at 16:46 with
+  four lanes, then the Swissgrid lane at 16:52 (`swissgrid_tsi`: 5,556 answers imported). At
+  17:00:38 the server froze (the other site on it too) and was rebooted at 17:32: five lanes beside
+  the hourly fetches, most likely out of memory without swap (no message of the OOM killer; the
+  details are in `SERVER.md`, Incidents). The cap of 4.5 GiB per fetch unit limits each fetch,
+  not their sum. Done before 17:00: 13 datasets with their timers (14 with
+  `entsoe_day_ahead_prices` and weathernext3). Stopped midway: `entsoe_wind_solar_forecast_neighbours`,
+  the third window of `meteoswiss_smn_hourly`, `ecmwf_ifs_ens`, the Open-Meteo windows, the
+  `swissgrid_balance_daily` import. Fix (2026-11-18): `deploy/memory-guard.sh` (swap, a cap on
+  all adele fetches together, weathernext3 at minute 30), then the lanes one at a time
+  (`backfill.sh chain`), beside at most `openmeteo`.
 - WP5.1 (2026-11-16): five ENTSO-E datasets in `main` (f7f9dbe), backfilled on the Mac only (in
-  the `data_nosync/` of the worktree `.claude/worktrees/wp5.1`). For steacher1, another agent
+  the `data_nosync/` of the worktree `.claude/worktrees/wp5.1`). For the server, another agent
   (Renaud): install `entsoe_imbalance_prices`, `entsoe_activated_balancing_prices`,
   `entsoe_balancing_state`, `entsoe_imbalance_volume_neighbours`, `entsoe_installed_capacity`
   with their timers, backfill from 2014-12-31 (the first local hour of 2015), then
@@ -341,7 +363,7 @@ Next for Claude (decided 2026-11-14, not built):
 - D21, `adele.expected_spacing` in periods `{from, value}` like `resolution`: missing window
   values between the first `from` and the last stored value --> problems, status failing, count
   and ranges in `describe`. Declare it for weathernext3 (first period at 2026-11-12 for the
-  sample; PT3H from 2024-01-01 and PT1H from 2026-01-01 after the steacher1 backfill). Open:
+  sample; PT3H from 2024-01-01 and PT1H from 2026-01-01 after the backfill on the server). Open:
   how to accept a run that Google never publishes.
 - D22, tables without a time column: catalog (accept a table with neither `delivery_start` nor
   `valid_at`; no window check for it), staging without the filter on the window, a merge that
@@ -376,7 +398,7 @@ Found on 2026-11-14 by subagents (docs/datasets-inventory.md, sections 4 and 5),
   and `describe` fail); the hint when `fetch.py` returns timestamps for a date column
   (`pd.to_datetime` gives TIMESTAMP); `describe` prints the zone and the join expression.
   Built 2026-11-15 with D22 (WP2), in `main`: the 18 choices made during the build, accepted by
-  Renaud, are D32 (`docs/work-packages/WP2-table-shapes.md`). Not on steacher1, no real dataset
+  Renaud, are D32 (`docs/work-packages/WP2-table-shapes.md`). Not on the server, no real dataset
   uses it yet (WP6).
 - ~~`skills/adele/SKILL.md:38` weights by `epoch(resolution)`: 720 hours for any month~~ done in
   `wp2`: a rule says that a table by calendar period has no resolution.
@@ -396,8 +418,8 @@ periods of `every`, `adele.refresh.timeout`, a backfill that holds the lock. 317
 in `deploy/scheduling-poc/`: draft units, a test script for a Linux server, the prototypes and
 their numbers. The claims about systemd were tested in a Docker container on the Mac (systemd
 255 under emulation, 27 checks passed: `deploy/scheduling-poc/container-test/`), then on
-steacher1 (WP1 step 3, 27 of 27: `deploy/scheduling-poc/result-steacher1.txt`). One claim was
-wrong: `KillMode=mixed` does not wait for the children. Running on steacher1 since 2026-11-15
+the server (WP1 step 3, 27 of 27: `deploy/scheduling-poc/result-server.txt`). One claim was
+wrong: `KillMode=mixed` does not wait for the children. Running on the server since 2026-11-15
 (WP1).
 
 - Candidates: one timer and one service per dataset (`adele-fetch@<id>`, the subagent's
@@ -449,9 +471,9 @@ Other V0 items:
 
 ## V1
 
-- From WP1 (closed 2026-11-16, `docs/work-packages/WP1-server-on-steacher1.md`):
+- From WP1 (closed 2026-11-16, `docs/work-packages/WP1-server.md`):
   - HTTPS on another port (WP1 step 6, way b, Caddy's `tls internal`), once Renaud opens the
-    port in Infomaniak's panel: `deploy/Caddyfile` with port 8443, `tls internal` and no
+    port in the hosting provider's panel: `deploy/Caddyfile` with port 8443, `tls internal` and no
     listener on :80; `ADELE_CA_FILE` in `client/src/adele/_api.py`; a query from a laptop.
   - Faults on purpose (WP1 step 8), on the code of the next deployment, each on a copy under
     another id: a renamed column, a duplicated row, an undeclared zone code, a fetch over its
@@ -460,8 +482,8 @@ Other V0 items:
   - Two checks that WP1's 17 hours could not make: the first new delivery day of entsoe
     fetched unattended (no auction fell in them), and `oom_score_adj` 1000 on `fetch.py`
     during a fetch.
-- WP3 on steacher1, once WP1 is done (done 2026-11-16; WP3 lands in `main` on 2026-11-15:
-  Renaud relaxed the rule "after the week" of the WP1 doc): pull the code onto steacher1
+- WP3 on the server, once WP1 is done (done 2026-11-16; WP3 lands in `main` on 2026-11-15:
+  Renaud relaxed the rule "after the week" of the WP1 doc): pull the code onto the server
   (`/opt/adele`), install `datasets/entsoe_load` with its timer, backfill it from 2015, let it fetch for 1-2 days
   (Renaud: "we won't wait a week, just 1-2 days"), then check `describe` (`versions_since`, the
   count of versions), the 50 checks, and a query with `--as-of` before the last fetch. If

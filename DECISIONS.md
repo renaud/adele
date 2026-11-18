@@ -277,7 +277,7 @@ rows are cut to that gap. A fetched row whose key is stored with other values is
 nothing is written. A backfill that stops can be run again and continues where it stopped.
 
 **Why.** weathernext3 with `overwrite` re-read every run of its 12 h lookback at each hourly
-refresh: about 22 GB per hour on steacher1, for runs that never change. With `none`, each run is
+refresh: about 22 GB per hour on the server, for runs that never change. With `none`, each run is
 read once, and a run that appears late is still fetched while it is inside the lookback.
 Accepted by Renaud on 2026-11-13.
 
@@ -333,7 +333,7 @@ name is free), any other entry is a folder of datasets; a duplicate id is an err
 
 **Why.** Renaud, 2026-11-13: one repository per dataset, so that a dataset can have an owner
 without access to the server code, can be shared outside the team, and the server repository
-stays tidy. The split waits until the descriptor format has held for a week on steacher1 (POC
+stays tidy. The split waits until the descriptor format has held for a week on the server (POC
 step 6): today it changed six times (D12 to D17), and with separate repositories each change
 means one pull request per dataset. Then: `git subtree split` per dataset, a template repository,
 and `adele-server sync` with pinned tags that only the admin moves. Code from other owners runs
@@ -603,7 +603,7 @@ The cost of a tick that fetches nothing went from 0.36 s to 0.04 s of CPU (measu
 dataset). The lock: with a tick every minute, a scheduled run would have started between two
 windows of a long backfill; the next window then failed on the lock and ended the backfill.
 
-**Limits.** Nothing ran on steacher1. Root runs one command per dataset (`systemctl enable --now
+**Limits.** Nothing ran on the server. Root runs one command per dataset (`systemctl enable --now
 adele-fetch@<id>.timer`). All timers fire in the same second. A credential that is a file (the
 Google credentials) stays readable by every fetch.
 
@@ -785,7 +785,7 @@ Built: `server/src/adele_server/` (catalog, ingest, storage, checks, render, cli
 their reasons: `docs/work-packages/WP2-table-shapes.md`.
 
 **Why.** D22 and D26 left these details open; Claude chose them during the build, and Renaud
-accepted all 18 on 2026-11-15. Version 2: steacher1 runs a server that reads only version 1,
+accepted all 18 on 2026-11-15. Version 2: the server runs code that reads only version 1,
 which refuses such a descriptor instead of loading a table block and ignoring it (a resolution
 lost without an error). The defaults at package level keep the three descriptors valid without
 a change. The time of change from the file: nothing passes between two fetches (D23). A table
@@ -847,9 +847,9 @@ was tried on that copy: 2,158 TSI answers in 24 s, 1,795 daily answers in 34 s, 
 revisions found again. The year files parsed by `fetch.py` equal SED's table on all 69,696
 common quarter-hours, every column.
 
-**Limits.** Nothing ran on steacher1. The prices are converted from ct/kWh to EUR/MWh at
+**Limits.** Nothing ran on the server. The prices are converted from ct/kWh to EUR/MWh at
 ingestion, and the 5-minute stamps are read as starts of intervals: both to confirm before the
-first fetches on steacher1 (stored versions can't be converted, answer d of WP3). A dataset
+first fetches on the server (stored versions can't be converted, answer d of WP3). A dataset
 whose rows are not near the time of reception can't be imported (the window of a scheduled
 run). The checks still run after each fetch, 1,440 times a day for TSI: measured 10 ms each on
 the Mac, left as is.

@@ -1,3 +1,4 @@
 .env
 data_nosync/
 server/adele-server.toml
+SERVER.md

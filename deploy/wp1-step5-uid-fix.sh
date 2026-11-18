@@ -2,7 +2,7 @@
 # WP1, step 5: new uids for adele and adele-query.
 #
 # Step 4 gave adele the uid 999 (the first free system uid). In the Docker containers of
-# steacher.org, postgres and redis also run as uid 999, and Docker keeps the uids of the host
+# the other site, postgres and redis also run as uid 999, and Docker keeps the uids of the host
 # (no user namespace). So every process of the fetch units (fetch.py and its dependencies) has
 # the uid of the production database: it may send it signals, and the kernel's same-uid rule
 # lets it open /proc/<pid>/environ and /proc/<pid>/root of those processes. adele-query (997)

@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # adele: test the claims about systemd that the scheduling design rests on.
 #
-# STATUS: run in a container on the Mac (container-test/result-2026-11-15.txt) and on steacher1
-# (result-steacher1.txt, 2026-11-15): 27 passed, 0 failed, both times. Read it before you run it.
+# STATUS: run in a container on the Mac (container-test/result-2026-11-15.txt) and on the server
+# (result-server.txt, 2026-11-15): 27 passed, 0 failed, both times. Read it before you run it.
 # Each step prints what is expected if the claim holds ("EXPECTED") and what the server did
 # ("GOT"), and PASS or FAIL where a program can tell.
 #

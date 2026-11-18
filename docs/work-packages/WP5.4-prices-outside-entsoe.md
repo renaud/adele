@@ -14,7 +14,7 @@ measurements behind each choice are in the docstrings of the two `fetch.py`; the
 
 Both descriptors validate; a second fetch of the same window changes nothing; every check passes; 19 tests on
 synthetic files (`server/tests/test_*_fetch.py` of each). Every definition in the descriptors is a draft by Claude.
-Not yet on steacher1 (WP1 closed on 2026-11-16, so the install can start; `TODOs.md`).
+Not yet on the server (WP1 closed on 2026-11-16, so the install can start; `TODOs.md`).
 
 ## What Claude chose
 
@@ -73,4 +73,4 @@ Not yet on steacher1 (WP1 closed on 2026-11-16, so the install can start; `TODOs
 4. ElCom's weekly reports of 2023-2025 (dual price, plain means: the cleanest checks for Swissgrid).
 5. The 15-minute intraday prices: Energy-Charts' year files are hourly. A file that turns to quarter-hours stops
    `fetch.py` on purpose.
-6. Install and backfill on steacher1 (Swissgrid from 2023-01, Energy-Charts from 2014-12-31), then `adele-server check`; `review-dataset` before publishing.
+6. Install and backfill on the server (Swissgrid from 2023-01, Energy-Charts from 2014-12-31), then `adele-server check`; `review-dataset` before publishing.

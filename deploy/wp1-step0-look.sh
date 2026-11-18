@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# WP1, step 0 (docs/work-packages/WP1-server-on-steacher1.md): look at steacher1, change nothing.
+# WP1, step 0 (docs/work-packages/WP1-server.md): look at the server, change nothing.
 # No sudo. Prints no secret: only the names of the files that mention ENTSO, and the listing
 # (not the content) of the Google credentials file.
 # Run from the repository root on the Mac:   ssh s 'bash -s' < deploy/wp1-step0-look.sh

@@ -22,7 +22,7 @@ neighbours share one dataset, as the day-ahead prices do (same document A85, sam
 Each has `datapackage.yaml`, `fetch.py` (requests and the standard library only, no entsoe-py),
 passes `adele-server validate`, was fetched twice on a short window (the second fetch changed
 nothing) and backfilled on the Mac (`data_nosync/` of the worktree). Tests on synthetic answers:
-`server/tests/test_entsoe_balancing_fetch.py`. steacher1: after WP1's week (TODOs.md).
+`server/tests/test_entsoe_balancing_fetch.py`. On the server: after WP1's week (TODOs.md).
 
 ## Checked against the swissgrid project's downloads (2026-10-31 and 2026-11-01)
 
@@ -109,7 +109,7 @@ Findings:
 
 1. Renaud, after the landing: the drafts of every definition (WP7), the change to
    `append-only` for the two neighbour datasets, the refresh proposals, and finding 1 above.
-2. steacher1, after WP1's week: install and backfill the five datasets (another agent's task).
+2. On the server, after WP1's week: install and backfill the five datasets (another agent's task).
 
 Not needed for now (Renaud, 2026-11-16): copying these findings into WP5-datasets.md (open
 question 3 answered).

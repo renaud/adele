@@ -4,7 +4,7 @@
 # Structure (keys, types, refresh) by Claude, from WP4 points 1 to 8 (accepted by Renaud on
 # 2026-11-15) and the measures in docs/work-packages/WP4-files-overwritten-or-revised.md.
 # The price is converted from ct/kWh to EUR/MWh at ingestion: to confirm before the first
-# fetches on steacher1 (a later change can't convert the stored versions).
+# fetches on the server (a later change can't convert the stored versions).
 name: swissgrid_balance_daily
 title: Balance of the Swiss control area, the last 24 hours as first published (Swissgrid)  # draft by Claude
 # draft by Claude

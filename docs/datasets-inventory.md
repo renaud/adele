@@ -10,7 +10,7 @@ How it was made:
   `data/README.md`, `data/catalog.csv` (184 files, 186 million rows), `code/datasets/README.md`, and
   the docstrings of the 9 fetch scripts in `code/datasets/`.
 - Read by a research agent and not checked again by hand: every folder of SGP outside `data/` and
-  `code/datasets/` (webcams, the collectors on steacher1, the WeatherNext pulls, Carlo's repository,
+  `code/datasets/` (webcams, the collectors on the server, the WeatherNext pulls, Carlo's repository,
   `lit_search/`, `semester_project/`, `explainers/`, `talks/`).
 - Not read: the README of each folder of SGP `data/`, beyond its licence lines. Where a route is
   not known, the table says so.
@@ -104,7 +104,7 @@ worked the source out: URLs, German headers, units, signs and parsers are in `so
 | dataset | what | how it arrives | fits? |
 |---|---|---|---|
 | `control_area_balance` | balance of the control area per quarter-hour since Nov 2024: TSI, activated aFRR, mFRR and RR, IGCC netting, FRCE, provisional imbalance price | one file per year, revised in place: prices changed 4 to 7 weeks after delivery; the poller holds 23 versions of the 2026 file | no: G6, G3 |
-| `control_area_balance_daily` | the same balance, the last 24 h only | the file overwrites itself (lost after 24 h); a poller on steacher1 asks every 5 minutes and kept 1,797 versions | no: G4, G3 |
+| `control_area_balance_daily` | the same balance, the last 24 h only | the file overwrites itself (lost after 24 h); a poller on the server asks every 5 minutes and kept 1,797 versions | no: G4, G3 |
 | `total_system_imbalance` | TSI at 5-minute stamps, one quarter-hour per file (3 rows) | the file is replaced every 15 minutes (lost after 15 minutes); the same poller asks every minute and kept 2,160 versions | no: G5, G4 |
 | `energy_statistic` | production, consumption, border flows and control energy per quarter-hour since 2009 (622,268 rows), by canton since 2015 (8.2 million rows) | one xls or xlsx per year, updated each month, revised for months; the stamp marks the end of the interval until 2024 and the start from 2025 | no: G6; G3 |
 | `imbalance_prices` | imbalance prices per quarter-hour, 2023 to Sep 2026 | one xml and one xlsx per month, one zip per year | yes |
@@ -117,7 +117,7 @@ worked the source out: URLs, German headers, units, signs and parsers are in `so
 | annual reports 2011-2025 | 16,491 values with unit, period, page and quote | read out of 15 PDFs (`lit_search/G_swissgrid_financials/`) | out: G8. Its values can be checks of other datasets (D12) |
 | numbers read from Swissgrid PDFs | BGM partner meeting 2025, balancing roadmap 2026-2030, tables of the EPSR paper | by hand, from charts and tables | out: they belong to the study that compares against them |
 
-The poller (`PhaseThreeSwissgridImbalance/swissgrid_poll.py`, cron every minute on steacher1 since
+The poller (`PhaseThreeSwissgridImbalance/swissgrid_poll.py`, cron every minute on the server since
 2026-09-27) is the route of the three files that overwrite themselves. It keeps a `state.json`
 with, per file, the ETag, the time of the last change, a hash and the time of the last try, and
 one log line per fetch (35,294 lines in three weeks). adele replaces it only with G4 and G5.
@@ -306,7 +306,7 @@ each column, the number of rows and the smallest and largest value. And each col
 apart from the others, so reading the time column doesn't read the values. The cost follows the
 number of files (under 1 ms per file here), not the number of rows. Three years of day files
 (1,095) come to about 1 s per table with today's code, and to about 0.1 s from the footers. Not
-measured: a cold disk, and the disk of steacher1.
+measured: a cold disk, and the disk of the server.
 
 If it gets slow: the server is the only writer of these files. When it writes a file, it can
 write one line about it (rows, first, last, the distinct values of the window column) into a

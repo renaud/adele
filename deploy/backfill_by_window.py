@@ -14,7 +14,7 @@ runs `adele-server backfill` on one window at a time, in the order of the plan:
 One lock per window: the scheduled fetches of a dataset run between two of its windows, with the
 larger budget (DAY_CAP against BACKFILL_DAY_CAP in the openmeteo client).
 
-Usage, on steacher1 as the user adele in the sandbox of the fetch unit (deploy/wp5.10-backfill.sh):
+Usage, on the server as the user adele in the sandbox of the fetch unit (deploy/wp5.10-backfill.sh):
 
   backfill_by_window.py --bin /opt/adele/server/.venv/bin/adele-server \\
       --config /etc/adele/adele-server.toml openmeteo_previous_runs,2024-01-18,today,13 ...

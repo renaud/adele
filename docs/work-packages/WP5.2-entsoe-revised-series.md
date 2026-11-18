@@ -3,7 +3,7 @@
 Built 2026-11-15 by Claude in the worktree `wp5.2`, at Renaud's request ("build WP5.2"), from
 the sub-package WP5.2 of `docs/work-packages/WP5-datasets.md`. Renaud chose `append-only` for
 the physical flows and the scheduled exchanges too (his answer to open question 1 of that file,
-2026-11-15), so all four datasets are built. On the Mac only: steacher1 runs WP1's week until
+2026-11-15), so all four datasets are built. On the Mac only: the server runs WP1's week until
 2026-11-22.
 
 ## What exists
@@ -104,7 +104,7 @@ beyond +-500 MW, 2017-2025) are on Swissgrid's control area balance: candidates 
 - Renaud: the definitions (drafts) of the four descriptors; your own documents with figures
   computed from these series (skills/add-dataset, step 8), above all for the imbalance, which
   has no check.
-- steacher1, after WP1 (2026-11-22): pull, install the four timers, backfill from 2015 (on the
+- On the server, after WP1 (2026-11-22): pull, install the four timers, backfill from 2015 (on the
   Mac, all four in parallel: generation and imbalance 4 minutes each, flows 9, schedules 16), then
   look at the first scheduled runs and at `versions_since`.
 - `review-dataset` on the four datasets, before they are published.

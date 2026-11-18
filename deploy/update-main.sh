@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# The update of steacher1 to main (2026-11-17): WP2, WP3, WP4 in the server, 30 new datasets.
+# The update of the server to main (2026-11-17): WP2, WP3, WP4 in the server, 30 new datasets.
 # Phase A of the plan: the code, the units and the secrets. It enables no new timer: each new
 # dataset gets its timer from deploy/backfill.sh (phase B), once its backfill has ended.
 #

@@ -1,0 +1,46 @@
+Running as unit: adele-backfill-entsoe.service; invocation ID: 94b22c7448ce4ec1b1f5e354ec0ed17b
+Running as unit: adele-backfill-files.service; invocation ID: f255659835a7457e87536f044d0798e7
+Running as unit: adele-backfill-ens.service; invocation ID: bf6bd022d9664559afc9d54d36c74a77
+Running as unit: adele-backfill-openmeteo.service; invocation ID: 6b5f6537373742ae8dda3cd6743a4b98
+  UNIT                                        LOAD   ACTIVE     SUB     JOB   DESCRIPTION
+  adele-backfill-ens.service                  loaded active     running       adele: backfill lane ens (deploy/backfill.sh)
+  adele-backfill-entsoe.service               loaded active     running       adele: backfill lane entsoe (deploy/backfill.sh)
+  adele-backfill-files.service                loaded active     running       adele: backfill lane files (deploy/backfill.sh)
+  adele-backfill-openmeteo.service            loaded active     running       adele: backfill lane openmeteo (deploy/backfill.sh)
+  adele-fetch@ecmwf_ifs_ens.service           loaded activating start   start adele: fetch the dataset ecmwf_ifs_ens if its refresh is due
+  adele-fetch@entsoe_day_ahead_prices.service loaded inactive   dead          adele: fetch the dataset entsoe_day_ahead_prices if its refresh is due
+  adele-fetch@entsoe_generation.service       loaded activating start   start adele: fetch the dataset entsoe_generation if its refresh is due
+  adele-fetch@meteoswiss_obs_daily.service    loaded activating start   start adele: fetch the dataset meteoswiss_obs_daily if its refresh is due
+  adele-fetch@meteoswiss_smn_stations.service loaded inactive   dead          adele: fetch the dataset meteoswiss_smn_stations if its refresh is due
+  adele-fetch@openmeteo-backfill.service      loaded activating start   start adele: fetch the dataset openmeteo-backfill if its refresh is due
+  adele-fetch@openmeteo_cams.service          loaded activating start   start adele: fetch the dataset openmeteo_cams if its refresh is due
+  adele-fetch@openmeteo_era5.service          loaded activating start   start adele: fetch the dataset openmeteo_era5 if its refresh is due
+  adele-fetch@openmeteo_previous_runs.service loaded inactive   dead          adele: fetch the dataset openmeteo_previous_runs if its refresh is due
+  adele-fetch@openmeteo_single_runs.service   loaded activating start   start adele: fetch the dataset openmeteo_single_runs if its refresh is due
+  adele-fetch@openmeteo_stations.service      loaded activating start   start adele: fetch the dataset openmeteo_stations if its refresh is due
+  adele-fetch@weathernext3.service            loaded inactive   dead          adele: fetch the dataset weathernext3 if its refresh is due
+
+Legend: LOAD   → Reflects whether the unit definition was properly loaded.
+        ACTIVE → The high-level unit activation state, i.e. generalization of SUB.
+        SUB    → The low-level unit activation state, values depend on unit type.
+        JOB    → Pending job for the unit.
+
+16 loaded units listed.
+To show all installed unit files use 'systemctl list-unit-files'.
+-- adele-backfill-entsoe
+Started adele-backfill-entsoe.service - adele: backfill lane entsoe (deploy/backfill.sh).
+== 2026-11-17 16:46:45 start: ds entsoe_generation --start 2014-12-31
+-- adele-backfill-files
+meteoswiss_smn_stations: 1 windows, 19885 rows, 0 failed; status ok
+Created symlink /etc/systemd/system/timers.target.wants/adele-fetch@meteoswiss_smn_stations.timer → /etc/systemd/system/adele-fetch@.timer.
+== 2026-11-17 16:46:58 ok: ds meteoswiss_smn_stations --start 2026-11-01 --step-days 30
+== 2026-11-17 16:46:58 start: ds meteoswiss_obs_daily --start 2010-01-01 --step-days 7000
+-- adele-backfill-ens
+Started adele-backfill-ens.service - adele: backfill lane ens (deploy/backfill.sh).
+== 2026-11-17 16:46:46 start: ds ecmwf_ifs_ens --start 2024-04-01
+-- adele-backfill-openmeteo
+== 2026-11-17 16:46:49 start: timer openmeteo_cams
+Created symlink /etc/systemd/system/timers.target.wants/adele-fetch@openmeteo_cams.timer → /etc/systemd/system/adele-fetch@.timer.
+== 2026-11-17 16:46:49 ok: timer openmeteo_cams
+== 2026-11-17 16:46:49 start: openmeteo-windows openmeteo-backfill
+Follow: sc-run 'journalctl -u adele-backfill-entsoe -f', results: /var/lib/adele-deploy/backfill.tsv

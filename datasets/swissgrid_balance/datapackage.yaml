@@ -3,7 +3,7 @@
 # signs, the unit of the prices and the meaning of the columns come from SED
 # (sources/ch_swissgrid/README.md, source.yaml). Structure (keys, types, refresh) by Claude, from
 # WP4 points 4 to 6 (accepted by Renaud on 2026-11-15). The prices are converted from ct/kWh to
-# EUR/MWh at ingestion: to confirm before the backfill on steacher1.
+# EUR/MWh at ingestion: to confirm before the backfill on the server.
 name: swissgrid_balance
 title: Balance of the Swiss control area per quarter-hour since November 2024 (Swissgrid)  # draft by Claude
 # draft by Claude

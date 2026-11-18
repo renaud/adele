@@ -8,7 +8,7 @@ Draft by Claude, 2026-11-15. From `PLAN.md` (WP2), D22, D26, `docs/datasets-inve
 
 - Built in the worktree `wp2` (branch `wp2`, from `dd76869`), with tests on synthetic data
   (`server/tests/test_table_shapes.py`), and landed in `main` on 2026-11-15. Nothing on
-  steacher1 (it runs `32237db`), no real dataset uses it yet.
+  the server (it runs `32237db`), no real dataset uses it yet.
 - The choices that D22 and D26 left open were made by Claude during the build (list below),
   accepted by Renaud on 2026-11-15 ("18 choices accepted"): D32.
 - Open: the text for `SPEC.md` below (Renaud pastes it).
@@ -37,7 +37,7 @@ stations, tables by local day, month or year).
 ## Choices made during the build (accepted by Renaud, 2026-11-15)
 
 1. **`adele.format_version: 2`** for the new shapes: an `adele:` block per table, a date column,
-   a table without a time column. A descriptor of version 1 loads as before. Why: steacher1 runs
+   a table without a time column. A descriptor of version 1 loads as before. Why: the server runs
    `32237db`; a server that reads only version 1 refuses a descriptor of version 2. Without the
    bump it would load a table block and ignore it (a resolution lost without an error).
    `docs/datasets-inventory.md` (section 5) already said that these keys make version 2.
@@ -140,7 +140,7 @@ D32 in `DECISIONS.md`, written 2026-11-15 after Renaud accepted the 18 choices.
 - A synthetic dataset with a table by quarter-hour, by local day, by local month and without a
   time column fetches, stores, checks and describes itself (`test_table_shapes.py`).
 - Renaud has accepted or changed the choices above. Done 2026-11-15: all 18 accepted (D32).
-- The first real dataset of WP6 with such a table runs (on the Mac, then on steacher1 after
+- The first real dataset of WP6 with such a table runs (on the Mac, then on the server after
   WP1).
 
 ## Log

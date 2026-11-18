@@ -1,4 +1,4 @@
-# WP1: server on steacher1
+# WP1: server on the server
 
 Draft by Claude, 2026-11-15, not accepted. From `PLAN.md` (WP1) and `TODOs.md` (POC step 6).
 Renaud's answers of 2026-11-15 are in.
@@ -6,48 +6,48 @@ Renaud's answers of 2026-11-15 are in.
 ## Where WP1 stands (2026-11-16, 09:10 UTC): done
 
 - Closed by Renaud on 2026-11-16 after 17 hours of unattended fetches, not the week planned
-  (log, 2026-11-16). adele runs on steacher1 (`/opt/adele`, commit 32237db, the code of
+  (log, 2026-11-16). adele runs on the server (`/opt/adele`, commit 32237db, the code of
   f1766c9) with both datasets, one timer each. The timers keep running.
 - Not done in WP1, moved to `TODOs.md` (V1): HTTPS (step 6, waits for the port) and the
   faults on purpose (step 8, to run on the code of the next deployment, which is the code that
   will stay).
-- The next deployment brings `main` (WP2, WP3, WP4) to steacher1: `TODOs.md`, V1. Claude's
-  only route to steacher1 stays `/usr/local/bin/sc-run` (user `claude`, no sudo); root steps
+- The next deployment brings `main` (WP2, WP3, WP4) to the server: `TODOs.md`, V1. Claude's
+  only route to the server stays `/usr/local/bin/sc-run` (user `claude`, no sudo); root steps
   are scripts in `deploy/` that Renaud reads and runs.
 
 ## Goal
 
-adele runs on steacher1 with the two datasets that are in adele today (`entsoe_day_ahead_prices`,
+adele runs on the server with the two datasets that are in adele today (`entsoe_day_ahead_prices`,
 `weathernext3`), one systemd timer per dataset, and fetches unattended for a week. A laptop
 outside the server can query it over HTTPS.
 
 ## What is settled
 
-- Claude works on steacher1 through SSH from this machine as the user `claude`, which has no
-  sudo (Renaud, 2026-11-15, after step 0 showed that `ubuntu` has sudo without a password).
+- Claude works on the server through SSH from this machine as the user `claude`, which has no
+  sudo (Renaud, 2026-11-15, after step 0 showed what the admin account can do: `SERVER.md`).
   The user is created by `deploy/wp1-claude-user.sh`. Claude's only route is
   `/usr/local/bin/sc-run '<command>'` (owned by root, host, user and key written in it, no ssh
   option passed through); `ssh` and `scp` stay denied to Claude (see the log, 2026-11-15).
-  Renaud keeps `ssh s` (user `ubuntu`). Renaud types the `sudo` commands himself. Claude groups the root steps into
+  Renaud keeps `ssh s` (the admin account). Renaud types the `sudo` commands himself. Claude groups the root steps into
   short scripts in `deploy/`; Renaud reads each one and runs it in his own terminal on
-  steacher1. Each script writes its output to a log file in his home, which Claude reads over
+  the server. Each script writes its output to a log file in his home, which Claude reads over
   SSH.
 - The code comes from `github.com/renaud/adele` (remote added by Renaud, 2026-11-15). Renaud
-  pushes; steacher1 clones it into `/opt/adele`. The repository is public (checked 2026-11-15),
+  pushes; the server clones it into `/opt/adele`. The repository is public (checked 2026-11-15),
   so no deploy key. An update of the server is `git pull` and `uv sync` in `/opt/adele`.
-- entsoe is backfilled again on steacher1 from 2015, to test the backfill (Renaud).
-- The ENTSO-E token is in `.env` on the Mac (ignored by git), not on steacher1 (step 0). Step 4
+- entsoe is backfilled again on the server from 2015, to test the backfill (Renaud).
+- The ENTSO-E token is in `.env` on the Mac (ignored by git), not on the server (step 0). Step 4
   copies it to `/etc/adele/env.d/entsoe_day_ahead_prices` without printing it.
-- Ports 80 and 443 serve steacher.org, which nobody touches. adele gets another port, which
-  Renaud opens in Infomaniak's panel, with adele's own certificate authority (HTTPS below,
+- Ports 80 and 443 serve another site, which nobody touches. adele gets another port, which
+  Renaud opens in the hosting provider's panel, with adele's own certificate authority (HTTPS below,
   way b, Renaud 2026-11-15).
-- Google: Renaud ran `gcloud auth application-default login --no-browser` on steacher1, which
+- Google: Renaud ran `gcloud auth application-default login --no-browser` on the server, which
   writes the file that `fetch.py` reads. The file is in his home folder, which the fetch units
   can't read (`ProtectHome=yes`), so step 4 copies it to `/etc/adele/gcloud-adc.json`.
 
 ## Steps
 
-0. **Look first, change nothing.** On steacher1: what listens on 80 and 443, and which program;
+0. **Look first, change nothing.** On the server: what listens on 80 and 443, and which program;
    the OS and the systemd version; where the ENTSO-E token is; that the Google file is there;
    that port 8443 is free. If the other site runs Caddy, `apt install caddy` (as `deploy/README.md` says)
    would change its config: adele then gets a second Caddy service with its own config file.
@@ -67,7 +67,7 @@ outside the server can query it over HTTPS.
 3. **Test systemd on the real server.** Run `deploy/scheduling-poc/adele-systemd-claims-test.sh`
    (about 6 minutes, writes only under `/run`). Its claims were tested only in a container on
    the Mac. Done (2026-11-15): 27 passed, 0 failed, as in the container
-   (`deploy/scheduling-poc/result-steacher1.txt`, see the log).
+   (`deploy/scheduling-poc/result-server.txt`, see the log).
 4. **Install** as `deploy/README.md` says: users, folders, uv and a Python in `/opt/uv-python`,
    the clone in `/opt/adele`, the config, the secrets per dataset (ENTSO-E token, Google file),
    the units, `validate`. Every step that differs from the draft goes into `deploy/README.md`.
@@ -94,13 +94,13 @@ outside the server can query it over HTTPS.
 
 ## HTTPS on another port
 
-adele listens on a port such as 8443, which Renaud opens in Infomaniak's panel (limited to the
+adele listens on a port such as 8443, which Renaud opens in the hosting provider's panel (limited to the
 university network and the VPN, if IT wants that). The certificate is the difficulty: Let's
 Encrypt checks that we control the domain through port 80 or 443, and both are taken. Two ways:
 
 - a. **Check through DNS.** Caddy proves control with a record in the domain's DNS. A real
   certificate, nothing to install on the laptops. Cost: a Caddy build with the plugin of the
-  DNS provider (one exists for Infomaniak; to check), and an API token on the server that can
+  DNS provider (to check that one exists), and an API token on the server that can
   change the DNS of the domain. Risk: a stolen token can change the domain's DNS.
 - b. **adele's own certificate authority** (Caddy's `tls internal`). No DNS, no token. Cost:
   each laptop needs the root certificate of that authority, and the CLI needs a setting that
@@ -144,8 +144,7 @@ None on 2026-11-15.
   255.4-1ubuntu8.4). Clock in UTC, synchronized by NTP. 4 CPUs, 7.8 GiB RAM (5.1 available).
 - Disk: one file system, 48 GB, 38 GB used (80 %), 9.7 GB free. adele's data on the Mac is
   14 MB; the growth of weathernext3 over the week is to measure.
-- Ports 80 and 443: nginx in a Docker container (docker-proxy --> 172.20.0.2), 7 containers
-  running. No Caddy, so installing Caddy changes nothing of the other site. Nothing listens
+- Ports 80 and 443: the other site, in Docker containers (details in `SERVER.md`). No Caddy, so installing Caddy changes nothing of the other site. Nothing listens
   on 8443. Only 22, 80 and 443 listen on the network.
 - `deploy/Caddyfile` is still written for Let's Encrypt on 80/443: for way b it needs port
   8443, `tls internal`, and no listener on port 80 (Caddy opens 80 for its redirects
@@ -156,8 +155,8 @@ None on 2026-11-15.
   2026-10-26. It is a user credential: it stops working if Google ends the session.
 - ENTSO-E token: not found. No readable file under `~`, `/opt`, `/srv` or
   `/etc/environment` contains `ENTSO` (the name `fetch.py` reads is `ENTSO_TOKEN`).
-- `ubuntu` has sudo without a password, and is in the `docker` group (which also amounts to
-  root). So `ssh s` with an allow rule gives Claude root on steacher1 without a prompt.
+- The admin account of `ssh s` can become root without a prompt (`SERVER.md`). So `ssh s` with
+  an allow rule would give Claude root on the server without a prompt.
 - Auto mode refused every `ssh s ...` command, also after Renaud added `Bash(ssh s:*)` to
   `.claude/settings.local.json`.
 - No trace of adele (no `/opt/adele`, `/etc/adele`, `/var/lib/adele`, no users).
@@ -172,16 +171,17 @@ None on 2026-11-15.
   rule explains the refusals of `ssh s` at step 0 (not auto mode, as written there).
 - Rules alone can't allow only `ssh sc` (advice by Fable, from the Claude Code docs): a deny
   rule can't have an exception, and `Bash(ssh sc:*)` would not limit anything, because ssh also
-  reads options after the host (`ssh sc -l ubuntu -i ~/.ssh/id_rsa ...` matches the rule).
+  reads options after the host (`ssh sc -l <admin> -i <key> ...` matches the rule).
 - Chosen: a wrapper `/usr/local/bin/sc-run`, installed by Renaud with `sudo install -o root`.
-  It runs `/usr/bin/ssh -F none -i ~/.ssh/steacher1_claude ... -- claude@37.156.44.113 "$*"`, so
+  It runs `/usr/bin/ssh -F none -i <key> ... -- claude@<address> "$*"` (key and address in
+  `SERVER.md`), so
   `~/.ssh/config` plays no part and every argument becomes the remote command. Allowed by
   `Bash(/usr/local/bin/sc-run *)` in `.claude/settings.local.json`; the deny on `ssh` and `scp`
   is unchanged.
-- Checks: `sc-run id` prints `uid=1001(claude)`. `sc-run -l ubuntu id` fails on the server
+- Checks: `sc-run id` prints `uid=1001(claude)`. `sc-run -l <admin> id` fails on the server
   with `bash: - : invalid option` (the usage lists `--pretty-print`, which only the bash 5.2 of
-  the server has, not the bash 3.2 of the Mac): sshd runs `bash -c '-l ubuntu id'`, and bash
-  reads a command that starts with `-` as more of its own options. No login as `ubuntu`.
+  the server has, not the bash 3.2 of the Mac): sshd runs `bash -c '-l <admin> id'`, and bash
+  reads a command that starts with `-` as more of its own options. No login as another user.
 - Open: in auto mode the allow rule skips the classifier, so nothing reviews the remote
   commands; the limit is what `claude` can do. Indirect ssh (`/usr/bin/ssh`, `bash -c`, Python,
   git over ssh) is not matched by the deny rules: it asks in the default mode, and the
@@ -189,7 +189,7 @@ None on 2026-11-15.
 
 ### 2026-11-15, step 3 (systemd claims test, run by Renaud)
 
-- 27 passed, 0 failed (`deploy/scheduling-poc/result-steacher1.txt`). systemd 255.4-1ubuntu8.18,
+- 27 passed, 0 failed (`deploy/scheduling-poc/result-server.txt`). systemd 255.4-1ubuntu8.18,
   kernel 6.8. Same verdicts as the container (`container-test/result-2026-11-15.txt`), once
   the PIDs and times are masked.
 - Seen only on the server, since the container had no journal: a tick that falls while the
@@ -231,10 +231,10 @@ None on 2026-11-15.
   entsoe: `--start 2014-12-31`. weathernext3: the 2024-11-12 00 run, the 2025-11-12 00 and 03
   runs, then every run from 2026-11-12 00 UTC (three `ExecStart` lines, the first two with `-`).
 - First measures: uv built both environments in about a minute; a weathernext3 run of 2026
-  takes 47-48 s on steacher1 (the 2024 run took 236 s, environment included); the fetch uses
+  takes 47-48 s on the server (the 2024 run took 236 s, environment included); the fetch uses
   2.3 GB of memory.
 - **uid collision.** `useradd --system` gave `adele` the uid 999, and postgres and redis in the
-  Docker containers of steacher.org also run as 999 (Docker keeps the host's uids). Checked
+  Docker containers of the other site also run as 999 (Docker keeps the host's uids). Checked
   with `setpriv` as `adele` against postgres: environment not readable, root folder of the
   container not listable (Claude had predicted both readable: wrong), signals allowed. So a
   `fetch.py` or a library that calls `kill(-1, ...)` would stop the production database.
@@ -247,7 +247,7 @@ None on 2026-11-15.
   SIGTERM, and the stop's 90 s limit did not kill it (Claude's reading: the timer was set again
   with `TimeoutStartSec=infinity` from the drop-in). Way out: `systemctl kill` on the unit. To
   stop a backfill unit with these drop-ins, use `systemctl kill`, not `systemctl stop`.
-- The fix script then ran to its end on steacher1 (12:22), but its output after step 2 never
+- The fix script then ran to its end on the server (12:22), but its output after step 2 never
   reached the Mac (`deploy/wp1-step5-uid-fix.txt` stops there; the SSH session stayed open
   with no process under it). Checked over `sc-run` instead: `adele` 5100, the three folders
   owned by 5100 with their modes, `adele-server` running, both backfills started again at
@@ -283,7 +283,7 @@ None on 2026-11-15.
   `[2026-11-15 00:24, 17:11)` in 17 pieces: the 08Z and 09Z runs (279,552 rows); the runs
   from 10Z had no `success` marker yet (about 6 h after their start time); status ok.
 - Memory: the weathernext3 backfill peaked at 3.9 GB, the first scheduled fetch at 3.5 GB, on
-  a server of 7.8 GB with no swap, beside the 7 containers of steacher.org. Sampled in the
+  a server of 7.8 GB with no swap, beside the containers of the other site. Sampled in the
   unit's cgroup during that fetch: anon 2.1-2.4 GB, file cache 26 MB, so `MemoryHigh=` (which
   makes the kernel reclaim memory) would only slow the fetch down. The unit had no limit. Fix
   (Renaud asked for it): `OOMScoreAdjust=1000`, `MemoryMax=4608M` and `OOMPolicy=continue` in
@@ -305,7 +305,7 @@ None on 2026-11-15.
 - weathernext3: 18 scheduled fetches (one an hour, at about :01), all with status ok. They
   stored 19 runs, from 08Z on 2026-11-15 to 02Z on 2026-11-16, 139,776 rows each, each run
   once: no hole. A run appears about 7 hours after its start time; twice, the hourly fetch
-  found nothing new and the next one stored 2 runs. With the backfill, steacher1 holds every
+  found nothing new and the next one stored 2 runs. With the backfill, the server holds every
   run from 2026-11-12 00Z to 2026-11-16 02Z (99 runs), plus the 3 sample runs of 2024-2025.
 - entsoe: 18 scheduled fetches (one an hour, at :00), all with status ok, 0 new or changed
   rows. As expected: no auction fell in those hours (the backfill had already stored delivery

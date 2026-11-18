@@ -107,7 +107,7 @@ one run each, dev server on the Mac with data last fetched 2026-11-13 20:05 UTC.
 - q13 and q18 gave no figure from memory this time (on 2026-11-13, q13 did). One run each, so
   this can't be put down to the change.
 - q11 and q12 found that the data was a day and a half old while the status said `ok`: `stale`
-  is not built (V0, "Not in the POC"). On steacher1 the timers fetch every hour.
+  is not built (V0, "Not in the POC"). On the server the timers fetch every hour.
 - Cost: 4.59 USD against 4.31 (+7 %); 17 of the 20 questions cost more. If nothing had changed,
   each question would cost more or less with even odds, and 17 or more of 20 would happen about
   1 time in 800 (sign test), so the rise is real. The longer card is the likely cause, but the

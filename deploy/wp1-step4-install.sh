@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# WP1, step 4 (docs/work-packages/WP1-server-on-steacher1.md): install adele on steacher1, as
+# WP1, step 4 (docs/work-packages/WP1-server.md): install adele on the server, as
 # deploy/README.md says. Starts adele-server.service (on 127.0.0.1:8000 only). Enables no fetch
 # timer and fetches nothing: that is step 5. Prints no secret (not the API key, not the token).
 #
@@ -19,7 +19,7 @@ set -euo pipefail
 REPO=https://github.com/renaud/adele.git
 NEEDED_COMMIT=f1766c9          # the unit fixes of step 2
 UV_VERSION=0.9.8               # the version on the Mac
-GCLOUD_SRC=/home/ubuntu/.config/gcloud/application_default_credentials.json
+GCLOUD_SRC=$(getent passwd "${SUDO_USER:?run it with sudo}" | cut -d: -f6)/.config/gcloud/application_default_credentials.json
 DATASETS="entsoe_day_ahead_prices weathernext3"
 BIN=/opt/adele/server/.venv/bin/adele-server
 CONF=/etc/adele/adele-server.toml
@@ -29,7 +29,7 @@ export UV_PYTHON_INSTALL_DIR=/opt/uv-python   # not under /root: ProtectHome=yes
 [ -f "$GCLOUD_SRC" ] || { echo "missing: $GCLOUD_SRC"; exit 1; }
 
 echo "== 1. users"
-# Fixed uids: the first free system uid (999 on steacher1) is also the uid of postgres and redis
+# Fixed uids: the first free system uid (999 on the server) is also the uid of postgres and redis
 # in the Docker containers there (wp1-step5-uid-fix.sh). Check `ps -eo uid=` on a new server.
 id adele >/dev/null 2>&1 || useradd --system --uid 5100 --no-create-home --home-dir /nonexistent \
   --shell /usr/sbin/nologin adele
@@ -84,7 +84,7 @@ else
   key=$(python3 -c 'import secrets; print(secrets.token_urlsafe(24))')
   umask 077
   cat > "$CONF" <<EOF
-# adele on steacher1 (WP1). Written by deploy/wp1-step4-install.sh.
+# adele on the server (WP1). Written by deploy/wp1-step4-install.sh.
 datasets_dirs = ["/opt/adele/datasets"]
 data_dir = "/var/lib/adele"
 log_dir = "/var/log/adele"

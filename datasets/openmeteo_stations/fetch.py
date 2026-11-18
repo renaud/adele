@@ -89,7 +89,7 @@ _SESSION = requests.Session()
 MINUTE_CAP, HOUR_CAP, DAY_CAP = 500.0, 4000.0, 9000.0  # 9,000 x 31 days stays under the month's 300,000
 BACKFILL_DAY_CAP = 7500.0  # a window in the past stops here: the scheduled fetches find 1,500 calls left
 BACKFILL_BEFORE = dt.timedelta(days=14)  # a window that ends this long before now is a backfill
-MAX_WAIT = 20 * 60.0  # s; a longer wait fails the fetch (BudgetSpent): it may last 30 min on steacher1
+MAX_WAIT = 20 * 60.0  # s; a longer wait fails the fetch (BudgetSpent): it may last 30 min on the server
 _day_cap = DAY_CAP
 
 
@@ -106,7 +106,7 @@ def for_window(end: dt.datetime) -> None:
 
 def ledger() -> Path:
     """One line per request of every openmeteo_* fetch on this machine: time (s), calls, dataset.
-    In $XDG_STATE_HOME/adele (steacher1: the fetch unit sets XDG_STATE_HOME), else
+    In $XDG_STATE_HOME/adele (on the server: the fetch unit sets XDG_STATE_HOME), else
     ~/.local/state/adele. Lines older than 24 h are dropped."""
     base = os.environ.get("XDG_STATE_HOME") or str(Path.home() / ".local" / "state")
     return Path(base) / "adele" / "openmeteo-calls.tsv"

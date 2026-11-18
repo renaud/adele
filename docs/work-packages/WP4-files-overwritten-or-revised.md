@@ -16,9 +16,9 @@ P800D. Decision D33.
   pass in `main`. What a branch from before may hit: `TODOs.md`, "For other sessions".
 - Tried on the Mac, in a data folder of the session's scratchpad: the import of the poller's
   copy of 2026-10-17, one real fetch of TSI and daily files, the backfill of the year files
-  (log below). Nothing ran on steacher1.
+  (log below). Nothing ran on the server.
 - Next: step 6, once WP1 is done (2026-11-22 at the earliest). Before it, Renaud confirms the
-  three points under "To confirm before steacher1".
+  three points under "To confirm before the server".
 
 ## Goal
 
@@ -36,8 +36,8 @@ The three datasets (ids to be decided; `swissgrid_` as a prefix, like `entsoe_`)
 
 ## What the poller's archive shows (measured 2026-11-15)
 
-The poller runs from cron on steacher1 since 2026-09-27, as another user: the agent user can't
-read `/home/ubuntu`. The measures use the copy on the Mac
+The poller runs from cron on the server since 2026-09-27, as another user: the agent user can't
+read that user's home. The measures use the copy on the Mac
 (`_EnTr/class_/Pinson_31761_Renewables_in_Electricity Markets/practice/PhaseThreeSwissgridImbalance/data/`),
 which ends on 2026-10-17 12:35 UTC: 20.1 days. The poller keeps an answer when its sha256
 differs from the last kept answer of that file, gzipped, one file per answer. Scripts in the
@@ -53,7 +53,7 @@ scratchpad of this session, not kept.
 | `secondary-daily.csv` (`afrr_1s`, not in WP4) | 21 | 97.8 MB | 1.8 GB | 380 |
 
 (1) The file grows through the year: 1.2 MB gz per answer in October, 1.7 MB at the end of
-2025. steacher1 has 8.6 GB free; weathernext3 alone adds about 65 MB a day (WP1 log), so about
+2025. The server has 8.6 GB free; weathernext3 alone adds about 65 MB a day (WP1 log), so about
 24 GB a year. The raw answers of TSI and daily come to 0.16 GB a year.
 
 **Identical answers.** 306 of the 2,158 kept TSI answers are equal to an earlier kept answer
@@ -196,11 +196,11 @@ On the 1,972 quarter-hours that are in both:
      Renaud's edit of the poller. Risk: low; two clients ask Swissgrid for 120 bytes a minute.
    - (b) The poller stays the downloader, and adele reads its archive (the inventory's open
      question 4). Against it: two systems for good, a poller without status, alerts or sandbox,
-     and a fetch unit that would need to read `/home/ubuntu`.
+     and a fetch unit that would need to read the home of the poller's user.
    - (c) Switch at once. Risk: a defect of adele in the first days loses data that nobody else
      has.
 
-   Recommended: (a). Start: after WP1's week (2026-11-22) at the earliest, since steacher1 runs
+   Recommended: (a). Start: after WP1's week (2026-11-22) at the earliest, since the server runs
    32237db and WP4 needs `main` with WP3 and WP4. The comparison can't ask for 100 % of the
    quarter-hours (the poller missed 4.1 %): it asks that adele misses none that the poller got,
    outside a restart of adele.
@@ -218,7 +218,7 @@ On the 1,972 quarter-hours that are in both:
      published values of the daily file and the time at which each TSI value appeared.
    - (c) No import: the archive stays as files.
 
-   Recommended: (a). It needs the archive on steacher1 in a place that adele can read: Renaud
+   Recommended: (a). It needs the archive on the server in a place that adele can read: Renaud
    copies it (1.3 GB on 2026-10-17, of which 1.2 GB is the `history/` snapshot, not needed).
 
 ## Steps
@@ -234,9 +234,9 @@ On the 1,972 quarter-hours that are in both:
    `swissgrid_balance`, descriptors with definitions drafted by Claude (marked), parsers tested
    on synthetic files (`server/tests/test_swissgrid_fetch.py`). No `checks.yaml` yet (log,
    choice 6).
-5. **Import** (point 8). Done on the Mac with the copy of 2026-10-17. On steacher1: with the
+5. **Import** (point 8). Done on the Mac with the copy of 2026-10-17. On the server: with the
    whole archive, in step 6.
-6. **Side by side** on steacher1 (point 7), after WP1:
+6. **Side by side** on the server (point 7), after WP1:
    1. Renaud copies the poller's folders `total-system-imbalance/` and
       `control-area-balance-daily/` to a place that the user of adele can read.
    2. `git pull` in `/opt/adele`, `adele-server validate`.
@@ -253,7 +253,7 @@ On the 1,972 quarter-hours that are in both:
 - A dataset with `adele.raw` keeps every answer that differs from the last one, also when its
   parse fails or times out. Tests on synthetic data.
 - A revision of the year file older than 3 days reaches the `_versions` view.
-- The three datasets fetch on steacher1 on their schedule, with the poller's archive imported.
+- The three datasets fetch on the server on their schedule, with the poller's archive imported.
 - 7 days side by side: adele holds every quarter-hour that the poller got, with the same values,
   outside a restart of adele. Then the poller no longer fetches these three files.
 
@@ -273,10 +273,14 @@ On the 1,972 quarter-hours that are in both:
 
 None of design: points 1 to 8 accepted by Renaud on 2026-11-15.
 
-### To confirm before steacher1
+### To confirm before the server
+
+Confirmed by Renaud on 2026-11-17 ("1-3 ok"), before the imports on the server of the same day
+(step 6: `deploy/backfill.sh swissgrid`; `swissgrid_tsi`: 5,556 answers from 2026-09-27 09:57
+to 2026-11-17 16:50 UTC, 16,667 rows, none refused).
 
 Stored versions can't be converted later (answer d of WP3), so these come before the import and
-the first fetches on steacher1:
+the first fetches on the server:
 
 1. The prices in EUR/MWh (x10 of the ct/kWh of the files, rounded to 0.1), as SED did and as
    the ENTSO-E prices in adele are.

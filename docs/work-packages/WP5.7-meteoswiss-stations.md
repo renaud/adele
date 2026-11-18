@@ -18,7 +18,7 @@ docstrings of the `fetch.py`; the published figures in `qa/published_figures_met
 
 All six descriptors validate; a second fetch of the same window changes nothing; every check
 passes; 9 tests on synthetic files (`server/tests/test_meteoswiss_fetch.py`). Every definition in
-the descriptors is a draft by Claude. Not yet on steacher1 (WP1's week runs until 2026-11-22).
+the descriptors is a draft by Claude. Not yet on the server (WP1's week runs until 2026-11-22).
 
 ## What Claude chose
 
@@ -95,7 +95,7 @@ the descriptors is a draft by Claude. Not yet on steacher1 (WP1's week runs unti
 - The Mac downloads at 3.3 MB/s when other sessions run backfills: the 10-minute decade files take
   about 30 minutes, so the local `fetch_timeout_s` was raised to 7,200 s (gitignored config).
 
-## Backfill on steacher1 (when WP1 is done)
+## Backfill on the server (when WP1 is done)
 
 Windows that end where the decade files end, so that each decade file is read once:
 
@@ -122,7 +122,7 @@ window, 1.9 GB for the 10-minute window of 2023-2025 (`MemoryMax` of a fetch uni
    2,120 checks are too many.
 2. `WP5-datasets.md` (untracked in main): its WP5.7 rows become these six datasets.
 3. Published figures for the visual observations and the station lists: none found.
-4. `review-dataset` before publishing; then the backfill on steacher1.
+4. `review-dataset` before publishing; then the backfill on the server.
 
 ## Log
 

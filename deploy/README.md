@@ -1,4 +1,4 @@
-# Deploying adele-server on Linux (installed on steacher1 on 2026-11-15, WP1)
+# Deploying adele-server on Linux (in use on adele's server since 2026-11-15, WP1)
 
 POC step 6 (TODOs.md). The units share one install and one data folder:
 
@@ -11,7 +11,7 @@ One timer and one service per dataset (D27, 2026-11-15): fetches of different da
 by side, a slow one never delays another, and each dataset has its own journal, time limit and
 file of secrets. The timer only gives the tick: `adele.refresh.every` in the descriptor decides
 whether a fetch happens. The claims about systemd behind this were tested in a container
-(`scheduling-poc/container-test/`) and on steacher1 (`scheduling-poc/result-steacher1.txt`).
+(`scheduling-poc/container-test/`) and on the server (`scheduling-poc/result-server.txt`).
 
 The query process can't write the data, by two layers: its user (`adele-query`, group `adele`, files
 group-readable) and its mount namespace (`ReadOnlyPaths=/var/lib/adele`). DuckDB's own settings and
@@ -51,13 +51,13 @@ folder of dataset folders.
 
 ## Install
 
-The install that ran on steacher1 is `wp1-step4-install.sh` (root; it can be run again, and it
+The install that ran on the server is `wp1-step4-install.sh` (root; it can be run again, and it
 keeps an existing config). The secret that is a variable is copied first, from the admin's
 machine, never printed (see the script's header). The script, in order:
 
 1. users `adele` (uid 5100) and `adele-query` (uid 5101): system users, no home (`/nonexistent`),
    no shell. The uids are fixed because the first free system uid (999) is the uid of postgres
-   and redis in many Docker images, and Docker keeps the host's uids: on steacher1 the fetch
+   and redis in many Docker images, and Docker keeps the host's uids: on the server the fetch
    units then had the uid of the production database (`wp1-step5-uid-fix.sh`). On a new server,
    check `ps -eo uid=` first;
 2. the folders of the layout above, with their owners and modes;
@@ -103,6 +103,13 @@ memory, the kernel kills a fetch before any other process (`OOMScoreAdjust=1000`
 fetch peaks at 3.5 GB (3.9 GB for a backfill of 80 runs). A dataset or a backfill that needs more
 gets a drop-in, `/etc/systemd/system/adele-fetch@<id>.service.d/limits.conf` with `MemoryMax=`.
 
+These limits hold per fetch, not for their sum: on 2026-11-17 five backfills beside the hourly
+fetches froze the server for 30 minutes (no swap; the OOM killer never ran). `memory-guard.sh`
+adds a cap on all fetches together (`MemoryMax=4608M` and `MemorySwapMax=0` on the slice
+`system-adele\x2dfetch.slice`, through `systemctl set-property`), a swap file of 4 GiB for the
+other services, and moves weathernext3 to minute 30, away from the hourly fetches at minute 0.
+Backfills run one lane at a time (`backfill.sh chain`).
+
 The result of a fetch that has ended is in its journal. Without an enabled timer, systemd
 unloads the service once it ends, and `systemctl show` then prints default values
 (`Result=success`, no timestamps).
@@ -123,7 +130,7 @@ file to `/etc/adele/gcloud-adc.json`. If those credentials carry a quota project
 
 `uv sync` links the venv to a Python that uv installs under the home of the user who runs it,
 which `ProtectHome=yes` hides from the units. So the install sets `UV_PYTHON_INSTALL_DIR=/opt/uv-python`
-for `uv sync` too (on steacher1: `.venv/bin/python` --> `/opt/uv-python/cpython-3.13.9-linux-x86_64-gnu`).
+for `uv sync` too (on the server: `.venv/bin/python` --> `/opt/uv-python/cpython-3.13.9-linux-x86_64-gnu`).
 
 ## Update to a new `main`
 
@@ -145,12 +152,12 @@ its backfill, its timer (the items of a lane in `backfill.sh`).
 
 ## Access from outside: HTTPS through Caddy
 
-Not done, and out of date (2026-11-16). Ports 80 and 443 of steacher1 serve another site, so
+Not done, and out of date (2026-11-16). Ports 80 and 443 of the server serve another site, so
 adele gets another port with Caddy's own certificate authority (`tls internal`), not Let's
-Encrypt: way b of `docs/work-packages/WP1-server-on-steacher1.md`, step 6, moved to
+Encrypt: way b of `docs/work-packages/WP1-server.md`, step 6, moved to
 `TODOs.md` (V1). The text below is the draft of 2026-11-13.
 
-Decided 2026-11-13: steacher1 has a DNS name and can be reached from outside, so team members call
+Decided 2026-11-13: the server has a DNS name and can be reached from outside, so team members call
 the server over HTTPS. An SSH tunnel would need an SSH account per member, which is a shell: more
 access than an API key. uvicorn stays on 127.0.0.1:8000; Caddy (`deploy/Caddyfile`) terminates TLS
 and forwards. The API key travels in a header, so never over plain HTTP outside the machine.
@@ -161,9 +168,9 @@ sudo cp Caddyfile /etc/caddy/Caddyfile     # after replacing the host name
 sudo systemctl reload caddy
 ```
 
-Clients: `ADELE_URL=https://<steacher1's DNS name>`, plus their own `ADELE_API_KEY` (one key per
+Clients: `ADELE_URL=https://<the server's DNS name>`, plus their own `ADELE_API_KEY` (one key per
 person in `[keys]`, so that `queries.jsonl` says who ran what, and one key can be revoked).
 
 Before opening the ports: ask the university's IT whether ports 80 and 443 may be opened on
-steacher1, and whether to limit them to the university network and the VPN (the commented
+the server, and whether to limit them to the university network and the VPN (the commented
 `remote_ip` block in the Caddyfile).

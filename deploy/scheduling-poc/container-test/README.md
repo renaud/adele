@@ -2,7 +2,7 @@
 
 `../adele-systemd-claims-test.sh` ran once inside a Docker container on the Mac: 27 checks
 passed, 0 failed (`result-2026-11-15.txt`). It tests the claims about systemd that the choice of
-the fetch scheduling rests on. It did not run on steacher1 yet.
+the fetch scheduling rests on. It did not run on the server yet.
 
 ## What ran
 

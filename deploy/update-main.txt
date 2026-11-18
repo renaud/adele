@@ -1,4 +1,456 @@
 == 1. checks
 From https://github.com/renaud/adele
-   32237db..87bcd7c  main       -> origin/main
-FAILED at step 1: origin/main has no deploy/backfill.sh: push main first
+   87bcd7c..f934845  main       -> origin/main
+runs: 32237db 2026-11-15 WP1 step 5 done: backfills match the Mac, timers run; memory limits for the fetch units
+origin/main: f934845 2026-11-17 Deploying WP1-5 to server
+/dev/sda1        48G   39G  8.8G  82% /
+Mem:            7940        2742        4114          44        1442        5197
+== 2. stop the two timers, wait for their fetches
+no fetch runs
+== 3. backup (root only)
+-rw------- 1 root root 382086428 Nov 17 16:45 /root/adele-backup-20261117T1645Z-32237db.tgz
+== 4. code
+Updating 32237db..f934845
+Fast-forward
+ DECISIONS.md                                       |  259 +
+ PLAN.md                                            |   20 +-
+ README.md                                          |   24 +-
+ SPEC.md                                            |  110 +-
+ TODOs.md                                           |  436 +-
+ client/src/adele/_api.py                           |   11 +-
+ client/src/adele/cli.py                            |    4 +-
+ datasets/ecmwf_ifs_ens/datapackage.yaml            |  233 +
+ datasets/ecmwf_ifs_ens/fetch.py                    |  247 +
+ datasets/ecmwf_ifs_ens/stations.csv                |   80 +
+ datasets/energy_charts_intraday_prices/checks.yaml |  140 +
+ .../energy_charts_intraday_prices/datapackage.yaml |  157 +
+ datasets/energy_charts_intraday_prices/fetch.py    |  205 +
+ .../datapackage.yaml                               |  100 +
+ .../entsoe_activated_balancing_prices/fetch.py     |  207 +
+ datasets/entsoe_balancing_state/datapackage.yaml   |   80 +
+ datasets/entsoe_balancing_state/fetch.py           |  196 +
+ datasets/entsoe_day_ahead_prices/datapackage.yaml  |   34 +-
+ datasets/entsoe_generation/checks.yaml             |  446 +
+ datasets/entsoe_generation/datapackage.yaml        |   97 +
+ datasets/entsoe_generation/fetch.py                |  181 +
+ datasets/entsoe_imbalance_prices/checks.yaml       |  670 ++
+ datasets/entsoe_imbalance_prices/datapackage.yaml  |  103 +
+ datasets/entsoe_imbalance_prices/fetch.py          |  228 +
+ datasets/entsoe_imbalance_volume/datapackage.yaml  |   95 +
+ datasets/entsoe_imbalance_volume/fetch.py          |  208 +
+ .../entsoe_imbalance_volume_neighbours/checks.yaml |   44 +
+ .../datapackage.yaml                               |  117 +
+ .../entsoe_imbalance_volume_neighbours/fetch.py    |  238 +
+ datasets/entsoe_installed_capacity/checks.yaml     |  168 +
+ .../entsoe_installed_capacity/datapackage.yaml     |   71 +
+ datasets/entsoe_installed_capacity/fetch.py        |  139 +
+ datasets/entsoe_load/checks.yaml                   |  549 ++
+ datasets/entsoe_load/datapackage.yaml              |  116 +
+ datasets/entsoe_load/fetch.py                      |  169 +
+ datasets/entsoe_physical_flows/checks.yaml         |  262 +
+ datasets/entsoe_physical_flows/datapackage.yaml    |   82 +
+ datasets/entsoe_physical_flows/fetch.py            |  228 +
+ datasets/entsoe_scheduled_exchanges/checks.yaml    |  121 +
+ .../entsoe_scheduled_exchanges/datapackage.yaml    |  143 +
+ datasets/entsoe_scheduled_exchanges/fetch.py       |  257 +
+ datasets/entsoe_wind_solar_forecast/checks.yaml    |  359 +
+ .../entsoe_wind_solar_forecast/datapackage.yaml    |  128 +
+ datasets/entsoe_wind_solar_forecast/fetch.py       |  213 +
+ .../checks.yaml                                    | 1360 ++++
+ .../datapackage.yaml                               |  150 +
+ .../entsoe_wind_solar_forecast_neighbours/fetch.py |  219 +
+ datasets/meteoswiss_nime_daily/checks.yaml         | 2734 +++++++
+ datasets/meteoswiss_nime_daily/datapackage.yaml    |   99 +
+ datasets/meteoswiss_nime_daily/fetch.py            |  240 +
+ datasets/meteoswiss_obs_daily/datapackage.yaml     |   97 +
+ datasets/meteoswiss_obs_daily/fetch.py             |  216 +
+ datasets/meteoswiss_smn_daily/checks.yaml          | 8604 ++++++++++++++++++++
+ datasets/meteoswiss_smn_daily/datapackage.yaml     |  142 +
+ datasets/meteoswiss_smn_daily/fetch.py             |  210 +
+ datasets/meteoswiss_smn_hourly/checks.yaml         | 7634 +++++++++++++++++
+ datasets/meteoswiss_smn_hourly/datapackage.yaml    |  168 +
+ datasets/meteoswiss_smn_hourly/fetch.py            |  252 +
+ datasets/meteoswiss_smn_stations/datapackage.yaml  |  153 +
+ datasets/meteoswiss_smn_stations/fetch.py          |  125 +
+ datasets/meteoswiss_smn_tenmin/checks.yaml         | 2284 ++++++
+ datasets/meteoswiss_smn_tenmin/datapackage.yaml    |   73 +
+ datasets/meteoswiss_smn_tenmin/fetch.py            |  211 +
+ datasets/openmeteo_cams/datapackage.yaml           |   75 +
+ datasets/openmeteo_cams/fetch.py                   |  272 +
+ datasets/openmeteo_cams/stations.csv               |   80 +
+ datasets/openmeteo_era5/datapackage.yaml           |  136 +
+ datasets/openmeteo_era5/fetch.py                   |  294 +
+ datasets/openmeteo_era5/stations.csv               |   80 +
+ datasets/openmeteo_previous_runs/datapackage.yaml  |  208 +
+ datasets/openmeteo_previous_runs/fetch.py          |  379 +
+ datasets/openmeteo_previous_runs/stations.csv      |   80 +
+ datasets/openmeteo_single_runs/datapackage.yaml    |  150 +
+ datasets/openmeteo_single_runs/fetch.py            |  353 +
+ datasets/openmeteo_single_runs/stations.csv        |   80 +
+ datasets/openmeteo_stations/checks.yaml            |   60 +
+ datasets/openmeteo_stations/datapackage.yaml       |  121 +
+ datasets/openmeteo_stations/fetch.py               |  284 +
+ datasets/openmeteo_stations/stations.csv           |   80 +
+ datasets/pronovo_production/checks.yaml            | 1878 +++++
+ datasets/pronovo_production/datapackage.yaml       |  364 +
+ datasets/pronovo_production/fetch.py               |  579 ++
+ datasets/swissgrid_balance/datapackage.yaml        |   88 +
+ datasets/swissgrid_balance/fetch.py                |  176 +
+ datasets/swissgrid_balance_daily/datapackage.yaml  |   74 +
+ datasets/swissgrid_balance_daily/fetch.py          |  121 +
+ datasets/swissgrid_imbalance_prices/checks.yaml    |  554 ++
+ .../swissgrid_imbalance_prices/datapackage.yaml    |  132 +
+ datasets/swissgrid_imbalance_prices/fetch.py       |  215 +
+ datasets/swissgrid_tsi/datapackage.yaml            |   54 +
+ datasets/swissgrid_tsi/fetch.py                    |   97 +
+ datasets/weathernext3/datapackage.yaml             |   18 +-
+ deploy/README.md                                   |   25 +-
+ deploy/adele-fetch@.service                        |    5 +
+ deploy/backfill.sh                                 |  325 +
+ deploy/backfill_by_window.py                       |  136 +
+ deploy/update-main.sh                              |  136 +
+ deploy/update-main.txt                             |    4 +
+ deploy/wp1-memory-limits.txt                       |   47 +
+ deploy/wp5.10-backfill.sh                          |  132 +
+ docs/agent-session.svg                             |  162 +
+ docs/agentic-data-layers.md                        |   34 +
+ docs/datasets-inventory.md                         |    2 +-
+ docs/overview.md                                   |   90 +
+ docs/overview.svg                                  |  181 +
+ docs/weathernext3.md                               |    3 +
+ docs/work-packages/WP1-server-on-server.md      |   73 +-
+ docs/work-packages/WP2-table-shapes.md             |  164 +
+ docs/work-packages/WP3-versions.md                 |  395 +-
+ .../WP4-files-overwritten-or-revised.md            |  397 +
+ docs/work-packages/WP5-datasets.md                 |  312 +
+ docs/work-packages/WP5.1-entsoe.md                 |  121 +
+ docs/work-packages/WP5.10-weather-forecasts.md     |  192 +
+ docs/work-packages/WP5.2-entsoe-revised-series.md  |  133 +
+ docs/work-packages/WP5.4-prices-outside-entsoe.md  |   76 +
+ docs/work-packages/WP5.5-pronovo.md                |   86 +
+ docs/work-packages/WP5.7-meteoswiss-stations.md    |  143 +
+ qa/crosscheck_meteoswiss.csv                       |  123 +
+ qa/entsoe_day_ahead_prices.md                      |   20 +
+ qa/klimabulletin_urls.csv                          |   49 +
+ ...lished_figures_energy_charts_intraday_prices.md |   40 +
+ ...ed_figures_entsoe_activated_balancing_prices.md |   17 +
+ qa/published_figures_entsoe_balancing_state.md     |   39 +
+ qa/published_figures_entsoe_generation.md          |   40 +
+ qa/published_figures_entsoe_imbalance_prices.md    |   56 +
+ qa/published_figures_entsoe_imbalance_volume.md    |   76 +
+ ...d_figures_entsoe_imbalance_volume_neighbours.md |   29 +
+ qa/published_figures_entsoe_installed_capacity.md  |   30 +
+ qa/published_figures_entsoe_load.md                |   71 +
+ qa/published_figures_entsoe_physical_flows.md      |   59 +
+ qa/published_figures_entsoe_scheduled_exchanges.md |   46 +
+ qa/published_figures_entsoe_wind_solar_forecast.md |  103 +
+ ...igures_entsoe_wind_solar_forecast_neighbours.md |   85 +
+ qa/published_figures_meteoswiss.md                 |   87 +
+ qa/published_figures_meteoswiss_matched.csv        |  883 ++
+ qa/published_figures_meteoswiss_text.csv           |  641 ++
+ qa/published_figures_meteoswiss_typed.csv          |  243 +
+ qa/published_figures_openmeteo.md                  |   84 +
+ qa/published_figures_pronovo_production.md         |  208 +
+ qa/published_figures_swissgrid_imbalance_prices.md |   54 +
+ qa/published_figures_wp52_sources.md               |  159 +
+ qa/revisions_entsoe_ch.md                          |   46 +
+ qa/tools/compare_sgp_entsoe_wp52.py                |   74 +
+ qa/tools/compare_sgp_openmeteo.py                  |  127 +
+ qa/tools/crosscheck_meteoswiss.py                  |  249 +
+ qa/tools/klimabulletin_figures.py                  |   55 +
+ qa/tools/profile_entsoe_wp52.py                    |   86 +
+ ...ublished_check_energy_charts_intraday_prices.py |   69 +
+ qa/tools/published_check_entsoe_generation.py      |   54 +
+ .../published_check_entsoe_imbalance_volume.py     |   35 +
+ qa/tools/published_check_entsoe_load.py            |   71 +
+ qa/tools/published_check_entsoe_physical_flows.py  |   55 +
+ .../published_check_entsoe_scheduled_exchanges.py  |   43 +
+ .../published_check_entsoe_wind_solar_forecast.py  |  125 +
+ ..._check_entsoe_wind_solar_forecast_neighbours.py |  137 +
+ qa/tools/published_check_meteoswiss.py             |  118 +
+ qa/tools/published_check_pronovo_production.py     |   92 +
+ .../published_check_swissgrid_imbalance_prices.py  |  104 +
+ qa/tools/published_check_wp51.py                   |   60 +
+ qa/tools/revisions_entsoe_ch.py                    |  243 +
+ qa/tools/rmp_checks_pronovo_production.py          |   68 +
+ qa/tools/write_checks_meteoswiss.py                |  132 +
+ server/README.md                                   |   48 +-
+ server/bench/wp3_versions_storage.py               |  206 +
+ server/src/adele_server/app.py                     |   14 +-
+ server/src/adele_server/catalog.py                 |  315 +-
+ server/src/adele_server/checks.py                  |   35 +-
+ server/src/adele_server/cli.py                     |   47 +-
+ server/src/adele_server/engine.py                  |  102 +-
+ server/src/adele_server/ingest.py                  |  379 +-
+ server/src/adele_server/raw.py                     |  200 +
+ server/src/adele_server/render.py                  |  219 +-
+ server/src/adele_server/state.py                   |    5 +-
+ server/src/adele_server/storage.py                 |  229 +-
+ server/tests/test_catalog.py                       |    5 +-
+ server/tests/test_e2e.py                           |   10 +
+ .../test_energy_charts_intraday_prices_fetch.py    |  129 +
+ server/tests/test_entsoe_balancing_fetch.py        |  219 +
+ server/tests/test_entsoe_load_fetch.py             |   91 +
+ .../tests/test_entsoe_wind_solar_forecast_fetch.py |  249 +
+ server/tests/test_entsoe_wp52_fetch.py             |  334 +
+ server/tests/test_instants_and_packaging.py        |    2 +-
+ server/tests/test_meteoswiss_fetch.py              |  181 +
+ server/tests/test_openmeteo_fetch.py               |  447 +
+ server/tests/test_pronovo_fetch.py                 |  227 +
+ server/tests/test_published_checks.py              |   58 +
+ server/tests/test_raw.py                           |  506 ++
+ server/tests/test_swissgrid_fetch.py               |  204 +
+ .../tests/test_swissgrid_imbalance_prices_fetch.py |  122 +
+ server/tests/test_table_shapes.py                  |  458 ++
+ server/tests/test_versions.py                      |  340 +
+ server/tests/test_window_and_runner.py             |   32 +
+ skills/add-dataset/SKILL.md                        |   83 +-
+ skills/adele/SKILL.md                              |   41 +-
+ skills/common-traps.md                             |   25 +
+ 195 files changed, 53768 insertions(+), 481 deletions(-)
+ create mode 100644 datasets/ecmwf_ifs_ens/datapackage.yaml
+ create mode 100644 datasets/ecmwf_ifs_ens/fetch.py
+ create mode 100644 datasets/ecmwf_ifs_ens/stations.csv
+ create mode 100644 datasets/energy_charts_intraday_prices/checks.yaml
+ create mode 100644 datasets/energy_charts_intraday_prices/datapackage.yaml
+ create mode 100644 datasets/energy_charts_intraday_prices/fetch.py
+ create mode 100644 datasets/entsoe_activated_balancing_prices/datapackage.yaml
+ create mode 100644 datasets/entsoe_activated_balancing_prices/fetch.py
+ create mode 100644 datasets/entsoe_balancing_state/datapackage.yaml
+ create mode 100644 datasets/entsoe_balancing_state/fetch.py
+ create mode 100644 datasets/entsoe_generation/checks.yaml
+ create mode 100644 datasets/entsoe_generation/datapackage.yaml
+ create mode 100644 datasets/entsoe_generation/fetch.py
+ create mode 100644 datasets/entsoe_imbalance_prices/checks.yaml
+ create mode 100644 datasets/entsoe_imbalance_prices/datapackage.yaml
+ create mode 100644 datasets/entsoe_imbalance_prices/fetch.py
+ create mode 100644 datasets/entsoe_imbalance_volume/datapackage.yaml
+ create mode 100644 datasets/entsoe_imbalance_volume/fetch.py
+ create mode 100644 datasets/entsoe_imbalance_volume_neighbours/checks.yaml
+ create mode 100644 datasets/entsoe_imbalance_volume_neighbours/datapackage.yaml
+ create mode 100644 datasets/entsoe_imbalance_volume_neighbours/fetch.py
+ create mode 100644 datasets/entsoe_installed_capacity/checks.yaml
+ create mode 100644 datasets/entsoe_installed_capacity/datapackage.yaml
+ create mode 100644 datasets/entsoe_installed_capacity/fetch.py
+ create mode 100644 datasets/entsoe_load/checks.yaml
+ create mode 100644 datasets/entsoe_load/datapackage.yaml
+ create mode 100644 datasets/entsoe_load/fetch.py
+ create mode 100644 datasets/entsoe_physical_flows/checks.yaml
+ create mode 100644 datasets/entsoe_physical_flows/datapackage.yaml
+ create mode 100644 datasets/entsoe_physical_flows/fetch.py
+ create mode 100644 datasets/entsoe_scheduled_exchanges/checks.yaml
+ create mode 100644 datasets/entsoe_scheduled_exchanges/datapackage.yaml
+ create mode 100644 datasets/entsoe_scheduled_exchanges/fetch.py
+ create mode 100644 datasets/entsoe_wind_solar_forecast/checks.yaml
+ create mode 100644 datasets/entsoe_wind_solar_forecast/datapackage.yaml
+ create mode 100644 datasets/entsoe_wind_solar_forecast/fetch.py
+ create mode 100644 datasets/entsoe_wind_solar_forecast_neighbours/checks.yaml
+ create mode 100644 datasets/entsoe_wind_solar_forecast_neighbours/datapackage.yaml
+ create mode 100644 datasets/entsoe_wind_solar_forecast_neighbours/fetch.py
+ create mode 100644 datasets/meteoswiss_nime_daily/checks.yaml
+ create mode 100644 datasets/meteoswiss_nime_daily/datapackage.yaml
+ create mode 100644 datasets/meteoswiss_nime_daily/fetch.py
+ create mode 100644 datasets/meteoswiss_obs_daily/datapackage.yaml
+ create mode 100644 datasets/meteoswiss_obs_daily/fetch.py
+ create mode 100644 datasets/meteoswiss_smn_daily/checks.yaml
+ create mode 100644 datasets/meteoswiss_smn_daily/datapackage.yaml
+ create mode 100644 datasets/meteoswiss_smn_daily/fetch.py
+ create mode 100644 datasets/meteoswiss_smn_hourly/checks.yaml
+ create mode 100644 datasets/meteoswiss_smn_hourly/datapackage.yaml
+ create mode 100644 datasets/meteoswiss_smn_hourly/fetch.py
+ create mode 100644 datasets/meteoswiss_smn_stations/datapackage.yaml
+ create mode 100644 datasets/meteoswiss_smn_stations/fetch.py
+ create mode 100644 datasets/meteoswiss_smn_tenmin/checks.yaml
+ create mode 100644 datasets/meteoswiss_smn_tenmin/datapackage.yaml
+ create mode 100644 datasets/meteoswiss_smn_tenmin/fetch.py
+ create mode 100644 datasets/openmeteo_cams/datapackage.yaml
+ create mode 100644 datasets/openmeteo_cams/fetch.py
+ create mode 100644 datasets/openmeteo_cams/stations.csv
+ create mode 100644 datasets/openmeteo_era5/datapackage.yaml
+ create mode 100644 datasets/openmeteo_era5/fetch.py
+ create mode 100644 datasets/openmeteo_era5/stations.csv
+ create mode 100644 datasets/openmeteo_previous_runs/datapackage.yaml
+ create mode 100644 datasets/openmeteo_previous_runs/fetch.py
+ create mode 100644 datasets/openmeteo_previous_runs/stations.csv
+ create mode 100644 datasets/openmeteo_single_runs/datapackage.yaml
+ create mode 100644 datasets/openmeteo_single_runs/fetch.py
+ create mode 100644 datasets/openmeteo_single_runs/stations.csv
+ create mode 100644 datasets/openmeteo_stations/checks.yaml
+ create mode 100644 datasets/openmeteo_stations/datapackage.yaml
+ create mode 100644 datasets/openmeteo_stations/fetch.py
+ create mode 100644 datasets/openmeteo_stations/stations.csv
+ create mode 100644 datasets/pronovo_production/checks.yaml
+ create mode 100644 datasets/pronovo_production/datapackage.yaml
+ create mode 100644 datasets/pronovo_production/fetch.py
+ create mode 100644 datasets/swissgrid_balance/datapackage.yaml
+ create mode 100644 datasets/swissgrid_balance/fetch.py
+ create mode 100644 datasets/swissgrid_balance_daily/datapackage.yaml
+ create mode 100644 datasets/swissgrid_balance_daily/fetch.py
+ create mode 100644 datasets/swissgrid_imbalance_prices/checks.yaml
+ create mode 100644 datasets/swissgrid_imbalance_prices/datapackage.yaml
+ create mode 100644 datasets/swissgrid_imbalance_prices/fetch.py
+ create mode 100644 datasets/swissgrid_tsi/datapackage.yaml
+ create mode 100644 datasets/swissgrid_tsi/fetch.py
+ create mode 100644 deploy/backfill.sh
+ create mode 100644 deploy/backfill_by_window.py
+ create mode 100644 deploy/update-main.sh
+ create mode 100644 deploy/update-main.txt
+ create mode 100644 deploy/wp1-memory-limits.txt
+ create mode 100644 deploy/wp5.10-backfill.sh
+ create mode 100644 docs/agent-session.svg
+ create mode 100644 docs/overview.md
+ create mode 100644 docs/overview.svg
+ create mode 100644 docs/work-packages/WP2-table-shapes.md
+ create mode 100644 docs/work-packages/WP4-files-overwritten-or-revised.md
+ create mode 100644 docs/work-packages/WP5-datasets.md
+ create mode 100644 docs/work-packages/WP5.1-entsoe.md
+ create mode 100644 docs/work-packages/WP5.10-weather-forecasts.md
+ create mode 100644 docs/work-packages/WP5.2-entsoe-revised-series.md
+ create mode 100644 docs/work-packages/WP5.4-prices-outside-entsoe.md
+ create mode 100644 docs/work-packages/WP5.5-pronovo.md
+ create mode 100644 docs/work-packages/WP5.7-meteoswiss-stations.md
+ create mode 100644 qa/crosscheck_meteoswiss.csv
+ create mode 100644 qa/klimabulletin_urls.csv
+ create mode 100644 qa/published_figures_energy_charts_intraday_prices.md
+ create mode 100644 qa/published_figures_entsoe_activated_balancing_prices.md
+ create mode 100644 qa/published_figures_entsoe_balancing_state.md
+ create mode 100644 qa/published_figures_entsoe_generation.md
+ create mode 100644 qa/published_figures_entsoe_imbalance_prices.md
+ create mode 100644 qa/published_figures_entsoe_imbalance_volume.md
+ create mode 100644 qa/published_figures_entsoe_imbalance_volume_neighbours.md
+ create mode 100644 qa/published_figures_entsoe_installed_capacity.md
+ create mode 100644 qa/published_figures_entsoe_load.md
+ create mode 100644 qa/published_figures_entsoe_physical_flows.md
+ create mode 100644 qa/published_figures_entsoe_scheduled_exchanges.md
+ create mode 100644 qa/published_figures_entsoe_wind_solar_forecast.md
+ create mode 100644 qa/published_figures_entsoe_wind_solar_forecast_neighbours.md
+ create mode 100644 qa/published_figures_meteoswiss.md
+ create mode 100644 qa/published_figures_meteoswiss_matched.csv
+ create mode 100644 qa/published_figures_meteoswiss_text.csv
+ create mode 100644 qa/published_figures_meteoswiss_typed.csv
+ create mode 100644 qa/published_figures_openmeteo.md
+ create mode 100644 qa/published_figures_pronovo_production.md
+ create mode 100644 qa/published_figures_swissgrid_imbalance_prices.md
+ create mode 100644 qa/published_figures_wp52_sources.md
+ create mode 100644 qa/revisions_entsoe_ch.md
+ create mode 100644 qa/tools/compare_sgp_entsoe_wp52.py
+ create mode 100644 qa/tools/compare_sgp_openmeteo.py
+ create mode 100644 qa/tools/crosscheck_meteoswiss.py
+ create mode 100644 qa/tools/klimabulletin_figures.py
+ create mode 100644 qa/tools/profile_entsoe_wp52.py
+ create mode 100644 qa/tools/published_check_energy_charts_intraday_prices.py
+ create mode 100644 qa/tools/published_check_entsoe_generation.py
+ create mode 100644 qa/tools/published_check_entsoe_imbalance_volume.py
+ create mode 100644 qa/tools/published_check_entsoe_load.py
+ create mode 100644 qa/tools/published_check_entsoe_physical_flows.py
+ create mode 100644 qa/tools/published_check_entsoe_scheduled_exchanges.py
+ create mode 100644 qa/tools/published_check_entsoe_wind_solar_forecast.py
+ create mode 100644 qa/tools/published_check_entsoe_wind_solar_forecast_neighbours.py
+ create mode 100644 qa/tools/published_check_meteoswiss.py
+ create mode 100644 qa/tools/published_check_pronovo_production.py
+ create mode 100644 qa/tools/published_check_swissgrid_imbalance_prices.py
+ create mode 100644 qa/tools/published_check_wp51.py
+ create mode 100644 qa/tools/revisions_entsoe_ch.py
+ create mode 100644 qa/tools/rmp_checks_pronovo_production.py
+ create mode 100644 qa/tools/write_checks_meteoswiss.py
+ create mode 100644 server/bench/wp3_versions_storage.py
+ create mode 100644 server/src/adele_server/raw.py
+ create mode 100644 server/tests/test_energy_charts_intraday_prices_fetch.py
+ create mode 100644 server/tests/test_entsoe_balancing_fetch.py
+ create mode 100644 server/tests/test_entsoe_load_fetch.py
+ create mode 100644 server/tests/test_entsoe_wind_solar_forecast_fetch.py
+ create mode 100644 server/tests/test_entsoe_wp52_fetch.py
+ create mode 100644 server/tests/test_meteoswiss_fetch.py
+ create mode 100644 server/tests/test_openmeteo_fetch.py
+ create mode 100644 server/tests/test_pronovo_fetch.py
+ create mode 100644 server/tests/test_raw.py
+ create mode 100644 server/tests/test_swissgrid_fetch.py
+ create mode 100644 server/tests/test_swissgrid_imbalance_prices_fetch.py
+ create mode 100644 server/tests/test_table_shapes.py
+ create mode 100644 server/tests/test_versions.py
+now: f934845 2026-11-17 Deploying WP1-5 to server
+ deploy/adele-fetch@.service  |   5 +
+ deploy/backfill.sh           | 325 +++++++++++++++++++++++++++++++++++++++++++
+ deploy/backfill_by_window.py | 136 ++++++++++++++++++
+ deploy/update-main.sh        | 136 ++++++++++++++++++
+ deploy/update-main.txt       |   4 +
+ deploy/wp1-memory-limits.txt |  47 +++++++
+ deploy/wp5.10-backfill.sh    | 132 ++++++++++++++++++
+ 8 files changed, 809 insertions(+), 1 deletion(-)
+Resolved 58 packages in 121ms
+== 5. units
+Audited 51 packages in 166ms
+systemd-analyze verify: rc=0 (expected 0, no lines above)
+Environment=UV_CACHE_DIR=/var/cache/adele/uv UV_PYTHON_INSTALL_DIR=/opt/uv-python XDG_STATE_HOME=/var/cache/adele/state
+== 6. secrets (names only, never values)
+entsoe_activated_balancing_prices: ENTSO_TOKEN copied from entsoe_day_ahead_prices
+entsoe_balancing_state: ENTSO_TOKEN copied from entsoe_activated_balancing_prices
+entsoe_day_ahead_prices: ENTSO_TOKEN there
+entsoe_generation: ENTSO_TOKEN copied from entsoe_activated_balancing_prices
+entsoe_imbalance_prices: ENTSO_TOKEN copied from entsoe_activated_balancing_prices
+entsoe_imbalance_volume: ENTSO_TOKEN copied from entsoe_activated_balancing_prices
+entsoe_imbalance_volume_neighbours: ENTSO_TOKEN copied from entsoe_activated_balancing_prices
+entsoe_installed_capacity: ENTSO_TOKEN copied from entsoe_activated_balancing_prices
+entsoe_load: ENTSO_TOKEN copied from entsoe_activated_balancing_prices
+entsoe_physical_flows: ENTSO_TOKEN copied from entsoe_activated_balancing_prices
+entsoe_scheduled_exchanges: ENTSO_TOKEN copied from entsoe_activated_balancing_prices
+entsoe_wind_solar_forecast: ENTSO_TOKEN copied from entsoe_activated_balancing_prices
+entsoe_wind_solar_forecast_neighbours: ENTSO_TOKEN copied from entsoe_activated_balancing_prices
+weathernext3: GOOGLE_APPLICATION_CREDENTIALS there
+total 56
+-rw------- 1 root root 49 Nov 17 16:45 entsoe_activated_balancing_prices
+-rw------- 1 root root 49 Nov 17 16:45 entsoe_balancing_state
+-rw------- 1 root root 49 Nov 15 12:02 entsoe_day_ahead_prices
+-rw------- 1 root root 49 Nov 17 16:45 entsoe_generation
+-rw------- 1 root root 49 Nov 17 16:45 entsoe_imbalance_prices
+-rw------- 1 root root 49 Nov 17 16:45 entsoe_imbalance_volume
+-rw------- 1 root root 49 Nov 17 16:45 entsoe_imbalance_volume_neighbours
+-rw------- 1 root root 49 Nov 17 16:45 entsoe_installed_capacity
+-rw------- 1 root root 49 Nov 17 16:45 entsoe_load
+-rw------- 1 root root 49 Nov 17 16:45 entsoe_physical_flows
+-rw------- 1 root root 49 Nov 17 16:45 entsoe_scheduled_exchanges
+-rw------- 1 root root 49 Nov 17 16:45 entsoe_wind_solar_forecast
+-rw------- 1 root root 49 Nov 17 16:45 entsoe_wind_solar_forecast_neighbours
+-rw------- 1 root root 58 Nov 15 12:02 weathernext3
+== 7. validate, as adele
+ok  ecmwf_ifs_ens: tables ecmwf_ifs_ens.three_hourly, ecmwf_ifs_ens.instant, ecmwf_ifs_ens.stations
+ok  energy_charts_intraday_prices: tables energy_charts_intraday_prices.prices
+ok  entsoe_activated_balancing_prices: tables entsoe_activated_balancing_prices.prices
+ok  entsoe_balancing_state: tables entsoe_balancing_state.state
+ok  entsoe_day_ahead_prices: tables entsoe_day_ahead_prices.prices
+ok  entsoe_generation: tables entsoe_generation.generation
+ok  entsoe_imbalance_prices: tables entsoe_imbalance_prices.prices
+ok  entsoe_imbalance_volume: tables entsoe_imbalance_volume.imbalance
+ok  entsoe_imbalance_volume_neighbours: tables entsoe_imbalance_volume_neighbours.volumes
+ok  entsoe_installed_capacity: tables entsoe_installed_capacity.capacity
+ok  entsoe_load: tables entsoe_load.actual, entsoe_load.forecast
+ok  entsoe_physical_flows: tables entsoe_physical_flows.flows
+ok  entsoe_scheduled_exchanges: tables entsoe_scheduled_exchanges.day_ahead, entsoe_scheduled_exchanges.total
+ok  entsoe_wind_solar_forecast: tables entsoe_wind_solar_forecast.forecast
+ok  entsoe_wind_solar_forecast_neighbours: tables entsoe_wind_solar_forecast_neighbours.forecast
+ok  meteoswiss_nime_daily: tables meteoswiss_nime_daily.measurements, meteoswiss_nime_daily.stations
+ok  meteoswiss_obs_daily: tables meteoswiss_obs_daily.measurements
+ok  meteoswiss_smn_daily: tables meteoswiss_smn_daily.measurements
+ok  meteoswiss_smn_hourly: tables meteoswiss_smn_hourly.measurements, meteoswiss_smn_hourly.snow_depth
+ok  meteoswiss_smn_stations: tables meteoswiss_smn_stations.stations, meteoswiss_smn_stations.parameters, meteoswiss_smn_stations.inventory
+ok  meteoswiss_smn_tenmin: tables meteoswiss_smn_tenmin.measurements
+ok  openmeteo_cams: tables openmeteo_cams.instant
+ok  openmeteo_era5: tables openmeteo_era5.hourly, openmeteo_era5.instant
+ok  openmeteo_previous_runs: tables openmeteo_previous_runs.hourly, openmeteo_previous_runs.instant
+ok  openmeteo_single_runs: tables openmeteo_single_runs.hourly, openmeteo_single_runs.instant
+ok  openmeteo_stations: tables openmeteo_stations.stations, openmeteo_stations.cells
+ok  pronovo_production: tables pronovo_production.by_technology, pronovo_production.pv_by_canton, pronovo_production.capacity_by_technology, pronovo_production.pv_capacity_by_canton
+ok  swissgrid_balance: tables swissgrid_balance.balance
+ok  swissgrid_balance_daily: tables swissgrid_balance_daily.balance
+ok  swissgrid_imbalance_prices: tables swissgrid_imbalance_prices.prices
+ok  swissgrid_tsi: tables swissgrid_tsi.tsi
+ok  weathernext3: tables weathernext3.solar_radiation, weathernext3.weather
+== 8. the query server
+{"ok":true,"datasets":{"ecmwf_ifs_ens":"failing","energy_charts_intraday_prices":"failing","entsoe_activated_balancing_prices":"failing","entsoe_balancing_state":"failing","entsoe_day_ahead_prices":"ok","entsoe_generation":"failing","entsoe_imbalance_prices":"failing","entsoe_imbalance_volume":"failing","entsoe_imbalance_volume_neighbours":"failing","entsoe_installed_capacity":"failing","entsoe_load":"failing","entsoe_physical_flows":"failing","entsoe_scheduled_exchanges":"failing","entsoe_wind_solar_forecast":"failing","entsoe_wind_solar_forecast_neighbours":"failing","meteoswiss_nime_daily":"failing","meteoswiss_obs_daily":"failing","meteoswiss_smn_daily":"failing","meteoswiss_smn_hourly":"failing","meteoswiss_smn_stations":"failing","meteoswiss_smn_tenmin":"failing","openmeteo_cams":"failing","openmeteo_era5":"failing","openmeteo_previous_runs":"failing","openmeteo_single_runs":"failing","openmeteo_stations":"failing","pronovo_production":"failing","swissgrid_balance":"failing","swissgrid_balance_daily":"failing","swissgrid_imbalance_prices":"failing","swissgrid_tsi":"failing","weathernext3":"ok"}}
+== 9. the two timers again
+NEXT LEFT LAST                          PASSED UNIT                                      ACTIVATES
+-       - Tue 2026-11-17 16:46:07 UTC 28ms ago adele-fetch@entsoe_day_ahead_prices.timer adele-fetch@entsoe_day_ahead_prices.service
+-       - Tue 2026-11-17 16:46:07 UTC 12ms ago adele-fetch@weathernext3.timer            adele-fetch@weathernext3.service
+
+2 timers listed.
+== done. Backup: /root/adele-backup-20261117T1645Z-32237db.tgz. Next: phase B, deploy/backfill.sh

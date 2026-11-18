@@ -4,10 +4,10 @@ Status: draft by Claude, 2026-11-13, for discussion. Sources: the swissgrid proj
 (`semester_project/sem project/03_WN3/README.md` and `WN3.md`, `pull_wn3_box.py`, the extract
 `wn3_stats_ch_20260903_00.parquet`), and the sample dataset `datasets/weathernext3/` built the same
 day. Renaud's answers (2026-11-13): CH only, all 24 runs per day, earlier runs (2024-2025) too,
-a few hours of runs from the Mac for now and the backfill on steacher1 (the adele Linux server),
+a few hours of runs from the Mac for now and the backfill on the server,
 which is reachable from outside. Defaults below confirmed the same day. Then "just ssrd and
 clouds": no temperature, no wind, no direct radiation; cloud cover goes to a second table of
-instants (`weather`, time column `valid_at`). Open: the pass-1 pull on steacher1 (question 6), who
+instants (`weather`, time column `valid_at`). Open: the pass-1 pull on the server (question 6), who
 reads it (question 10), Renaud's review of the draft definitions in the descriptor.
 
 ## Sample dataset (2026-11-13)
@@ -69,7 +69,7 @@ Defaults chosen by Claude, confirmed by Renaud on 2026-11-13 ("ok, but earlier r
   it: runs stored before the clouds were added get their clouds on the next fetch of their window
   (their solar rows come again, are equal, and are skipped).
 - Cost with 12 fields (4 ssrd + 8 cloud; 13.3 GB read per run, about 110 s at 120 MB/s): about
-  320 GB read per day live (24 runs, about 45 min of transfer per day on steacher1). Backfill:
+  320 GB read per day live (24 runs, about 45 min of transfer per day on the server). Backfill:
   2024-2025 78 TB (about 180 h), 2026 about 116 TB per year (about 270 h). From the Mac (12 MB/s):
   about 18 min per run.
 - `adele.partition: day` (agreed 2026-11-13): one file per init day (1.7 million rows, about 23
@@ -87,7 +87,7 @@ Defaults chosen by Claude, confirmed by Renaud on 2026-11-13 ("ok, but earlier r
   Google's terms. The query footer printed all 8 warnings; once D20 is built, only the warnings
   marked `footer: true` go there.
 
-Backfill on steacher1 (one run = 13.3 GB with the clouds, about 110 s at 120 MB/s). A window of
+Backfill on the server (one run = 13.3 GB with the clouds, about 110 s at 120 MB/s). A window of
 12 h in 2024-2025 (4 runs) or 6 h from 2026 (6 runs, about 11 min) keeps each fetch call below the
 time limit of 30 min. A backfill that stops (or fails on a window) continues where it stopped when
 it is run again with the same arguments:
@@ -142,7 +142,7 @@ Measured 2026-11-13 (from the Mac):
   2025: consolidated stores, 8 inits per day. 2026: one store per init, 24 inits per day.
   Reading needs Google credentials; requester pays is off (never pass a billing project).
 - A chunk is one global field for one lead (23 MB). A box or a point costs whole globes:
-  bytes = fields x leads x 23 MB. Measured: 120-150 MB/s from steacher1; from the Mac 0.34 MB/s
+  bytes = fields x leads x 23 MB. Measured: 120-150 MB/s from the server; from the Mac 0.34 MB/s
   once, 10.5 MB/s on 2026-11-13 (24 chunks in parallel).
 - Licence: values that relate to a time 1 h ago or more are CC BY 4.0. Newer values (every
   forecast of the future) fall under Google's experimental terms: internal use allowed,
@@ -226,7 +226,7 @@ Measured 2026-11-13 (from the Mac):
    day, another store layout)? Jan-Jun 2026 left out, or kept with a `checkpoint` column?
    Answered 2026-11-13: earlier runs too. The `checkpoint` column is proposed, to confirm.
 5. Where the fetch runs: it needs Google credentials and about 120 MB/s. Is the adele Linux
-   server steacher1? Answered 2026-11-13: yes.
+   server of adele? Answered 2026-11-13: yes.
 6. Has the pass-1 pull of 2026-10-28 (12.6 TB from 2026-07-01, one file per run) run, and where
    are its files? A first `fetch.py` could read them instead of GCS.
 7. Fetch window on the init time (`adele.window: init_time`): agreed? Answered 2026-11-13: yes.

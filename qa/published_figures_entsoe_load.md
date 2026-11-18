@@ -68,4 +68,4 @@ The swissgrid project found 2015 and 2022 "about 1 h late", 2016-2021 "not settl
 stamps from 2023 (from the time of the morning rise), and moved nothing; for January-August
 2023 it only assumed that the actual load is end-stamped. Whether to move the forecast in
 2015-2018, and whether to keep the move of the actual in January-August 2023, is for Renaud to
-decide before the backfill on steacher1 (WP3-versions.md, open questions).
+decide before the backfill on the server (WP3-versions.md, open questions).

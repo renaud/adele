@@ -74,18 +74,18 @@ PASS
 EXPECTED: 3 runs (at most 4), not 7; no two starts closer than 12 s; the journal of the timer has no line for a dropped tick
 GOT:      3 runs, start times (s): 1794742575 1794742587 1794742599 
 PASS
-Nov 15 11:36:15.128703 steacher1 systemd[1]: Starting adelepoc1636666-tick.service - adele test: a oneshot unit that runs for 12 s, started by a timer every 5 s...
-Nov 15 11:36:27.137156 steacher1 systemd[1]: adelepoc1636666-tick.service: Deactivated successfully.
-Nov 15 11:36:27.137665 steacher1 systemd[1]: Finished adelepoc1636666-tick.service - adele test: a oneshot unit that runs for 12 s, started by a timer every 5 s.
-Nov 15 11:36:27.153206 steacher1 systemd[1]: Starting adelepoc1636666-tick.service - adele test: a oneshot unit that runs for 12 s, started by a timer every 5 s...
-Nov 15 11:36:39.161402 steacher1 systemd[1]: adelepoc1636666-tick.service: Deactivated successfully.
-Nov 15 11:36:39.161765 steacher1 systemd[1]: Finished adelepoc1636666-tick.service - adele test: a oneshot unit that runs for 12 s, started by a timer every 5 s.
-Nov 15 11:36:39.175822 steacher1 systemd[1]: Starting adelepoc1636666-tick.service - adele test: a oneshot unit that runs for 12 s, started by a timer every 5 s...
-Nov 15 11:36:46.665576 steacher1 systemd[1]: adelepoc1636666-tick.timer: Deactivated successfully.
-Nov 15 11:36:46.665650 steacher1 systemd[1]: Stopped adelepoc1636666-tick.timer - adele test: every 5 seconds.
-Nov 15 11:36:46.668116 steacher1 systemd[1]: adelepoc1636666-tick.service: Main process exited, code=killed, status=15/TERM
-Nov 15 11:36:46.668226 steacher1 systemd[1]: adelepoc1636666-tick.service: Failed with result 'signal'.
-Nov 15 11:36:46.668658 steacher1 systemd[1]: Stopped adelepoc1636666-tick.service - adele test: a oneshot unit that runs for 12 s, started by a timer every 5 s.
+Nov 15 11:36:15.128703 server systemd[1]: Starting adelepoc1636666-tick.service - adele test: a oneshot unit that runs for 12 s, started by a timer every 5 s...
+Nov 15 11:36:27.137156 server systemd[1]: adelepoc1636666-tick.service: Deactivated successfully.
+Nov 15 11:36:27.137665 server systemd[1]: Finished adelepoc1636666-tick.service - adele test: a oneshot unit that runs for 12 s, started by a timer every 5 s.
+Nov 15 11:36:27.153206 server systemd[1]: Starting adelepoc1636666-tick.service - adele test: a oneshot unit that runs for 12 s, started by a timer every 5 s...
+Nov 15 11:36:39.161402 server systemd[1]: adelepoc1636666-tick.service: Deactivated successfully.
+Nov 15 11:36:39.161765 server systemd[1]: Finished adelepoc1636666-tick.service - adele test: a oneshot unit that runs for 12 s, started by a timer every 5 s.
+Nov 15 11:36:39.175822 server systemd[1]: Starting adelepoc1636666-tick.service - adele test: a oneshot unit that runs for 12 s, started by a timer every 5 s...
+Nov 15 11:36:46.665576 server systemd[1]: adelepoc1636666-tick.timer: Deactivated successfully.
+Nov 15 11:36:46.665650 server systemd[1]: Stopped adelepoc1636666-tick.timer - adele test: every 5 seconds.
+Nov 15 11:36:46.668116 server systemd[1]: adelepoc1636666-tick.service: Main process exited, code=killed, status=15/TERM
+Nov 15 11:36:46.668226 server systemd[1]: adelepoc1636666-tick.service: Failed with result 'signal'.
+Nov 15 11:36:46.668658 server systemd[1]: Stopped adelepoc1636666-tick.service - adele test: a oneshot unit that runs for 12 s, started by a timer every 5 s.
 
 == 4. Template unit: one instance per dataset, side by side; a running instance is not started twice (B and D; R2, R3, R6)
 EXPECTED: 2 lines: 'aaa start uid=65534' and 'bbb start uid=65534' (both run at once; no second aaa)
@@ -96,8 +96,8 @@ EXPECTED: two units listed as activating
   adelepoc1636666-fetch@aaa.service loaded activating start start adele test: template unit, one instance per dataset (aaa)
   adelepoc1636666-fetch@bbb.service loaded activating start start adele test: template unit, one instance per dataset (bbb)
 EXPECTED: the journal of one instance holds only its own lines (what a person reads per dataset)
-Nov 15 11:36:48.558468 steacher1 systemd[1]: /run/systemd/system/adelepoc1636666-fetch@.service:5: Special user nobody configured, this is not safe!
-Nov 15 11:36:48.572759 steacher1 systemd[1]: Starting adelepoc1636666-fetch@aaa.service - adele test: template unit, one instance per dataset (aaa)...
+Nov 15 11:36:48.558468 server systemd[1]: /run/systemd/system/adelepoc1636666-fetch@.service:5: Special user nobody configured, this is not safe!
+Nov 15 11:36:48.572759 server systemd[1]: Starting adelepoc1636666-fetch@aaa.service - adele test: template unit, one instance per dataset (aaa)...
 
 == 5. A user who is not root may not start a unit (D: what right does the tick need?)
 EXPECTED: refused, rc not 0, a message such as 'Interactive authentication required' or 'Access denied'; no line 'denied start' in inst.log

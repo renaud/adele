@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
-# The update of steacher1 to main (2026-11-17), phase B: the backfills of the new datasets, then
+# The update of the server to main (2026-11-17), phase B: the backfills of the new datasets, then
 # the timer of each. Phase A (deploy/update-main.sh) must have run. This script runs from the
-# checkout on steacher1, as root:
+# checkout on the server, as root:
 #   ssh s 'sudo bash /opt/adele/deploy/backfill.sh start' 2>&1 | tee deploy/backfill-start.txt
+#   ssh s 'sudo bash /opt/adele/deploy/backfill.sh chain entsoe files ens' 2>&1 | tee deploy/backfill-chain.txt
 #   ssh s 'sudo bash /opt/adele/deploy/backfill.sh swissgrid <folder>' 2>&1 | tee deploy/backfill-swissgrid.txt
 #   ssh s 'sudo bash /opt/adele/deploy/backfill.sh report' 2>&1 | tee deploy/backfill-report.txt
 #   ssh s 'sudo bash /opt/adele/deploy/backfill.sh stop'
@@ -28,8 +29,12 @@
 #   Each result is a line of /var/lib/adele-deploy/backfill.tsv (readable by Claude with sc-run).
 #   A lane started again skips the items written there as ok: after a fix or a reboot, `start`
 #   again.
+# chain <lane> ...: the lanes one after the other, in one unit (adele-backfill-chain). Since the
+#   freeze of 2026-11-17 (five lanes at once beside the hourly fetches, at 17:00 UTC): one lane
+#   at a time, beside at most openmeteo (light: one window of station points at a time), and
+#   only with the memory cap of deploy/memory-guard.sh.
 # swissgrid <folder>: WP4 step 6, after Renaud's three confirmations (WP4 doc, "To confirm before
-#   steacher1"). <folder> holds the poller's folders total-system-imbalance/ and
+#   the server"). <folder> holds the poller's folders total-system-imbalance/ and
 #   control-area-balance-daily/. They are copied to /srv/adele-import/swissgrid-poller/ (the
 #   fetch units can't read /home), then the lane swissgrid: the two imports, their timers, the
 #   backfill of swissgrid_balance, its timer.
@@ -159,10 +164,14 @@ record() {  # $1: result, $2: item
   echo "== $(now) $1: $2"
 }
 
-lane() {  # runs inside adele-backfill-<lane>.service
+lane() {  # runs inside adele-backfill-<lane>.service or adele-backfill-chain.service: the lanes in turn
+  for l in "$@"; do run_lane "$l"; done
+}
+
+run_lane() {
   LANE=$1
   local items kind id rest item rc t0 failed=" "
-  items=$(lane_items "$LANE") || { echo "unknown lane $LANE"; exit 64; }
+  items=$(lane_items "$LANE") || { echo "unknown lane $LANE"; return 64; }
   install -d -m 0755 "$STATE"; touch "$RESULTS"; chmod 0644 "$RESULTS"
   while read -r kind id rest <&3; do
     [ -n "$kind" ] || continue
@@ -229,6 +238,16 @@ start() {
   local lanes=${*:-$LANES}
   for l in $lanes; do start_lane "$l"; done
   show_started $lanes
+}
+
+chain() {  # the lanes one after the other, in one unit: adele-backfill-chain
+  [ $# -gt 0 ] || { echo "usage: backfill.sh chain <lane> <lane> ..."; exit 64; }
+  check_phase_a
+  for l in "$@"; do lane_items "$l" >/dev/null || { echo "unknown lane $l"; exit 64; }; done
+  [ "$(active adele-backfill-chain.service)" = active ] && { echo "a chain runs already"; exit 1; }
+  systemd-run --collect --unit=adele-backfill-chain --description="adele: backfill lanes $* in turn (deploy/backfill.sh)" \
+    /bin/bash /opt/adele/deploy/backfill.sh lane "$@" </dev/null
+  show_started chain
 }
 
 swissgrid() {
@@ -317,9 +336,10 @@ stop() {
 
 case $mode in
   start) start "$@" ;;
+  chain) chain "$@" ;;
   swissgrid) swissgrid "$@" ;;
   report) report ;;
   stop) stop ;;
   lane) lane "$@" ;;
-  *) echo "usage: backfill.sh start [lane ...] | swissgrid <folder> | report | stop   (lanes: $LANES)"; exit 64 ;;
+  *) echo "usage: backfill.sh start [lane ...] | chain <lane> <lane> ... | swissgrid <folder> | report | stop   (lanes: $LANES)"; exit 64 ;;
 esac
