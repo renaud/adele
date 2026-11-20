@@ -1,0 +1,51 @@
+Running as unit: adele-backfill-ens.service; invocation ID: 8d447cf0520d42dea753e5d004ea7609
+  UNIT                                                      LOAD   ACTIVE     SUB     JOB   DESCRIPTION
+  adele-backfill-ens.service                                loaded active     running       adele: backfill lane ens (deploy/backfill.sh)
+  adele-backfill-openmeteo.service                          loaded active     running       adele: backfill lane openmeteo (deploy/backfill.sh)
+  adele-fetch@ecmwf_ifs_ens.service                         loaded activating start   start adele: fetch the dataset ecmwf_ifs_ens if its refresh is due
+  adele-fetch@energy_charts_intraday_prices.service         loaded inactive   dead          adele: fetch the dataset energy_charts_intraday_prices if its refresh is due
+  adele-fetch@entsoe_activated_balancing_prices.service     loaded inactive   dead          adele: fetch the dataset entsoe_activated_balancing_prices if its refresh is due
+  adele-fetch@entsoe_balancing_state.service                loaded inactive   dead          adele: fetch the dataset entsoe_balancing_state if its refresh is due
+  adele-fetch@entsoe_day_ahead_prices.service               loaded inactive   dead          adele: fetch the dataset entsoe_day_ahead_prices if its refresh is due
+  adele-fetch@entsoe_generation.service                     loaded inactive   dead          adele: fetch the dataset entsoe_generation if its refresh is due
+  adele-fetch@entsoe_imbalance_prices.service               loaded inactive   dead          adele: fetch the dataset entsoe_imbalance_prices if its refresh is due
+  adele-fetch@entsoe_imbalance_volume.service               loaded inactive   dead          adele: fetch the dataset entsoe_imbalance_volume if its refresh is due
+  adele-fetch@entsoe_imbalance_volume_neighbours.service    loaded inactive   dead          adele: fetch the dataset entsoe_imbalance_volume_neighbours if its refresh is due
+  adele-fetch@entsoe_installed_capacity.service             loaded inactive   dead          adele: fetch the dataset entsoe_installed_capacity if its refresh is due
+  adele-fetch@entsoe_load.service                           loaded inactive   dead          adele: fetch the dataset entsoe_load if its refresh is due
+  adele-fetch@entsoe_physical_flows.service                 loaded inactive   dead          adele: fetch the dataset entsoe_physical_flows if its refresh is due
+  adele-fetch@entsoe_scheduled_exchanges.service            loaded inactive   dead          adele: fetch the dataset entsoe_scheduled_exchanges if its refresh is due
+  adele-fetch@entsoe_wind_solar_forecast.service            loaded inactive   dead          adele: fetch the dataset entsoe_wind_solar_forecast if its refresh is due
+  adele-fetch@entsoe_wind_solar_forecast_neighbours.service loaded inactive   dead          adele: fetch the dataset entsoe_wind_solar_forecast_neighbours if its refresh is due
+  adele-fetch@meteoswiss_nime_daily.service                 loaded inactive   dead          adele: fetch the dataset meteoswiss_nime_daily if its refresh is due
+  adele-fetch@meteoswiss_obs_daily.service                  loaded inactive   dead          adele: fetch the dataset meteoswiss_obs_daily if its refresh is due
+  adele-fetch@meteoswiss_smn_daily.service                  loaded inactive   dead          adele: fetch the dataset meteoswiss_smn_daily if its refresh is due
+  adele-fetch@meteoswiss_smn_hourly.service                 loaded inactive   dead          adele: fetch the dataset meteoswiss_smn_hourly if its refresh is due
+  adele-fetch@meteoswiss_smn_stations.service               loaded inactive   dead          adele: fetch the dataset meteoswiss_smn_stations if its refresh is due
+  adele-fetch@meteoswiss_smn_tenmin.service                 loaded inactive   dead          adele: fetch the dataset meteoswiss_smn_tenmin if its refresh is due
+  adele-fetch@openmeteo-backfill.service                    loaded activating start   start adele: fetch the dataset openmeteo-backfill if its refresh is due
+  adele-fetch@openmeteo_cams.service                        loaded inactive   dead          adele: fetch the dataset openmeteo_cams if its refresh is due
+  adele-fetch@openmeteo_era5.service                        loaded inactive   dead          adele: fetch the dataset openmeteo_era5 if its refresh is due
+  adele-fetch@openmeteo_previous_runs.service               loaded inactive   dead          adele: fetch the dataset openmeteo_previous_runs if its refresh is due
+  adele-fetch@openmeteo_single_runs.service                 loaded inactive   dead          adele: fetch the dataset openmeteo_single_runs if its refresh is due
+  adele-fetch@openmeteo_stations.service                    loaded inactive   dead          adele: fetch the dataset openmeteo_stations if its refresh is due
+  adele-fetch@pronovo_production.service                    loaded inactive   dead          adele: fetch the dataset pronovo_production if its refresh is due
+  adele-fetch@swissgrid_balance.service                     loaded inactive   dead          adele: fetch the dataset swissgrid_balance if its refresh is due
+  adele-fetch@swissgrid_balance_daily.service               loaded inactive   dead          adele: fetch the dataset swissgrid_balance_daily if its refresh is due
+  adele-fetch@swissgrid_imbalance_prices.service            loaded inactive   dead          adele: fetch the dataset swissgrid_imbalance_prices if its refresh is due
+  adele-fetch@swissgrid_tsi.service                         loaded inactive   dead          adele: fetch the dataset swissgrid_tsi if its refresh is due
+  adele-fetch@weathernext3.service                          loaded inactive   dead          adele: fetch the dataset weathernext3 if its refresh is due
+
+Legend: LOAD   → Reflects whether the unit definition was properly loaded.
+        ACTIVE → The high-level unit activation state, i.e. generalization of SUB.
+        SUB    → The low-level unit activation state, values depend on unit type.
+        JOB    → Pending job for the unit.
+
+35 loaded units listed.
+To show all installed unit files use 'systemctl list-unit-files'.
+-- adele-backfill-ens
+Started adele-backfill-ens.service - adele: backfill lane ens (deploy/backfill.sh).
+== 2026-11-17 16:46:46 start: ds ecmwf_ifs_ens --start 2024-04-01
+Started adele-backfill-ens.service - adele: backfill lane ens (deploy/backfill.sh).
+== 2026-11-20 10:20:30 start: ds ecmwf_ifs_ens --start 2024-04-01
+Follow: sc-run 'journalctl -u adele-backfill-entsoe -f', results: /var/lib/adele-deploy/backfill.tsv

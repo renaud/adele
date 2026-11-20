@@ -331,6 +331,19 @@ Next, state at the end of 2026-11-15:
   `swissgrid_balance_daily` import. Fix (2026-11-18): `deploy/memory-guard.sh` (swap, a cap on
   all adele fetches together, weathernext3 at minute 30), then the lanes one at a time
   (`backfill.sh chain`), beside at most `openmeteo`.
+  Status 2026-11-20 13:40 UTC: lanes entsoe, files, swissgrid and ens done, 32 of 32 timers on,
+  no freeze since the memory guard. ens failed first (2026-11-19 06:14: 33 of 962 runs,
+  2024-10-11 to 2024-11-12, connect timeouts to dynamical.org's S3 from 22:01 to 00:13 UTC, no
+  error in the other fetch units then); `backfill.sh start ens` again on 2026-11-20 skipped the
+  stored runs (about 6 s each, `revisions: none`), fetched the 33 and the days since, ok at
+  12:07 (`deploy/backfill-ens.txt`). Open-Meteo still runs: 26 of 80 windows of its first step
+  (`openmeteo_previous_runs` from 2024-01-18), 11 windows a day in about 1 h each evening
+  (18:20-19:30 UTC) when the 24 h budget frees; at the plan's 220,000 calls, the end comes
+  between 2026-12-17 and 12-22 (the call ledger is not readable by Claude, so the calls per
+  window are the plan's estimate). Next: follow it (`journalctl -u adele-fetch@openmeteo-backfill`).
+- `deploy/backfill.sh:233`: the hint after `start` always says
+  `journalctl -u adele-backfill-entsoe -f`, whatever lane started (seen with ens on 2026-11-20).
+  Name the lanes started instead.
 - WP5.1 (2026-11-16): five ENTSO-E datasets in `main` (f7f9dbe), backfilled on the Mac only (in
   the `data_nosync/` of the worktree `.claude/worktrees/wp5.1`). For the server, another agent
   (Renaud): install `entsoe_imbalance_prices`, `entsoe_activated_balancing_prices`,
@@ -385,6 +398,9 @@ Found on 2026-11-14 by subagents (docs/datasets-inventory.md, sections 4 and 5),
   window again. A window that fails in the middle leaves a hole; the command prints it and
   returns 1, but `state.json` ends with status ok. D21 (`expected_spacing`) would report the
   hole, once built and declared.
+  Met again on the server (2026-11-19): `ecmwf_ifs_ens` with 33 runs missing, `/health` ok.
+  For a `revisions: none` dataset, a second backfill skips the stored runs (`windows_to_fetch`),
+  so it fills the holes cheaply; the sentence above holds for `overwrite` and `append-only`.
   Met in WP5.2 (2026-11-15): one window of the schedules failed, status ok. To fetch it again,
   take its bounds from the log: windows of 365 days from the start drift by one day per leap
   year (from 2015-01-01 the 12th window starts on 2024-12-29, not 2024-12-30).
