@@ -34,6 +34,7 @@ CADDY_SHA512=0e85544340290a16ce4bfb76fe7d65e9de1bf3a6e67f5ccfff30b30d27ea4c73e07
 PORT=8443
 CADDY_UID=5102
 PY=/opt/adele/server/.venv/bin/python
+export PYTHONDONTWRITEBYTECODE=1  # root must not leave __pycache__ in /opt/adele
 CONF=/etc/adele/adele-server.toml
 STATE=/var/lib/adele-caddy
 ETC=/etc/adele-caddy
@@ -46,7 +47,8 @@ fail() { echo "FAILED at step $step: $*"; exit 1; }
 main() {
 step=1; echo "== 1. checks"
 getent ahosts "$HOST" >/dev/null </dev/null || fail "the DNS name doesn't resolve"
-[ -z "$(git -C /opt/adele status --porcelain </dev/null)" ] || fail "/opt/adele has local changes (git status)"
+# tracked files only: git merge refuses by itself to overwrite an untracked file
+[ -z "$(git -C /opt/adele status --porcelain --untracked-files=no </dev/null)" ] || fail "/opt/adele has local changes (git status)"
 git -C /opt/adele fetch -q origin </dev/null || fail "git fetch"
 git -C /opt/adele cat-file -e origin/main:deploy/adele-caddy.service </dev/null 2>/dev/null \
   || fail "origin/main has no deploy/adele-caddy.service: push main first"
