@@ -133,17 +133,12 @@ Found on 2026-11-23:
 - [ ] `openmeteo_previous_runs` is ok after its fetch at 00:00 UTC and failing later in the day.
   Probably the window backfill, whose refused window (budget spent) counts as a failed fetch. Not
   verified.
-- [ ] `list` had no memory limit: 2.6 GB for the first one on the server (2026-11-23, cap 3 GB). At 13:06 UTC
-  that day two at once had the query server killed, four times in 75 s (the check of the first
-  `add-key.sh`, which asked again after 10 s); it has been up since 13:07. Fixed in `main`
-  since 2026-11-23 (D37), to deploy with `deploy/access.sh`; then measure the first `list`: time, and
-  `MemoryPeak` of `adele-server`.
-- [ ] The resolution periods fill the footer of every query and the card (`render.py`,
-  `resolution_summary` and `describe_dict`): each gap in a series starts a new period. Measured on the
-  Mac, in characters: `entsoe_activated_balancing_prices` footer 603,268 and card 1,482,518;
-  `entsoe_wind_solar_forecast_neighbours` 146,495 and 377,131; `entsoe_imbalance_volume_neighbours`
-  22,187 and 45,735; `entsoe_imbalance_prices` 16,777 and 35,797. An agent cannot read them. Proposal
-  (Claude): show changes of resolution only, not gaps, and cap what the footer prints.
+- [x] `list` had no memory limit: 2.6 GB and 21.9 s for the first one on the server (2026-11-23, cap 3 GB),
+  and at 13:06 UTC two at once had the query server killed, four times in 75 s. Deployed at 13:39
+  (D37): 211 MB and 32.7 s for the first `list` after a restart, then 0.05 s.
+- [ ] The resolution periods filled the footer of every query and the card (603,268 and 1,482,518
+  characters for `entsoe_activated_balancing_prices`). Fixed on the branch `wp9` (D38, 5c3aa4e): land,
+  push, deploy.
 - [ ] Reading the journal costs a whole core for minutes (the audit messages fill it). Agents: a
   narrow `--since`/`--until`, `timeout 40` before `journalctl` (a stopped `sc-run` leaves the
   process running on the server), and `sar` for the CPU.
@@ -158,10 +153,9 @@ Checks, now possible:
   poller's `SOURCES` (the WP4 doc, step 6).
 - [ ] WP5.4: the 34 checks of 2026 on the TSI of `swissgrid_balance` (below; backfilled 2026-11-18).
 - [ ] WP1 leftovers: the faults on purpose (V1, "From WP1"). HTTPS: done 2026-11-23 (D35).
-- [ ] WP9: first key for a user outside the team (`deploy/add-key.sh`). In `main`, not
-  deployed: D36 (`/health` without a key says only that adele is up, no `/openapi.json`) and messages
-  of the client when an answer is cut. Deploy: push, `deploy/access.sh` again, then a key for the
-  user `claude` of the server (`deploy/add-key.sh`, two arguments), so that agents read the statuses.
+- [ ] WP9: first key for a user outside the team (`deploy/add-key.sh`). Deployed
+  on 2026-11-23 at 13:39 UTC: D36 (`/health` without a key says only that adele is up, no
+  `/openapi.json`), and a key for the user `claude` of the server, so that agents read the statuses.
 - [ ] WP5.6, WP5.8, WP5.9: uncommitted in their worktrees. Replace the host name (it is also in their
   copies of `TODOs.md` and `WP5-datasets.md`), land, then one lane each.
 

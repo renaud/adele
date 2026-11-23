@@ -1,29 +1,29 @@
 == 1. checks
-runs: 89ebc25 2026-11-18; 18 GB free
+runs: 6881d54 2026-11-23; 18 GB free
                total        used        free      shared  buff/cache   available
-Mem:            7940        1951        4558          15        1756        5989
-Swap:           4095         794        3301
+Mem:            7940        2011        4204          15        2050        5928
+Swap:           4095         734        3361
 == 2. code
-now: 6881d54 2026-11-23
+now: 292cc04 2026-11-23
 ok  swissgrid_tsi: tables swissgrid_tsi.tsi
 ok  weathernext3: tables weathernext3.solar_radiation, weathernext3.weather
 == 3. the query server, with its limits
 queries: QueryLimits(max_rows=1000, timeout_s=30.0, memory_limit='1GB', temp_limit='2GB', threads=4, max_concurrent=2, max_wait_s=60.0)
 checks:  QueryLimits(max_rows=1000, timeout_s=30.0, memory_limit='2GB', temp_limit=None, threads=4, max_concurrent=2, max_wait_s=60.0)
-keys:    1
+keys:    2
 MemoryMax=3221225472
 MemorySwapMax=0
 OOMScoreAdjust=900
 (expected: MemoryMax=3221225472, MemorySwapMax=0, OOMScoreAdjust=900)
 == 4. user and Caddy 2.11.9
-useradd warning: adele-caddy's uid 5102 is greater than SYS_UID_MAX 999
 uid=5102(adele-caddy) gid=985(adele-caddy) groups=985(adele-caddy)
+already there
 v2.11.9 h1:bhZtcRKQOq0fuLvEgCdPYvUxXyGn9kzjG4lh2332DTE=
 == 5. Caddyfile
-{"level":"info","ts":1795436701.7796063,"logger":"tls.cache.maintenance","msg":"started background certificate maintenance","cache":"0x364ad3395500"}
-{"level":"info","ts":1795436701.8010592,"logger":"http.auto_https","msg":"automatic HTTP->HTTPS redirects are disabled","server_name":"srv0"}
-{"level":"info","ts":1795436701.8013694,"logger":"http","msg":"servers shutting down with eternal grace period"}
-{"level":"info","ts":1795436701.801522,"logger":"tls.cache.maintenance","msg":"stopped background certificate maintenance","cache":"0x364ad3395500"}
+{"level":"info","ts":1795441136.1802986,"logger":"tls.cache.maintenance","msg":"started background certificate maintenance","cache":"0x3e9d5c3cf580"}
+{"level":"info","ts":1795441136.182826,"logger":"http.auto_https","msg":"automatic HTTP->HTTPS redirects are disabled","server_name":"srv0"}
+{"level":"info","ts":1795441136.1842585,"logger":"http","msg":"servers shutting down with eternal grace period"}
+{"level":"info","ts":1795441136.184379,"logger":"tls.cache.maintenance","msg":"stopped background certificate maintenance","cache":"0x3e9d5c3cf580"}
 Valid configuration
 == 6. adele-caddy.service
 active
@@ -35,6 +35,6 @@ GET /health, GET /datasets without a key: (200, 401) (expected 200, 401)
 subject=CN = adele root CA
 notAfter=Oct  1 12:25:01 2036 GMT
 sha256 Fingerprint=D2:73:C7:00:75:69:70:7C:09:52:9C:D0:3B:D3:B3:91:B4:F2:09:7E:D6:4F:A7:C1:DE:01:A4:62:6E:FE:2F:70
--rw------- 1 root root 1255 Nov 23 12:25 /root/adele-caddy-ca-D273C7007569.tgz
+backup there: /root/adele-caddy-ca-D273C7007569.tgz
 Status: inactive
 == done. Next: root.crt into client/src/adele/adele-ca.pem (commit, push), port 8443 in the panel, deploy/add-key.sh
