@@ -110,6 +110,12 @@ adds a cap on all fetches together (`MemoryMax=4608M` and `MemorySwapMax=0` on t
 other services, and moves weathernext3 to minute 30, away from the hourly fetches at minute 0.
 Backfills run one lane at a time (`backfill.sh chain`).
 
+Since 2026-11-23 (`spread-fetches.sh`): all fetches together use at most 2.5 of the 4 cores
+(`CPUQuota=250%`, `CPUWeight=20` on the same slice), and the 13 daily datasets have slots from
+00:08 to 02:08 UTC, a drop-in per timer (`adele-fetch@<id>.timer.d/slot.conf`: from the slot on, a
+tick every 10 minutes). Without a slot, a daily dataset starts at 00:00 UTC with all the others: a
+new one gets a line in `SLOTS` of that script, which is then run again.
+
 The result of a fetch that has ended is in its journal. Without an enabled timer, systemd
 unloads the service once it ends, and `systemctl show` then prints default values
 (`Result=success`, no timestamps).

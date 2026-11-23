@@ -13,7 +13,8 @@
 # 3. a cap on all adele fetches together: MemoryMax=4608M on the slice that holds every
 #    adele-fetch@ unit (systemctl set-property: a persistent drop-in in /etc/systemd/system.control).
 #    Past it, the kernel kills a fetch inside the slice, whatever the other services do; the
-#    server records the failure and the next tick fetches again (D25). MemorySwapMax=0: adele
+#    server records the failure, and the dataset is fetched again in its next period (a daily one
+#    the next day), from its last success on (D25). MemorySwapMax=0: adele
 #    never swaps (a fetch that swaps crawls and holds the disk); the swap stays for the others;
 # 4. weathernext3 (3.5 GB per fetch) ticks at minute 30 instead of every minute, away from the
 #    hourly fetches that all start at minute 0 (a drop-in on its timer). Its runs appear about

@@ -4,6 +4,10 @@
 
 - SPEC.md: paste the three texts of WP2 (Catalog, Adding a dataset, Storage), in
   `docs/work-packages/WP2-table-shapes.md`, section "Text for `SPEC.md`".
+- PLAN.md, row WP1 (proposal): "done 2026-11-16: adele runs on the server, entsoe and
+  weathernext3 backfilled (figures equal to the Mac's), then 17 hours of unattended fetches:
+  every status ok, no hole. HTTPS (step 6) and the faults on purpose (step 8) moved to
+  `TODOs.md`, V1. `docs/work-packages/WP1-server.md`"
 - PLAN.md, row WP2 (proposal): "built and in `main` (D32): tables by calendar day, month or
   year in a zone (D26), tables without a time column (D22), an `adele:` block per table, format
   version 2. Next: the first such dataset in WP6. `docs/work-packages/WP2-table-shapes.md`"
@@ -63,6 +67,101 @@
   Claude only on a conflict or a failure; (3) a faster suite (V0 below); (4) `merge=union` in
   `.gitattributes` for `TODOs.md` and `skills/common-traps.md`, decisions numbered at landing;
   (5) 3-4 WPs open at once instead of 10.
+- Students' visit on 2026-11-25 (Claude, 2026-11-23): pick a conversation in
+  `docs/showcase-conversations.md`. The cleaned page with the excerpts is not made.
+- SPEC.md:164 (proposal by Claude, 2026-11-23): "ENTSO-E corrects actual load days later" is not
+  what WP3 measured (CH, 0 of 103,714 hours changed between 2026-10-31 and 2026-11-15). Text:
+  "Sources revise past values (e.g. ENTSO-E corrects the physical flows on the Swiss borders up
+  to a year after delivery)." Source: `qa/revisions_entsoe_ch.md`.
+- Rotate the ENTSO-E token (Claude, 2026-11-23): printed again in a local session.
+
+## The server: what may still be open (Claude, 2026-11-23; tick what is done)
+
+Read on the server on 2026-11-23, 09:00 UTC: it runs 89ebc25, 32 of 32 timers on, the lanes
+entsoe, files, swissgrid and ens done, 30 statuses ok (failing: `meteoswiss_smn_tenmin`,
+`openmeteo_previous_runs`), 18 GB free, no freeze since the memory guard of 2026-11-18. Items
+described elsewhere are named, not repeated.
+
+Running:
+
+- [ ] The Open-Meteo backfill, until about 2026-12-17 to 12-22 ("The update of the server", below).
+- [ ] `backfill.sh report`, then compare the rows, first and last times with the Mac's (no output of it in `deploy/`).
+  Count the rows per run too (`ecmwf_ifs_ens` 133,036, weathernext3 139,776): the freeze and the
+  kills below may have left a run in part, and a run stored in part counts as stored
+  (`revisions: none`, below).
+
+Found on 2026-11-23:
+
+- [ ] CPU alerts of the machine's monitoring (> 85 % for 5 minutes). Every day since 2026-11-19 the
+  first 10 minutes after 00:00 UTC are about 57 % busy on average (`sar`), no other 10 minutes
+  above 50 %. 30 of the 32 datasets are due at 00:00 UTC (all but weathernext3 and
+  `openmeteo_stations`, which is due on Mondays): 1,125 CPU s on 2026-11-23, almost all in 6
+  minutes (4 cores: 1,440 s), the most from `meteoswiss_smn_daily` (222) and `_hourly` (195). Fix deployed on 2026-11-23 at
+  10:18 UTC (`deploy/spread-fetches.sh`): the 13 daily datasets have slots from 00:08 to 02:08 UTC
+  (timer drop-ins; Renaud: over 2 hours), all fetches together at most 2.5 of 4 cores. Not in it:
+  the 17 others due at 00:00, of which 7 run every 3 or 6 hours. `next_fetch_eta` in `describe`
+  still says 00:00.
+- [ ] Check how `spread-fetches.sh` worked, from 2026-11-24 02:30 UTC on, and again after a few
+  nights (Renaud, 2026-11-23). Before --> what to look for:
+  - CPU: 00:00-00:10 UTC 57 % busy every day from 2026-11-19 to 11-23 --> every 10 minutes
+    of 00:00-02:20 below 40 % (`sar -u -f /var/log/sysstat/sa24`); no new alert (Renaud's mail).
+  - Kills: 21 at 2026-11-23 10:19 (`oom_kill` in `memory.events` of the slice; a reboot resets
+    it) --> still 21, or which datasets (`journalctl -k --grep "Killed process"`, a narrow window).
+  - Each daily dataset fetched once, in its slot: one line per day in its journal, between 00:08
+    and about 02:15. `meteoswiss_smn_tenmin` (failing since 2026-11-23 00:02) is ok after 01:38.
+  - The CPU limit does no harm: `throttled_usec` in `cpu.stat` of the slice (2.6 s at 10:19, a
+    minute after it was set); no `swissgrid_tsi` fetch over its 50 s; weathernext3 ok at minute 30.
+  - Then decide: the 7 datasets that run every 3 or 6 hours on minutes of their own, or not.
+- [ ] The memory cap kills: 21 processes from 2026-11-18 18:16 to 2026-11-23 09:00 (`oom_kill` of the
+  slice). Failed fetches with exit code 137: `entsoe_imbalance_prices`, `entsoe_physical_flows`,
+  `meteoswiss_smn_tenmin` (2026-11-23 00:02) and weathernext3 (2026-11-21 18:30, 19:30). At
+  2026-11-23 00:02 the kernel also killed an `adele-server` process itself (`ecmwf_ifs_ens`,
+  2.3 GB): nothing then records the failure. To do: what takes 2.3 GB in that process, the kills
+  per dataset, and whether a kill during a write can leave a run in part. Spreading the daily
+  datasets (above) also helps here. Not measured: the peak of weathernext3 at minute 30.
+- [ ] A failed fetch waits for the next period of `every`, not for the next tick (`state.is_due`
+  counts attempts): `meteoswiss_smn_tenmin`, killed at 00:02, stays failing until 00:00 the next
+  day. Renaud decides: an earlier retry for long periods, or leave it.
+- [ ] `entsoe_physical_flows`: 9 failed runs from 2026-11-19 to 2026-11-22, 3 of 3 read were `fetch.py`
+  errors on an A11 request (`fetch.py:117`), not kills. It is ok now. Read the whole error.
+- [ ] `entsoe_load` and `entsoe_scheduled_exchanges` failed at 2026-11-23 10:00 UTC (`entsoe_load`: an
+  HTTP error of ENTSO-E; 18 minutes before `spread-fetches.sh`). Are they ok again? If it repeats
+  at minute 0: the ENTSO-E datasets all start together there, with one token.
+- [ ] `openmeteo_previous_runs` is ok after its fetch at 00:00 UTC and failing later in the day.
+  Probably the window backfill, whose refused window (budget spent) counts as a failed fetch. Not
+  verified.
+- [ ] Reading the journal costs a whole core for minutes (the audit messages fill it). Agents: a
+  narrow `--since`/`--until`, `timeout 40` before `journalctl` (a stopped `sc-run` leaves the
+  process running on the server), and `sar` for the CPU.
+
+Checks, now possible:
+
+- [ ] WP3: `describe entsoe_load`, a query with `--as-of` (V1, "WP3 on the server"). Its timer has
+  been on since 2026-11-18 18:53 UTC.
+- [ ] WP4: 7 days side by side with the poller, until 2026-11-25 18:22 UTC (`swissgrid_balance_daily`
+  since 2026-11-18 18:22; `swissgrid_tsi` since 2026-11-17 16:57, with the freeze of 17:00 to
+  17:32). Then the comparison script (to write), then Renaud takes the three files out of the
+  poller's `SOURCES` (the WP4 doc, step 6).
+- [ ] WP5.4: the 34 checks of 2026 on the TSI of `swissgrid_balance` (below; backfilled 2026-11-18).
+- [ ] WP1 leftovers: HTTPS (also a rule for the port in the firewall: `SERVER.md`) and the faults on
+  purpose (V1, "From WP1").
+- [ ] WP5.6, WP5.8, WP5.9: uncommitted in their worktrees. Replace the host name (it is also in their
+  copies of `TODOs.md` and `WP5-datasets.md`), land, then one lane each.
+
+Small:
+
+- [ ] `deploy/backfill.sh`, `check_phase_a`: it says "run deploy/update-main.sh first" when only the
+  unit needs `install` and `daemon-reload`. And the hint after `start` (below).
+- [ ] The git history holds the host name, the address and the name of a key (`SERVER.md`). A rewrite
+  is not decided.
+- [ ] The commits since 89ebc25 are not pushed (2026-11-23).
+- [ ] The PLAN.md rows proposed above still say "Next: ... on the server": the backfills are done
+  (2026-11-18).
+
+Open elsewhere in this file: the SPEC.md texts, PLAN.md rows and draft reviews ("Renaud, now"),
+`entsoe_day_ahead_prices` one hour late in 2017 and 2015 (WP5.4), `checks.yaml` of
+`entsoe_imbalance_volume`, the ENTSO-E token printed once (WP5.3, point 3), the landing and
+`review-dataset` proposals.
 
 ## For other sessions: the server has no name in git (2026-11-17)
 
@@ -262,7 +361,7 @@ Next, state at the end of 2026-11-15:
   3. The server removes the declared secrets from what `fetch.py` prints (D34,
      `ingest.redact`). The token was printed once in Claude's session of 2026-11-15: rotate it
      if that matters.
-  Next: the backfill on the server after WP1 (the neighbours: 12 windows of about 5 min).
+  ~~Next: the backfill on the server~~ done 2026-11-17 and 2026-11-18.
 - `entsoe_imbalance_volume`: write its `checks.yaml` (Renaud, 2026-11-16). Two searches found
   no published figure computed from A86 for CH (`qa/published_figures_entsoe_imbalance_volume.md`:
   ElCom and DNV use Swissgrid's data, ENTSO-E and Compass Lexecon draw CH only in charts). Ways:
@@ -301,17 +400,17 @@ Next, state at the end of 2026-11-15:
   confirms the prices in EUR/MWh, the 5-minute stamps as starts, the three ids (the doc, "To
   confirm before the server"). Then step 6 of the doc after WP1: copy of the poller's archive,
   import, timers, 7 days side by side, a comparison script, the files out of the poller.
-- `PLAN.md`, the table "Order and state": updated on 2026-11-15 by Claude at Renaud's request
+- `PLAN.md`, the table "Order and state" (out of date since 2026-11-16: the rows proposed under
+  "Renaud, now" replace it): updated on 2026-11-15 by Claude at Renaud's request
   (WP1 steps 0-5 done, the week runs until 2026-11-22, step 6 waits for the port; WP3 in
   `main`, then 1-2 days of fetches on the server once WP1 is done, V1 below).
-- `main` holds code that the server doesn't run since 72f2b1a (D31), and WP3 (D30) since its
-  landing on 2026-11-15 (Renaud relaxed "after the week"). A WP1 fix now comes from a branch
-  made at 32237db (`WP1-server.md`).
+- ~~`main` holds code that the server doesn't run since 72f2b1a~~ the server runs `main` since
+  2026-11-17 (89ebc25 on 2026-11-23).
 - WP1 closed on 2026-11-16 after 17 hours of fetches, not a week (Renaud). What waited for
   "after WP1" or "after 2026-11-22" can start: WP3 on the server (V1), WP4 step 6, WP5 on
   the server. WP1's steps 6 and 8 are in V1.
 - The update of the server to `main` (Claude, 2026-11-17, at Renaud's request: "let's move
-  forward even if that breaks a few things"): written, not run yet. Phase A,
+  forward even if that breaks a few things"): ran on 2026-11-17 (below). Phase A,
   `deploy/update-main.sh` (code, units, secrets, the two running timers); phase B,
   `deploy/backfill.sh` (lanes entsoe, files, ens, openmeteo, then swissgrid once Renaud has
   confirmed WP4's three points and named the poller's folder; each timer after its backfill).
@@ -325,8 +424,8 @@ Next, state at the end of 2026-11-15:
   17:00:38 the server froze (the other site on it too) and was rebooted at 17:32: five lanes beside
   the hourly fetches, most likely out of memory without swap (no message of the OOM killer; the
   details are in `SERVER.md`, Incidents). The cap of 4.5 GiB per fetch unit limits each fetch,
-  not their sum. Done before 17:00: 13 datasets with their timers (14 with
-  `entsoe_day_ahead_prices` and weathernext3). Stopped midway: `entsoe_wind_solar_forecast_neighbours`,
+  not their sum. On before 17:00: 14 timers (the two old ones, 12 new ones,
+  5 of them Open-Meteo's, whose backfill had only started). Stopped midway: `entsoe_wind_solar_forecast_neighbours`,
   the third window of `meteoswiss_smn_hourly`, `ecmwf_ifs_ens`, the Open-Meteo windows, the
   `swissgrid_balance_daily` import. Fix (2026-11-18): `deploy/memory-guard.sh` (swap, a cap on
   all adele fetches together, weathernext3 at minute 30), then the lanes one at a time
@@ -344,7 +443,9 @@ Next, state at the end of 2026-11-15:
 - `deploy/backfill.sh:233`: the hint after `start` always says
   `journalctl -u adele-backfill-entsoe -f`, whatever lane started (seen with ens on 2026-11-20).
   Name the lanes started instead.
-- WP5.1 (2026-11-16): five ENTSO-E datasets in `main` (f7f9dbe), backfilled on the Mac only (in
+- WP5.1: ~~install and backfill on the server~~ done 2026-11-18, the five timers on, every status
+  ok on 2026-11-23. As written on 2026-11-16: five ENTSO-E datasets in `main` (f7f9dbe),
+  backfilled on the Mac only (in
   the `data_nosync/` of the worktree `.claude/worktrees/wp5.1`). For the server, another agent
   (Renaud): install `entsoe_imbalance_prices`, `entsoe_activated_balancing_prices`,
   `entsoe_balancing_state`, `entsoe_imbalance_volume_neighbours`, `entsoe_installed_capacity`
@@ -495,10 +596,11 @@ Other V0 items:
     another id: a renamed column, a duplicated row, an undeclared zone code, a fetch over its
     memory limit (status failing each time); the timers stopped for two hours, then the hole
     fetched (D25).
-  - Two checks that WP1's 17 hours could not make: the first new delivery day of entsoe
-    fetched unattended (no auction fell in them), and `oom_score_adj` 1000 on `fetch.py`
-    during a fetch.
-- WP3 on the server, once WP1 is done (done 2026-11-16; WP3 lands in `main` on 2026-11-15:
+  - ~~Two checks that WP1's 17 hours could not make~~ seen on 2026-11-23: new delivery days of
+    entsoe stored unattended (96 rows at a time on 2026-11-22), and `oom_score_adj` 1000 on
+    the Python process of a fetch (kernel log, 2026-11-23 00:02).
+- WP3 on the server (the code, the timer and the backfill of `entsoe_load` are there since
+  2026-11-18; only the checks are left), once WP1 is done (done 2026-11-16; WP3 lands in `main` on 2026-11-15:
   Renaud relaxed the rule "after the week" of the WP1 doc): pull the code onto the server
   (`/opt/adele`), install `datasets/entsoe_load` with its timer, backfill it from 2015, let it fetch for 1-2 days
   (Renaud: "we won't wait a week, just 1-2 days"), then check `describe` (`versions_since`, the

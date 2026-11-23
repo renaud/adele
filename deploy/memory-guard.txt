@@ -1,0 +1,87 @@
+== 1. pull
+From https://github.com/renaud/adele
+   f934845..89ebc25  main       -> origin/main
+Updating f934845..89ebc25
+Fast-forward
+ .gitignore                                         |   1 +
+ AGENTS.md                                          |   7 +-
+ DECISIONS.md                                       |  12 +-
+ PLAN.md                                            |  18 +-
+ TODOs.md                                           | 100 +++--
+ datasets/openmeteo_cams/fetch.py                   |   4 +-
+ datasets/openmeteo_era5/fetch.py                   |   4 +-
+ datasets/openmeteo_previous_runs/fetch.py          |   4 +-
+ datasets/openmeteo_single_runs/fetch.py            |   4 +-
+ datasets/openmeteo_stations/fetch.py               |   4 +-
+ datasets/swissgrid_balance/datapackage.yaml        |   2 +-
+ datasets/swissgrid_balance_daily/datapackage.yaml  |   2 +-
+ datasets/weathernext3/fetch.py                     |   2 +-
+ deploy/Caddyfile                                   |   2 +-
+ deploy/README.md                                   |  27 +-
+ deploy/adele-fetch@.service                        |   2 +-
+ deploy/backfill-start.txt                          |  46 +++
+ deploy/backfill-swissgrid.txt                      |  39 ++
+ deploy/backfill.sh                                 |  32 +-
+ deploy/backfill_by_window.py                       |   2 +-
+ deploy/memory-guard.sh                             |  80 ++++
+ deploy/scheduling-poc/adele-systemd-claims-test.sh |   4 +-
+ deploy/scheduling-poc/container-test/README.md     |   2 +-
+ .../{result-server.txt => result-server.txt}    |  28 +-
+ deploy/update-main.sh                              |   2 +-
+ deploy/update-main.txt                             | 456 ++++++++++++++++++++-
+ deploy/wp1-claude-user.sh                          |   8 +-
+ deploy/wp1-memory-limits.txt                       |   2 +-
+ deploy/wp1-step0-look.sh                           |   2 +-
+ deploy/wp1-step4-install.sh                        |   8 +-
+ deploy/wp1-step4-result.txt                        |   2 +-
+ deploy/wp1-step5-backfill.sh                       |   2 +-
+ deploy/wp1-step5-start.txt                         |   4 +-
+ deploy/wp1-step5-uid-fix.sh                        |   2 +-
+ deploy/wp1-step5-uid-fix.txt                       |   4 +-
+ deploy/wp5.10-backfill.sh                          |   4 +-
+ docs/datasets-inventory.md                         |   8 +-
+ docs/weathernext3.md                               |  12 +-
+ .../{WP1-server-on-server.md => WP1-server.md}  |  68 +--
+ docs/work-packages/WP2-table-shapes.md             |   6 +-
+ docs/work-packages/WP3-versions.md                 |  22 +-
+ .../WP4-files-overwritten-or-revised.md            |  30 +-
+ docs/work-packages/WP5-datasets.md                 |  16 +-
+ docs/work-packages/WP5.1-entsoe.md                 |   4 +-
+ docs/work-packages/WP5.10-weather-forecasts.md     |  16 +-
+ docs/work-packages/WP5.2-entsoe-revised-series.md  |   4 +-
+ docs/work-packages/WP5.4-prices-outside-entsoe.md  |   4 +-
+ docs/work-packages/WP5.5-pronovo.md                |   4 +-
+ docs/work-packages/WP5.7-meteoswiss-stations.md    |   6 +-
+ qa/entsoe_day_ahead_prices.md                      |   2 +-
+ qa/published_figures_entsoe_load.md                |   2 +-
+ 51 files changed, 901 insertions(+), 227 deletions(-)
+ create mode 100644 deploy/backfill-start.txt
+ create mode 100644 deploy/backfill-swissgrid.txt
+ create mode 100644 deploy/memory-guard.sh
+ rename deploy/scheduling-poc/{result-server.txt => result-server.txt} (78%)
+ rename docs/work-packages/{WP1-server-on-server.md => WP1-server.md} (88%)
+was f934845, now: 89ebc25 2026-11-18 The server: update to main, backfill lanes, memory guard after the freeze; no server name in git
+Resolved 58 packages in 39ms
+Audited 51 packages in 170ms
+== 2. swap
+Setting up swapspace version 1, size = 4 GiB (4294963200 bytes)
+no label, UUID=8b8141c5-b0ea-44f9-a154-ed6baf81f94a
+vm.swappiness = 10
+NAME      TYPE SIZE USED PRIO
+/swapfile file   4G   0B   -2
+               total        used        free      shared  buff/cache   available
+Mem:            7940        2787        4418          32        1271        5152
+Swap:           4095           0        4095
+/swapfile none swap sw 0 0
+== 3. cap on all adele fetches together
+MemoryCurrent=476053504
+MemoryMax=4831838208
+MemorySwapMax=0
+(expected: MemoryMax=4831838208, MemorySwapMax=0)
+== 4. weathernext3 at minute 30
+NEXT                         LEFT LAST                         PASSED UNIT                                ACTIVATES
+Wed 2026-11-18 18:17:00 UTC   43s Wed 2026-11-18 18:16:00 UTC 15s ago adele-fetch@entsoe_generation.timer adele-fetch@entsoe_generation.service
+Wed 2026-11-18 18:30:00 UTC 13min Wed 2026-11-18 18:16:00 UTC 15s ago adele-fetch@weathernext3.timer      adele-fetch@weathernext3.service
+
+2 timers listed.
+== done. Backfills: deploy/backfill.sh chain (one lane at a time)

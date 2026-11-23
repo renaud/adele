@@ -1,0 +1,36 @@
+Running as unit: adele-backfill-openmeteo.service; invocation ID: 523312b76dd0409cb13c70ca345bc288
+  UNIT                                                      LOAD   ACTIVE     SUB     JOB   DESCRIPTION
+  adele-backfill-chain.service                              loaded active     running       adele: backfill lanes entsoe files ens in turn (deploy/backfill.sh)
+  adele-backfill-openmeteo.service                          loaded active     running       adele: backfill lane openmeteo (deploy/backfill.sh)
+  adele-backfill-swissgrid.service                          loaded active     running       adele: backfill lane swissgrid (deploy/backfill.sh)
+  adele-fetch@entsoe_day_ahead_prices.service               loaded inactive   dead          adele: fetch the dataset entsoe_day_ahead_prices if its refresh is due
+  adele-fetch@entsoe_generation.service                     loaded inactive   dead          adele: fetch the dataset entsoe_generation if its refresh is due
+  adele-fetch@entsoe_wind_solar_forecast.service            loaded inactive   dead          adele: fetch the dataset entsoe_wind_solar_forecast if its refresh is due
+  adele-fetch@entsoe_wind_solar_forecast_neighbours.service loaded activating start   start adele: fetch the dataset entsoe_wind_solar_forecast_neighbours if its refresh is due
+  adele-fetch@meteoswiss_nime_daily.service                 loaded inactive   dead          adele: fetch the dataset meteoswiss_nime_daily if its refresh is due
+  adele-fetch@meteoswiss_obs_daily.service                  loaded inactive   dead          adele: fetch the dataset meteoswiss_obs_daily if its refresh is due
+  adele-fetch@meteoswiss_smn_daily.service                  loaded inactive   dead          adele: fetch the dataset meteoswiss_smn_daily if its refresh is due
+  adele-fetch@meteoswiss_smn_stations.service               loaded inactive   dead          adele: fetch the dataset meteoswiss_smn_stations if its refresh is due
+  adele-fetch@openmeteo-backfill.service                    loaded activating start   start adele: fetch the dataset openmeteo-backfill if its refresh is due
+  adele-fetch@openmeteo_cams.service                        loaded inactive   dead          adele: fetch the dataset openmeteo_cams if its refresh is due
+  adele-fetch@openmeteo_era5.service                        loaded inactive   dead          adele: fetch the dataset openmeteo_era5 if its refresh is due
+  adele-fetch@openmeteo_previous_runs.service               loaded inactive   dead          adele: fetch the dataset openmeteo_previous_runs if its refresh is due
+  adele-fetch@openmeteo_single_runs.service                 loaded inactive   dead          adele: fetch the dataset openmeteo_single_runs if its refresh is due
+  adele-fetch@openmeteo_stations.service                    loaded inactive   dead          adele: fetch the dataset openmeteo_stations if its refresh is due
+  adele-fetch@swissgrid_balance_daily.service               loaded activating start   start adele: fetch the dataset swissgrid_balance_daily if its refresh is due
+  adele-fetch@swissgrid_tsi.service                         loaded inactive   dead          adele: fetch the dataset swissgrid_tsi if its refresh is due
+  adele-fetch@weathernext3.service                          loaded inactive   dead          adele: fetch the dataset weathernext3 if its refresh is due
+
+Legend: LOAD   → Reflects whether the unit definition was properly loaded.
+        ACTIVE → The high-level unit activation state, i.e. generalization of SUB.
+        SUB    → The low-level unit activation state, values depend on unit type.
+        JOB    → Pending job for the unit.
+
+20 loaded units listed.
+To show all installed unit files use 'systemctl list-unit-files'.
+-- adele-backfill-openmeteo
+== ok before: timer openmeteo_single_runs
+== ok before: timer openmeteo_era5
+== ok before: timer openmeteo_cams
+== 2026-11-18 18:21:07 start: openmeteo-windows openmeteo-backfill
+Follow: sc-run 'journalctl -u adele-backfill-entsoe -f', results: /var/lib/adele-deploy/backfill.tsv
