@@ -137,8 +137,8 @@ Found on 2026-11-23:
   and at 13:06 UTC two at once had the query server killed, four times in 75 s. Deployed at 13:39
   (D37): 211 MB and 32.7 s for the first `list` after a restart, then 0.05 s.
 - [ ] The resolution periods filled the footer of every query and the card (603,268 and 1,482,518
-  characters for `entsoe_activated_balancing_prices`). Fixed on the branch `wp9` (D38, 5c3aa4e): land,
-  push, deploy.
+  characters for `entsoe_activated_balancing_prices`). Fixed in `main` (D38, 392daca): push,
+  deploy.
 - [ ] Reading the journal costs a whole core for minutes (the audit messages fill it). Agents: a
   narrow `--since`/`--until`, `timeout 40` before `journalctl` (a stopped `sc-run` leaves the
   process running on the server), and `sar` for the CPU.

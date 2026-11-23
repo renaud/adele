@@ -29,7 +29,7 @@ step is in `TODOs.md`, the reasons are in `DECISIONS.md`.
 | WP6 | started with WP3: `entsoe_load`. Next (agreed by Renaud): the datasets of the revised ENTSO-E series, generation, flows, schedules, imbalance volume; whether flows and schedules leave WP5 is open (`TODOs.md`) | WP2, WP3, WP4 |
 | WP7 | weathernext3 accepted; day-ahead prices open on Renaud's side; `entsoe_load` drafted by Claude at Renaud's request (unit and stamps confirmed by him) | each dataset of WP5 and WP6 |
 | WP8 | day-ahead prices: 82 figures as checks; `entsoe_load`: 50 (ENTSO-E's Statistical Factsheets 2019-2025, two papers) | each dataset of WP5 and WP6 |
-| WP9 | deployed 2026-11-23: HTTPS on 8443, limits on queries, instructions for users (D35). Next: deploy D36 and D37 (`deploy/access.sh` again), first user outside the team | |
+| WP9 | deployed 2026-11-23: HTTPS on 8443, limits on queries, instructions for users (D35). Next: deploy D38 (`deploy/access.sh` again), first user outside the team | |
 
 Updated 2026-11-15 evening: WP1 runs its week on the server, WP3 is built (it reaches the server
 once WP1 is done). WP2 and WP4 are builds in the server and can run next to them. WP7 and WP8
