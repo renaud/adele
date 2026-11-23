@@ -129,16 +129,23 @@ Found on 2026-11-23:
   at minute 0: the ENTSO-E datasets all start together there, with one token.
   It repeated at 12:00 (read at 12:33; 24 minutes before the deployment of WP9 at 12:24): HTTP 599 from
   ENTSO-E for `entsoe_day_ahead_prices`, `entsoe_load`, `entsoe_physical_flows` and
-  `entsoe_scheduled_exchanges`. Not known: an outage of ENTSO-E, or too many requests at once.
+  `entsoe_scheduled_exchanges`. Again at 13:00 for `entsoe_scheduled_exchanges` (599, read at 13:17). At
+  14:00 it, the prices and the load were ok. `entsoe_physical_flows` (every
+  PT3H) was still failing at 14:13: its next run is at 15:00.
+- [ ] HTTP 599 of ENTSO-E (Renaud, 2026-11-23): an outage, or too many requests at minute 0 with one
+  token? To decide: the minutes and the number of the 599 over some days (journal of the 13 ENTSO-E
+  units, narrow windows). If they come at minute 0 only: spread the ENTSO-E fetches over the hour,
+  as `deploy/spread-fetches.sh` does for the daily datasets. A fetch that fails is tried again at the
+  next run and no hole stays (SPEC.md, Adding a dataset).
 - [ ] `openmeteo_previous_runs` is ok after its fetch at 00:00 UTC and failing later in the day.
   Probably the window backfill, whose refused window (budget spent) counts as a failed fetch. Not
   verified.
 - [x] `list` had no memory limit: 2.6 GB and 21.9 s for the first one on the server (2026-11-23, cap 3 GB),
   and at 13:06 UTC two at once had the query server killed, four times in 75 s. Deployed at 13:39
   (D37): 211 MB and 32.7 s for the first `list` after a restart, then 0.05 s.
-- [ ] The resolution periods filled the footer of every query and the card (603,268 and 1,482,518
-  characters for `entsoe_activated_balancing_prices`). Fixed in `main` (D38, 392daca): push,
-  deploy.
+- [x] The resolution periods filled the footer of every query and the card (603,268 and 1,482,518
+  characters for `entsoe_activated_balancing_prices`). Deployed on 2026-11-23 at 14:10 UTC (D38):
+  on the server, a whole answer with its footer has 1,383 bytes, the card 5,910.
 - [ ] Reading the journal costs a whole core for minutes (the audit messages fill it). Agents: a
   narrow `--since`/`--until`, `timeout 40` before `journalctl` (a stopped `sc-run` leaves the
   process running on the server), and `sar` for the CPU.
