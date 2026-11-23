@@ -993,3 +993,29 @@ time would give other periods than before; that is an error of the data.
 **Rejected.** The limits of `query` for the whole table (a): 7.5 s and 1.2 GB for each computation, still
 each hour. A `facts.json` per dataset, written by the fetch (b): a second copy of what the data says,
 which can disagree with it.
+
+## D38 - A gap doesn't end a resolution period; the footer groups the series (2026-11-23)
+
+**Decision.**
+
+- A resolution period goes on over missing intervals. The card and `datapackage.json` give its
+  number of gaps and the longest one. A row that starts before the previous one ended (an overlap)
+  still starts a new period.
+- The footer of a query gives the resolution once if all series share it, else per group of series
+  with the same resolutions: at most 6 groups, 3 names per group and 4 changes per series.
+
+Built: `server/src/adele_server/render.py`, `server/tests/{test_render,test_facts}.py`.
+
+**Why.** Renaud, 2026-11-23: "fix it". Each gap started a new period, and the footer printed every
+period of every series: 603,268 characters after each query on `entsoe_activated_balancing_prices`
+(20,064 periods; its prices exist only when a reserve is activated), 146,495 on
+`entsoe_wind_solar_forecast_neighbours`; the cards were 2 to 3 times longer. Without the gaps these
+are 8 and 168 periods, in 1 and 5 groups. After: the longest footer on the Mac's data has 3,116 characters
+(mostly warnings), the longest of the two cards 34,212.
+
+**Limits.** Only the longest gap has dates; the others are a query away. The card still has one line
+per period and series (168 for the neighbours). A gap between two resolutions is not counted; its
+dates show it.
+
+**Rejected.** No gaps at all on the card: their number tells an agent that rows are missing before it
+averages. The periods cut at gaps in `datapackage.json` only: 1.4 MB that nobody reads.

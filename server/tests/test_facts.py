@@ -24,20 +24,24 @@ def utc(*args):
 
 
 def whole_table(data_dir, t):
-    """The resolution periods, computed over all files at once (the code before D37)."""
+    """The resolution periods, row by row over the whole table."""
     con = duckdb.connect()
     con.execute("SET TimeZone = 'UTC'")
-    rows = con.execute(f"""
-        WITH r AS (
-          SELECT zone, resolution, delivery_start AS d,
-                 CASE WHEN resolution IS DISTINCT FROM lag(resolution) OVER w
-                        OR delivery_start IS DISTINCT FROM lag(delivery_start + resolution) OVER w
-                      THEN 1 ELSE 0 END AS chg
-          FROM ({storage.select_sql(data_dir, t)}) WINDOW w AS (PARTITION BY zone ORDER BY delivery_start)),
-        g AS (SELECT *, sum(chg) OVER (PARTITION BY zone ORDER BY d) AS grp FROM r)
-        SELECT zone, resolution, min(d), max(d) FROM g GROUP BY zone, resolution, grp ORDER BY zone, min(d)
-    """).fetchall()
-    return [{"series": z, "resolution": iso_duration(r), "first": a, "last": b} for z, r, a, b in rows]
+    out, ends = [], {}
+    for zone, at, step in con.execute(f"SELECT zone, delivery_start, resolution FROM ({storage.select_sql(data_dir, t)}) "
+                                      "ORDER BY ALL").fetchall():
+        p, end = (out[-1], ends[zone]) if out and out[-1]["series"] == zone else (None, None)
+        if p is None or p["resolution"] != iso_duration(step) or at < end:
+            out.append({"series": zone, "resolution": iso_duration(step), "first": at, "last": at, "gaps": 0,
+                        "longest_gap": None})
+        else:
+            p["last"] = at
+            if at > end:
+                p["gaps"] += 1
+                if p["longest_gap"] is None or at - end > p["longest_gap"][1] - p["longest_gap"][0]:
+                    p["longest_gap"] = (end, at)
+        ends[zone] = at + step
+    return out
 
 
 def write(data_dir, t, rows):
@@ -82,6 +86,24 @@ CASES = {
     "a month without a series":
         hours("A", utc(2026, 1, 1), utc(2026, 4, 1), H) + hours("B", utc(2026, 1, 1), utc(2026, 2, 1), H)
         + hours("B", utc(2026, 3, 1), utc(2026, 4, 1), H),
+    "a gap and a change together":
+        hours("A", utc(2026, 1, 30), utc(2026, 1, 31), H) + hours("A", utc(2026, 2, 5), utc(2026, 2, 6), Q),
+    "an overlap inside a month":
+        hours("A", utc(2026, 1, 30), utc(2026, 1, 31), H) + [("A", utc(2026, 1, 30, 23, 30), H, 1.0)],
+    "an overlap at the border":
+        hours("A", utc(2026, 1, 30), utc(2026, 2, 1), H, skip=[utc(2026, 1, 31, 23)])
+        + [("A", utc(2026, 1, 31, 23, 30), H, 1.0), ("A", utc(2026, 2, 1), H, 1.0)],
+}
+EXPECTED = {  # (resolution, gaps) of each period
+    "one resolution over three months": [("PT1H", 0)],
+    "a change at the border of a month": [("PT1H", 0), ("PT15M", 0)],
+    "a change inside a month": [("PT1H", 0), ("PT15M", 0)],
+    "a gap at the border": [("PT1H", 1)],
+    "a gap before the border": [("PT1H", 1)],
+    "a month without a series": [("PT1H", 0), ("PT1H", 1)],
+    "a gap and a change together": [("PT1H", 0), ("PT15M", 0)],
+    "an overlap inside a month": [("PT1H", 0), ("PT1H", 0)],
+    "an overlap at the border": [("PT1H", 1), ("PT1H", 0)],
 }
 
 
@@ -89,7 +111,9 @@ CASES = {
 def test_the_periods_of_the_files_join_into_those_of_the_table(table, name):
     cfg, _, t = table
     write(cfg.data_dir, t, CASES[name])
-    assert render.table_facts(cfg.data_dir, t).periods == whole_table(cfg.data_dir, t)
+    periods = render.table_facts(cfg.data_dir, t).periods
+    assert [(p["resolution"], p["gaps"]) for p in periods] == EXPECTED[name]
+    assert periods == whole_table(cfg.data_dir, t)
 
 
 @pytest.mark.parametrize("seed", range(5))
@@ -113,7 +137,7 @@ def test_the_same_for_random_gaps_and_changes_with_old_versions(env, tmp_path, s
             at += step
     write(cfg.data_dir, t, rows)
     f = render.table_facts(cfg.data_dir, t)
-    assert f.periods == whole_table(cfg.data_dir, t) and len(f.periods) > 20
+    assert f.periods == whole_table(cfg.data_dir, t) and len(f.periods) > 20 and sum(p["gaps"] for p in f.periods) > 5
     latest = [r for r in rows if r[5] is None]
     assert (f.rows, f.versions) == (len(latest), len(rows))
     assert (f.first, f.last) == (min(r[1] for r in latest), max(r[1] for r in latest))

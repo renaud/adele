@@ -94,7 +94,7 @@ class TableFacts:
     versions: int | None  # append-only: every version stored
     changed_at: dt.datetime | None  # a table without a time column: when its file was last written
     window: tuple | None  # (first, last, distinct values) of the window column, when it isn't the time field
-    periods: list[dict]  # resolution periods: {series, resolution, first, last}
+    periods: list[dict]  # resolution periods: {series, resolution, first, last, gaps, longest_gap}
 
 
 _facts_lock = threading.Lock()  # one computation at a time: two would use twice the memory for one result
@@ -150,37 +150,75 @@ def join_facts(t: Table, files: list[storage.FileFacts], types: dict[str, str], 
 
 
 def join_periods(files: list[storage.FileFacts]) -> list[dict]:
-    """Periods of constant resolution per series, over all files. A period that reaches the end of
-    a file goes on in the next one if the resolution is the same and no interval is missing."""
+    """Periods of constant resolution per series, over all files.
+
+    A gap (missing intervals) doesn't end a period: its gaps are counted, and the longest one is
+    kept (D38). A row that starts before the previous one ended does: it overlaps.
+    """
     by_series: dict[tuple, list[tuple]] = {}
     for f in files:
         for series, *run in f.periods:
             by_series.setdefault(series, []).append(run)
     out = []
     for series in sorted(by_series, key=lambda s: tuple((v is None, v) for v in s)):
-        joined: list[list] = []
-        for resolution, first, last, end in sorted(by_series[series], key=lambda run: run[1]):
-            if joined and joined[-1][0] == resolution and joined[-1][3] == first:
-                joined[-1][2:] = [last, end]
+        name, p, end = " ".join(str(x) for x in series) or None, None, None
+        for resolution, first, last, run_end in sorted(by_series[series], key=lambda run: run[1]):
+            iso = iso_duration(resolution) if resolution is not None else None
+            if p is None or iso is None or p["resolution"] != iso or first < end:
+                p = {"series": name, "resolution": iso, "first": first, "last": last, "gaps": 0, "longest_gap": None}
+                out.append(p)
             else:
-                joined.append([resolution, first, last, end])
-        out += [{"series": " ".join(str(x) for x in series) or None,
-                 "resolution": iso_duration(resolution) if resolution is not None else None,
-                 "first": first, "last": last} for resolution, first, last, _ in joined]
+                if first > end:
+                    p["gaps"] += 1
+                    if p["longest_gap"] is None or first - end > p["longest_gap"][1] - p["longest_gap"][0]:
+                        p["longest_gap"] = (end, first)
+                p["last"] = last
+            end = run_end
     return out
 
 
+def period_line(p: dict) -> str:
+    """A period on the card: 'CH: PT1H 2015-01-01 00:00Z .. 2025-09-30 21:00Z (2 gaps, the longest ...)'."""
+    if not isinstance(p["first"], dt.datetime):  # declared in the descriptor
+        return f"{p['resolution']} from {p['first']}"
+    line = (f"{p['series']}: " if p["series"] else "") + f"{p['resolution']} {ts(p['first'])} .. {ts(p['last'])}"
+    if p["gaps"]:
+        start, end = (ts(x) for x in p["longest_gap"])
+        line += (f" (1 gap: no rows from {start} until {end})" if p["gaps"] == 1 else
+                 f" ({p['gaps']:,} gaps, the longest from {start} until {end})")
+    return line
+
+
+# The footer comes with every query, so its length must not depend on the number of series.
+FOOTER_CHANGES, FOOTER_SERIES, FOOTER_GROUPS = 4, 3, 6
+
+
 def resolution_summary(periods: list[dict]) -> str:
-    """'CH PT1H, PT15M from 2026-11-03 23:00Z; FR ...'"""
+    """For the footer: 'PT15M' if all series have the same resolution, else the series that share
+    one: 'CH, FR: PT1H, PT15M from 2026-11-03 23:00Z; IT: PT1H'. The card has every period."""
     by_series: dict = {}
     for p in periods:
         by_series.setdefault(p["series"], []).append(p)
-    parts = []
+    groups: dict[str, list[str]] = {}
     for s, ps in by_series.items():
-        items = [ps[0]["resolution"]] + [
-            f"{p['resolution']} from {ts(p['first']) if isinstance(p['first'], dt.datetime) else p['first']}"
-            for p in ps[1:]]
-        parts.append((f"{s} " if s else "") + ", ".join(items))
+        if len(ps) - 1 > FOOTER_CHANGES:
+            text = f"{' and '.join(sorted({str(p['resolution']) for p in ps}))} ({len(ps) - 1} changes, see the card)"
+        else:
+            text = ", ".join([str(ps[0]["resolution"])] + [
+                f"{p['resolution']} from {ts(p['first']) if isinstance(p['first'], dt.datetime) else p['first']}"
+                for p in ps[1:]])
+        groups.setdefault(text, []).append(s)
+    if len(groups) == 1:
+        return next(iter(groups))
+    parts = []
+    for text, series in sorted(groups.items(), key=lambda g: -len(g[1]))[:FOOTER_GROUPS]:
+        more = len(series) - FOOTER_SERIES
+        parts.append(", ".join(str(s) for s in series[:FOOTER_SERIES])
+                     + (f" and {more} more" if more > 0 else "") + f": {text}")
+    if len(groups) > FOOTER_GROUPS:
+        rest = sum(len(s) for s in groups.values()) - sum(
+            len(s) for s in sorted(groups.values(), key=lambda g: -len(g))[:FOOTER_GROUPS])
+        parts.append(f"{rest} more series: see the card")
     return "; ".join(parts) or "not declared"
 
 
@@ -315,11 +353,7 @@ def describe_dict(cfg: Config, ds: Dataset) -> dict:
                 entry["timezone"] = t.timezone
                 entry["join"] = join_text(t)
             elif t.has_time:
-                entry["resolution"] = [
-                    (f"{p['series']}: " if p["series"] else "") + f"{p['resolution']} "
-                    + (f"{ts(p['first'])} .. {ts(p['last'])}" if isinstance(p["first"], dt.datetime)
-                       else f"from {p['first']}")
-                    for p in facts.periods] or "not declared"
+                entry["resolution"] = [period_line(p) for p in facts.periods] or "not declared"
             fields = []
             for f in t.fields:
                 fe: dict = {"name": f["name"],
@@ -407,7 +441,9 @@ def merged_descriptor(cfg: Config, ds: Dataset) -> dict:
             tables[t.name]["last_changed_at"] = ts(facts.changed_at, False)
         tables[t.name]["resolution_periods"] = [  # empty for instants, calendar periods, no time column
             {**p, "first": ts(p["first"], False) if isinstance(p["first"], dt.datetime) else str(p["first"]),
-             "last": ts(p["last"], False)} for p in facts.periods]
+             "last": ts(p["last"], False),
+             **({"longest_gap": [ts(x, False) for x in p["longest_gap"]]} if p.get("longest_gap") else {})}
+            for p in facts.periods]
         if t.versioned:
             tables[t.name]["versions"] = facts.versions
     computed["tables"] = tables

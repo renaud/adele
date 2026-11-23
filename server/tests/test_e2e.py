@@ -72,7 +72,7 @@ def test_query_rows_cap_and_footer(server):
     text = str(r)
     assert text.startswith("zone,delivery_start,resolution,price\nA,2026-01-01 00:00:00Z,PT1H,0.0\n")
     assert "-- showing 10 of 96 rows." in text
-    assert "-- test_prices: units: price EUR/MWh. resolution: A PT1H; B PT1H. status ok" in text
+    assert "-- test_prices: units: price EUR/MWh. resolution: PT1H. status ok" in text
     assert "-- warning (test_prices): Synthetic data, do not use." in text
 
 
