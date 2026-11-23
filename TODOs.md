@@ -127,9 +127,23 @@ Found on 2026-11-23:
 - [ ] `entsoe_load` and `entsoe_scheduled_exchanges` failed at 2026-11-23 10:00 UTC (`entsoe_load`: an
   HTTP error of ENTSO-E; 18 minutes before `spread-fetches.sh`). Are they ok again? If it repeats
   at minute 0: the ENTSO-E datasets all start together there, with one token.
+  It repeated at 12:00 (read at 12:33; 24 minutes before the deployment of WP9 at 12:24): HTTP 599 from
+  ENTSO-E for `entsoe_day_ahead_prices`, `entsoe_load`, `entsoe_physical_flows` and
+  `entsoe_scheduled_exchanges`. Not known: an outage of ENTSO-E, or too many requests at once.
 - [ ] `openmeteo_previous_runs` is ok after its fetch at 00:00 UTC and failing later in the day.
   Probably the window backfill, whose refused window (budget spent) counts as a failed fetch. Not
   verified.
+- [ ] `list` had no memory limit: 2.6 GB for the first one on the server (2026-11-23, cap 3 GB). At 13:06 UTC
+  that day two at once had the query server killed, four times in 75 s (the check of the first
+  `add-key.sh`, which asked again after 10 s); it has been up since 13:07. Fixed in `main`
+  since 2026-11-23 (D37), to deploy with `deploy/access.sh`; then measure the first `list`: time, and
+  `MemoryPeak` of `adele-server`.
+- [ ] The resolution periods fill the footer of every query and the card (`render.py`,
+  `resolution_summary` and `describe_dict`): each gap in a series starts a new period. Measured on the
+  Mac, in characters: `entsoe_activated_balancing_prices` footer 603,268 and card 1,482,518;
+  `entsoe_wind_solar_forecast_neighbours` 146,495 and 377,131; `entsoe_imbalance_volume_neighbours`
+  22,187 and 45,735; `entsoe_imbalance_prices` 16,777 and 35,797. An agent cannot read them. Proposal
+  (Claude): show changes of resolution only, not gaps, and cap what the footer prints.
 - [ ] Reading the journal costs a whole core for minutes (the audit messages fill it). Agents: a
   narrow `--since`/`--until`, `timeout 40` before `journalctl` (a stopped `sc-run` leaves the
   process running on the server), and `sar` for the CPU.
@@ -143,8 +157,11 @@ Checks, now possible:
   17:32). Then the comparison script (to write), then Renaud takes the three files out of the
   poller's `SOURCES` (the WP4 doc, step 6).
 - [ ] WP5.4: the 34 checks of 2026 on the TSI of `swissgrid_balance` (below; backfilled 2026-11-18).
-- [ ] WP1 leftovers: HTTPS (also a rule for the port in the firewall: `SERVER.md`) and the faults on
-  purpose (V1, "From WP1").
+- [ ] WP1 leftovers: the faults on purpose (V1, "From WP1"). HTTPS: done 2026-11-23 (D35).
+- [ ] WP9: first key for a user outside the team (`deploy/add-key.sh`). In `main`, not
+  deployed: D36 (`/health` without a key says only that adele is up, no `/openapi.json`) and messages
+  of the client when an answer is cut. Deploy: push, `deploy/access.sh` again, then a key for the
+  user `claude` of the server (`deploy/add-key.sh`, two arguments), so that agents read the statuses.
 - [ ] WP5.6, WP5.8, WP5.9: uncommitted in their worktrees. Replace the host name (it is also in their
   copies of `TODOs.md` and `WP5-datasets.md`), land, then one lane each.
 
@@ -154,7 +171,7 @@ Small:
   unit needs `install` and `daemon-reload`. And the hint after `start` (below).
 - [ ] The git history holds the host name, the address and the name of a key (`SERVER.md`). A rewrite
   is not decided.
-- [ ] The commits since 89ebc25 are not pushed (2026-11-23).
+- [x] The commits since 89ebc25: pushed, and 6881d54 runs on the server (2026-11-23, 12:24 UTC).
 - [ ] The PLAN.md rows proposed above still say "Next: ... on the server": the backfills are done
   (2026-11-18).
 
@@ -589,9 +606,9 @@ Other V0 items:
 ## V1
 
 - From WP1 (closed 2026-11-16, `docs/work-packages/WP1-server.md`):
-  - HTTPS on another port (WP1 step 6, way b, Caddy's `tls internal`), once Renaud opens the
-    port in the hosting provider's panel: `deploy/Caddyfile` with port 8443, `tls internal` and no
-    listener on :80; `ADELE_CA_FILE` in `client/src/adele/_api.py`; a query from a laptop.
+  - ~~HTTPS on another port (WP1 step 6, way b, Caddy's `tls internal`)~~ done 2026-11-23 (D35,
+    `deploy/access.sh`): port 8443, root certificate in the client (`adele-ca.pem`, valid until
+    2036-10-01), `adele list` from a phone's network (Renaud).
   - Faults on purpose (WP1 step 8), on the code of the next deployment, each on a copy under
     another id: a renamed column, a duplicated row, an undeclared zone code, a fetch over its
     memory limit (status failing each time); the timers stopped for two hours, then the hole
