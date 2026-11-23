@@ -122,6 +122,12 @@ timer swissgrid_balance_daily
 ds swissgrid_balance --start 2024-10-31
 EOF
     ;;
+    # IEM's METAR (2026-11-23): 12 requests, about 4 min and 0.5 GB on the Mac. Not at minute 0 or 30
+    # (hourly fetches, weathernext3). Then the slot of iem_metar: deploy/spread-fetches.sh.
+    metar) cat <<'EOF'
+ds iem_metar --start 2015-01-01 --step-days 366
+EOF
+    ;;
     *) return 1 ;;
   esac
 }

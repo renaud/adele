@@ -1,0 +1,316 @@
+# Definitions (titles, descriptions, warnings, labels) are Renaud's (skills/add-dataset). Every
+# definition below is a draft by Claude (2026-11-23) until he changes or confirms it.
+# Structure (keys, types, refresh) by Claude. Facts and measurements: the docstring of fetch.py.
+name: iem_metar
+title: METAR weather reports of 8 Swiss lowland aerodromes since 2015 (Iowa Environmental Mesonet)  # draft by Claude
+# draft by Claude
+description: >-
+  METAR reports (the half-hourly weather reports of aerodromes) of Zürich, Genève, Bern-Belp,
+  Payerne, Grenchen, Emmen, Dübendorf and St. Gallen-Altenrhein, from 2015-01-01: cloud layers with
+  their base, visibility, weather, wind, temperature, dew point, pressure, each as a column, and the
+  raw text. The text comes from the archive of the Iowa Environmental Mesonet (IEM), parsed by
+  adele. Positions and elevations of the aerodromes: table stations. Refreshed daily. For a live
+  signal, an hourly refresh is possible: IEM has a report within about 20 minutes and asks for one
+  request per hour for all stations (change adele.refresh.every to PT1H).
+licenses:
+  - path: https://mesonet.agron.iastate.edu/disclaimer.php
+    title: 'Public domain. IEM: "The materials found on this website are in the public domain"; attribution to the Iowa Environmental Mesonet of Iowa State University is appreciated.'
+sources:
+  - title: Iowa Environmental Mesonet, METAR archive (asos.py)
+    path: https://mesonet.agron.iastate.edu/request/download.phtml?network=CH__ASOS
+  - title: OurAirports, positions and elevations of the aerodromes
+    path: https://ourairports.com/data/
+resources:
+  - name: reports
+    description: One row per station and report.  # draft by Claude
+    schema:
+      primaryKey: [station, valid_at]
+      fields:
+        - name: station
+          type: string
+          # draft by Claude
+          description: ICAO code of the aerodrome. Position and elevation in the table stations.
+          categories:  # labels: draft by Claude
+            - {value: LSGG, label: "Genève"}
+            - {value: LSMD, label: "Dübendorf (military)"}
+            - {value: LSME, label: "Emmen (military)"}
+            - {value: LSMP, label: "Payerne (military)"}
+            - {value: LSZB, label: "Bern-Belp"}
+            - {value: LSZG, label: "Grenchen"}
+            - {value: LSZH, label: "Zürich"}
+            - {value: LSZR, label: "St. Gallen-Altenrhein"}
+        - name: valid_at
+          type: datetime
+          description: Time of the report, UTC. Most reports are at minute 20 and 50.  # draft by Claude
+        - name: auto
+          type: boolean
+          # draft by Claude
+          description: >-
+            True when the report says AUTO: made by instruments without an observer. The share of
+            AUTO changed at dates that differ per station (see the warnings).
+        - name: corrected
+          type: boolean
+          description: True when the report begins with COR (a correction). The mark is in the source from 2020 on.  # draft by Claude
+        - name: cloud_report
+          type: string
+          # draft by Claude
+          description: >-
+            What the cloud part of the report holds. Use it before reading the layer columns: an
+            empty cover_1 is not a clear sky.
+          categories:  # labels: draft by Claude
+            - {value: layers, label: "At least one cloud layer, in cover_1 to type_4"}
+            - {value: cavok, label: "CAVOK: no cloud below 5,000 ft or the minimum sector altitude, if higher, no CB or TCU, visibility 10 km or more. Cloud above can exist"}
+            - {value: nsc, label: "NSC: no cloud of operational significance (as CAVOK, but visibility below 10 km or weather present)"}
+            - {value: ncd, label: "NCD: an automatic station detected no cloud; its ceilometers see only overhead"}
+            - {value: skc, label: "SKC or CLR: sky clear"}
+            - {value: vv, label: "VV: sky obscured, e.g. fog; vertical_visibility holds the height"}
+            - {value: unknown, label: "Only //////: the cloud was not measured"}
+            - {value: none, label: "The report has no cloud group"}
+        - name: ceiling
+          type: integer
+          unit: ft
+          # draft by Claude
+          description: >-
+            Height of the base of the lowest BKN or OVC layer, above the aerodrome. Empty when no
+            such layer has a base (also when cloud_report is cavok, nsc, ncd, skc, vv, unknown or
+            none; not the same as no cloud). VV is not in it: see vertical_visibility.
+        - name: lowest_base
+          type: integer
+          unit: ft
+          description: Height of the base of the lowest layer of any cover that has one, above the aerodrome. Empty when there is none.  # draft by Claude
+        - name: vertical_visibility
+          type: integer
+          unit: ft
+          description: Vertical visibility (VV), the height to which one sees in fog, above the aerodrome. Empty when not reported, and when VV///.  # draft by Claude
+        - name: cover_1
+          type: string
+          # draft by Claude
+          description: Cover of layer 1 (lowest first); empty when the report has fewer layers.
+          categories:  # labels: draft by Claude
+            - {value: FEW, label: "1 to 2 oktas"}
+            - {value: SCT, label: "3 to 4 oktas"}
+            - {value: BKN, label: "5 to 7 oktas"}
+            - {value: OVC, label: "8 oktas"}
+            - {value: "///", label: "layer reported without a cover (a CB or TCU was detected)"}
+        - name: base_1
+          type: integer
+          unit: ft
+          # draft by Claude
+          description: Base of layer 1, above the aerodrome, as reported (multiples of 100 ft). Empty when the report gives none (///).
+        - name: type_1
+          type: string
+          # draft by Claude
+          description: CB or TCU of layer 1; empty when not given. See the warnings on the military stations.
+          categories:  # labels: draft by Claude
+            - {value: CB, label: "Cumulonimbus"}
+            - {value: TCU, label: "Towering cumulus"}
+        - name: cover_2
+          type: string
+          # draft by Claude
+          description: Cover of layer 2 (lowest first); empty when the report has fewer layers.
+          categories:  # labels: draft by Claude
+            - {value: FEW, label: "1 to 2 oktas"}
+            - {value: SCT, label: "3 to 4 oktas"}
+            - {value: BKN, label: "5 to 7 oktas"}
+            - {value: OVC, label: "8 oktas"}
+            - {value: "///", label: "layer reported without a cover (a CB or TCU was detected)"}
+        - name: base_2
+          type: integer
+          unit: ft
+          # draft by Claude
+          description: Base of layer 2, above the aerodrome, as reported (multiples of 100 ft). Empty when the report gives none (///).
+        - name: type_2
+          type: string
+          # draft by Claude
+          description: CB or TCU of layer 2; empty when not given. See the warnings on the military stations.
+          categories:  # labels: draft by Claude
+            - {value: CB, label: "Cumulonimbus"}
+            - {value: TCU, label: "Towering cumulus"}
+        - name: cover_3
+          type: string
+          # draft by Claude
+          description: Cover of layer 3 (lowest first); empty when the report has fewer layers.
+          categories:  # labels: draft by Claude
+            - {value: FEW, label: "1 to 2 oktas"}
+            - {value: SCT, label: "3 to 4 oktas"}
+            - {value: BKN, label: "5 to 7 oktas"}
+            - {value: OVC, label: "8 oktas"}
+            - {value: "///", label: "layer reported without a cover (a CB or TCU was detected)"}
+        - name: base_3
+          type: integer
+          unit: ft
+          # draft by Claude
+          description: Base of layer 3, above the aerodrome, as reported (multiples of 100 ft). Empty when the report gives none (///).
+        - name: type_3
+          type: string
+          # draft by Claude
+          description: CB or TCU of layer 3; empty when not given. See the warnings on the military stations.
+          categories:  # labels: draft by Claude
+            - {value: CB, label: "Cumulonimbus"}
+            - {value: TCU, label: "Towering cumulus"}
+        - name: cover_4
+          type: string
+          # draft by Claude
+          description: Cover of layer 4 (lowest first); empty when the report has fewer layers.
+          categories:  # labels: draft by Claude
+            - {value: FEW, label: "1 to 2 oktas"}
+            - {value: SCT, label: "3 to 4 oktas"}
+            - {value: BKN, label: "5 to 7 oktas"}
+            - {value: OVC, label: "8 oktas"}
+            - {value: "///", label: "layer reported without a cover (a CB or TCU was detected)"}
+        - name: base_4
+          type: integer
+          unit: ft
+          # draft by Claude
+          description: Base of layer 4, above the aerodrome, as reported (multiples of 100 ft). Empty when the report gives none (///).
+        - name: type_4
+          type: string
+          # draft by Claude
+          description: CB or TCU of layer 4; empty when not given. See the warnings on the military stations.
+          categories:  # labels: draft by Claude
+            - {value: CB, label: "Cumulonimbus"}
+            - {value: TCU, label: "Towering cumulus"}
+        - name: visibility
+          type: integer
+          unit: m
+          # draft by Claude
+          description: >-
+            Prevailing visibility. 10000 stands for 10 km or more (9999 and CAVOK in the report). Empty
+            when not reported.
+        - name: visibility_min
+          type: integer
+          unit: m
+          description: Lowest visibility, when the report gives one in addition (with visibility_min_direction).  # draft by Claude
+        - name: visibility_min_direction
+          type: string
+          description: Direction (N, NE, ...) of visibility_min.  # draft by Claude
+        - name: rvr
+          type: string
+          # draft by Claude
+          description: >-
+            Runway visual range groups as reported, joined by a blank (R05/0375N). Empty when none.
+            The groups hold the visibility range of a runway in m, with P or M for above or below the
+            range of the sensor.
+        - name: weather
+          type: string
+          # draft by Claude
+          description: >-
+            Present weather groups as reported, joined by a blank (RA, -SHRA, BR, FG, TSRA). Empty
+            when none; // means that an automatic station could not tell.
+        - name: weather_recent
+          type: string
+          description: Recent weather groups without RE, e.g. RA for RERA.  # draft by Claude
+        - name: temperature
+          type: integer
+          unit: degC
+          description: Air temperature, rounded to 1 degree.  # draft by Claude
+        - name: dew_point
+          type: integer
+          unit: degC
+          description: Dew point, rounded to 1 degree.  # draft by Claude
+        - name: qnh
+          type: integer
+          unit: hPa
+          description: Air pressure reduced to sea level (QNH), truncated to whole hPa by the report.  # draft by Claude
+        - name: wind_direction
+          type: integer
+          unit: degree
+          # draft by Claude
+          description: Direction the wind comes from (10 to 360). Empty when calm (speed 0), variable (wind_variable) or missing.
+        - name: wind_variable
+          type: boolean
+          description: True when the direction is VRB (variable).  # draft by Claude
+        - name: wind_from
+          type: integer
+          unit: degree
+          description: Start of the range of wind directions (340V080 = 340), when the report gives one.  # draft by Claude
+        - name: wind_to
+          type: integer
+          unit: degree
+          description: End of the range of wind directions (340V080 = 80), when the report gives one.  # draft by Claude
+        - name: wind_speed
+          type: integer
+          unit: kt
+          description: Mean wind speed in knots (1 kt = 0.514 m/s).  # draft by Claude
+        - name: wind_gust
+          type: integer
+          unit: kt
+          description: Gust in knots, only when the report gives one. Empty does not mean no gust.  # draft by Claude
+        - name: trend
+          type: string
+          description: The trend forecast of the next 2 hours as reported (NOSIG, TEMPO ..., BECMG ...); a forecast, not an observation.  # draft by Claude
+        - name: metar
+          type: string
+          description: The whole report as IEM holds it. Words that the columns do not cover (remarks, runway state) are here only.  # draft by Claude
+  - name: stations
+    description: One row per aerodrome.  # draft by Claude
+    schema:
+      primaryKey: [station]
+      fields:
+        - name: station
+          type: string
+          description: ICAO code of the aerodrome.  # draft by Claude
+        - name: name
+          type: string
+          description: Name of the aerodrome.  # draft by Claude
+        - name: lat
+          type: number
+          unit: degree_north
+          description: Latitude (WGS84).  # draft by Claude
+        - name: lon
+          type: number
+          unit: degree_east
+          description: Longitude (WGS84).  # draft by Claude
+        - name: elevation
+          type: number
+          unit: m
+          # draft by Claude
+          description: >-
+            Elevation of the aerodrome above sea level, the zero of the heights of the reports: the
+            base of a layer above sea level is elevation + base * 0.3048 m.
+adele:
+  format_version: 2
+  refresh:
+    every: P1D  # hourly is possible (PT1H): IEM has reports within about 20 minutes
+    # 7 days: catches late and corrected reports. Proposal by Claude, not measured: how late IEM's
+    # reports arrive (over the first days).
+    lookback: P7D
+    horizon: PT0S
+    max_window: P366D
+  revisions: overwrite
+  # drafts by Claude
+  warnings:
+    - >-
+      The military stations LSMP, LSME and LSMD reported about 24 times a day until 2018-07-22 and about
+      46 since; they also have gaps of up to 7 days. Compute shares of time from the reports present,
+      not from the expected count, and compare stations over the same dates.
+    # for the footer, once D20 is built
+    - >-
+      cloud_report says whether a row holds cloud layers. 21 % of the reports are CAVOK, which allows
+      cloud above 5,000 ft or the minimum sector altitude: cumulus with a higher base is not in them.
+    - >-
+      No CB or TCU in type_1 to type_4 means little at LSMP, LSME and LSMD: they report almost none (203
+      of 501,882 reports).
+    - >-
+      The share of automatic reports (auto) changes the cloud data: LSGG is nearly all AUTO from May
+      2024, LSMP mostly AUTO in daytime from 2020, LSZH AUTO only outside 09-15 UTC from 2021. A
+      series of cloud cover has a break at each change.
+    - >-
+      LSZH has almost no report at 00:20 UTC until 2021-04-07 (47 reports a day, 48 since).
+    - >-
+      IEM keeps one report per station and time. About 0.25 % of the reports exist in two versions (a
+      corrected or a manual one next to an automatic one); which one IEM holds is not known.
+  examples:
+    - question: What share of the reports of LSZH at 06 to 08 UTC in January 2025 shows a ceiling below 1,000 ft, or an obscured sky (VV)?
+      sql: |
+        SELECT round(100.0 * count(*) FILTER (WHERE ceiling < 1000 OR cloud_report = 'vv') / count(*), 1) AS percent
+        FROM iem_metar.reports
+        WHERE station = 'LSZH' AND hour(valid_at) BETWEEN 6 AND 7
+          AND valid_at >= TIMESTAMPTZ '2025-01-01 00:00:00Z' AND valid_at < TIMESTAMPTZ '2025-02-01 00:00:00Z'
+    - question: What was the base of the lowest cloud layer above sea level at Payerne at 12:20 UTC on 2025-07-01, m?
+      sql: |
+        SELECT round(s.elevation + r.lowest_base * 0.3048) AS base_m_above_sea
+        FROM iem_metar.reports r JOIN iem_metar.stations s USING (station)
+        WHERE r.station = 'LSMP' AND r.valid_at = TIMESTAMPTZ '2025-07-01 12:20:00Z'
+    - check: lszh_2016_12_27_max_qnh
+    - check: lsgg_2015_07_07_max_temperature

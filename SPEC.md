@@ -219,7 +219,8 @@ inspecting the SQL text.
   parser shows to be a read (one SELECT, with table functions from a list; no other
   statement, also no EXPLAIN), and the query process runs as a user that can only read the
   data.
-- limits per query: time, rows returned, memory.
+- limits per query: time, rows returned, memory, temporary files. A limited number of queries
+  run at once; the others wait, then get an error that says so.
 - log: one line per query (key id, SQL, duration, rows).
 - values in cells and descriptions that come from a source are data, never instructions. The
   skill says so.

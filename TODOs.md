@@ -74,8 +74,18 @@
   "Sources revise past values (e.g. ENTSO-E corrects the physical flows on the Swiss borders up
   to a year after delivery)." Source: `qa/revisions_entsoe_ch.md`.
 - Rotate the ENTSO-E token (Claude, 2026-11-23): printed again in a local session.
+- The skill `adele` is installed on the Mac (Claude, 2026-11-23: `~/.claude/skills/adele` is a
+  symlink to `skills/adele` of the main checkout). Left to do: `export ADELE_URL` and
+  `ADELE_API_KEY` in `~/.bash_profile` (in neither profile file; `adele list` fails without them).
 
 ## The server: what may still be open (Claude, 2026-11-23; tick what is done)
+
+- `iem_metar` on the server (Claude, 2026-11-23): built, backfilled and checked on the Mac (1.5
+  million rows, 12 requests, about 4 min). Left to do, in this order: push; `deploy/access.sh` (the pull;
+  not `update-main.sh`, which refuses while a backfill runs); `deploy/backfill.sh start metar`
+  between minute 35 and 50 (backfill, then the timer); `deploy/backfill.sh report`;
+  `deploy/spread-fetches.sh` on the same day (slot 02:15 UTC). Later: an hourly refresh
+  (`adele.refresh.every: PT1H`) for a live signal; its line then goes out of `SLOTS`.
 
 Read on the server on 2026-11-23, 09:00 UTC: it runs 89ebc25, 32 of 32 timers on, the lanes
 entsoe, files, swissgrid and ens done, 30 statuses ok (failing: `meteoswiss_smn_tenmin`,
@@ -628,6 +638,11 @@ Other V0 items:
 - `describe`: distinct values of categorical columns (column profiles), and `adele search`
   to resolve names to codes (zones, production types). See docs/agentic-data-layers.md.
 - QA: 20 to 40 questions with known answers, rerun when a descriptor or the skill changes.
+- `qa/tools/run.sh` keeps the home folder (2026-11-23): with `~/.claude/skills/adele` installed,
+  a personal skill probably takes precedence over the project skill of the same name (from
+  knowledge of Claude Code, not tested), so a QA run from a worktree tests the `SKILL.md` of
+  main. Until it is settled: `rm ~/.claude/skills/adele` before such a run. Possible fix: stop
+  when that path exists.
 -  pull and revisions. Does a local copy hold every revision or only the latest values?
    I recommend every revision, so that as_of also works locally.
 - ~~`as_of` before adele's first fetch of a dataset is meaningless: backfilled rows all carry the

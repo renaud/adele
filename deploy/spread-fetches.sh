@@ -4,7 +4,7 @@
 # hourly, 3-hourly and 6-hourly ones: 30 of 32 datasets. The machine's monitoring reports more than
 # 85 % CPU for 5 minutes (1,125 CPU s of adele on 2026-11-23, almost all in 6 minutes of 4 cores),
 # and the memory cap kills fetches at that time. This script, as root:
-# 1. gives each of the 13 daily datasets a slot between 00:08 and 02:08 UTC (SLOTS below), through a
+# 1. gives each of the 14 daily datasets a slot between 00:08 and 02:15 UTC (SLOTS below), through a
 #    drop-in on its timer. The slots keep 8 minutes from minute 0 (the hourly fetches) and minute 30
 #    (weathernext3), and 7 minutes from each other; heavy and light datasets alternate. The
 #    timer doesn't tick between 00:00 and its slot. From the slot on it ticks every 10 minutes until
@@ -46,7 +46,8 @@ openmeteo_era5 01:22
 meteoswiss_smn_tenmin 01:38
 openmeteo_previous_runs 01:45
 entsoe_installed_capacity 01:52
-meteoswiss_obs_daily 02:08"
+meteoswiss_obs_daily 02:08
+iem_metar 02:15"
 
 [ "$(id -u)" = 0 ] || { echo "run as root"; exit 1; }
 fail() { echo "FAILED: $*"; exit 1; }

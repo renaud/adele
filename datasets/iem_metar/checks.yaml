@@ -1,0 +1,83 @@
+# Published figures that this dataset must reproduce (skills/add-dataset, step 8). Collected
+# 2026-11-23 by Claude. Two kinds: the dated extremes of 1994-2020 (reports of METAR, no AUTO) that
+# fall in adele's period, from MeteoSwiss Technical Reports 277 (LSZH) and 278 (LSGG); and METARs
+# quoted word for word in final reports of the Swiss Transportation Safety Investigation Board
+# (SUST/STSB). The other figures of the two reports are statistics over 1994-2020, which begins
+# before adele's data: see qa/published_figures_iem_metar.md, also for the comparison with ogimet.com
+# and with SwissMetNet. Times are UTC; tolerance 0: the values are whole numbers as reported.
+checks:
+  - name: lszh_2016_12_27_max_qnh
+    question: "QNH at LSZH on 2016-12-27 at 18:20 UTC, hPa: the maximum of 1994-2020 (reports of METAR)"
+    sql: |
+      SELECT qnh FROM iem_metar.reports
+      WHERE station = 'LSZH' AND valid_at = TIMESTAMPTZ '2016-12-27 18:20:00Z'
+    expected: 1044
+    tolerance: 0
+    source: "MeteoSwiss, Technical Report No. 277 (2021), section 5.3, https://www.meteoswiss.admin.ch/dam/jcr:554af418-7871-43ac-9d74-864e1ce47c5a/Technical_Report_MeteoSwiss_No.277.pdf"
+  - name: lsgg_2016_12_27_max_qnh
+    question: "QNH at LSGG on 2016-12-27 at 20:20 UTC, hPa: the maximum of 1994-2020 (reports of METAR)"
+    sql: |
+      SELECT qnh FROM iem_metar.reports
+      WHERE station = 'LSGG' AND valid_at = TIMESTAMPTZ '2016-12-27 20:20:00Z'
+    expected: 1041
+    tolerance: 0
+    source: "MeteoSwiss, Technical Report No. 278 (2021), section 5.3, https://www.meteoswiss.admin.ch/dam/jcr:f1df256f-98ce-48ba-9ed5-7cee35556f4e/Technical_Report_MeteoSwiss_No.278.pdf"
+  - name: lsgg_2015_07_07_max_temperature
+    question: "Temperature at LSGG on 2015-07-07 at 12:50 UTC, degC: the maximum of 1994-2020 (reports of METAR)"
+    sql: |
+      SELECT temperature FROM iem_metar.reports
+      WHERE station = 'LSGG' AND valid_at = TIMESTAMPTZ '2015-07-07 12:50:00Z'
+    expected: 39
+    tolerance: 0
+    source: "MeteoSwiss, Technical Report No. 278 (2021), section 4.2, https://www.meteoswiss.admin.ch/dam/jcr:f1df256f-98ce-48ba-9ed5-7cee35556f4e/Technical_Report_MeteoSwiss_No.278.pdf"
+  # METARs quoted word for word in final reports of the Swiss Transportation Safety Investigation
+  # Board (SUST/STSB) on accidents (the reports are the source of the quotes): the cloud layers, the
+  # visibility and the temperature of the stored row must be the quoted ones.
+  - name: lszb_2021_03_04_ceiling
+    question: "Ceiling (base of the lowest BKN or OVC layer) at LSZB on 2021-03-04 at 13:50 UTC, ft above the aerodrome"
+    sql: |
+      SELECT ceiling FROM iem_metar.reports
+      WHERE station = 'LSZB' AND valid_at = TIMESTAMPTZ '2021-03-04 13:50:00Z'
+    expected: 8000
+    tolerance: 0
+    source: "SUST, Schlussbericht HB-WZB (2021-03-04), quotes METAR LSZB 041350Z 27005KT 9999 BKN080 14/M01 Q1019 NOSIG, https://www.sust.admin.ch/inhalte/AV-berichte/HB-WZB_SumB_D.pdf"
+  - name: lszb_2021_03_04_dew_point
+    question: "Dew point at LSZB on 2021-03-04 at 13:50 UTC, degC"
+    sql: |
+      SELECT dew_point FROM iem_metar.reports
+      WHERE station = 'LSZB' AND valid_at = TIMESTAMPTZ '2021-03-04 13:50:00Z'
+    expected: -1
+    tolerance: 0
+    source: "SUST, Schlussbericht HB-WZB (2021-03-04), quotes METAR LSZB 041350Z 27005KT 9999 BKN080 14/M01 Q1019 NOSIG, https://www.sust.admin.ch/inhalte/AV-berichte/HB-WZB_SumB_D.pdf"
+  - name: lszh_2022_03_30_ceiling
+    question: "Ceiling at LSZH on 2022-03-30 at 10:20 UTC, ft above the aerodrome (BKN031, below FEW010 and SCT015)"
+    sql: |
+      SELECT ceiling FROM iem_metar.reports
+      WHERE station = 'LSZH' AND valid_at = TIMESTAMPTZ '2022-03-30 10:20:00Z'
+    expected: 3100
+    tolerance: 0
+    source: "STSB, Final report D-FLIC (2022-03-30), section 1.7, quotes METAR LSZH 301020Z 21009KT 7000 -RA FEW010 SCT015 BKN031 09/07 Q1003 NOSIG, https://www.sust.admin.ch/inhalte/AV-berichte/D-FLIC_SB_e.pdf"
+  - name: lszh_2022_03_30_visibility
+    question: "Visibility at LSZH on 2022-03-30 at 10:20 UTC, m"
+    sql: |
+      SELECT visibility FROM iem_metar.reports
+      WHERE station = 'LSZH' AND valid_at = TIMESTAMPTZ '2022-03-30 10:20:00Z'
+    expected: 7000
+    tolerance: 0
+    source: "STSB, Final report D-FLIC (2022-03-30), section 1.7, quotes METAR LSZH 301020Z 21009KT 7000 -RA FEW010 SCT015 BKN031 09/07 Q1003 NOSIG, https://www.sust.admin.ch/inhalte/AV-berichte/D-FLIC_SB_e.pdf"
+  - name: lszr_2022_03_30_lowest_base
+    question: "Lowest cloud base of any cover at LSZR on 2022-03-30 at 10:20 UTC, ft above the aerodrome (FEW040, then OVC070)"
+    sql: |
+      SELECT lowest_base FROM iem_metar.reports
+      WHERE station = 'LSZR' AND valid_at = TIMESTAMPTZ '2022-03-30 10:20:00Z'
+    expected: 4000
+    tolerance: 0
+    source: "STSB, Final report D-FLIC (2022-03-30), section 1.7, quotes METAR LSZR 301020Z 28013KT 9999 FEW040 OVC070 11/07 Q1003 NOSIG, https://www.sust.admin.ch/inhalte/AV-berichte/D-FLIC_SB_e.pdf"
+  - name: lszr_2022_03_30_ceiling
+    question: "Ceiling at LSZR on 2022-03-30 at 10:20 UTC, ft above the aerodrome"
+    sql: |
+      SELECT ceiling FROM iem_metar.reports
+      WHERE station = 'LSZR' AND valid_at = TIMESTAMPTZ '2022-03-30 10:20:00Z'
+    expected: 7000
+    tolerance: 0
+    source: "STSB, Final report D-FLIC (2022-03-30), section 1.7, quotes METAR LSZR 301020Z 28013KT 9999 FEW040 OVC070 11/07 Q1003 NOSIG, https://www.sust.admin.ch/inhalte/AV-berichte/D-FLIC_SB_e.pdf"
