@@ -1,6 +1,6 @@
 ---
 name: adele
-description: Answer questions with the curated datasets of adele (electricity market data such as day-ahead prices per bidding zone) through the `adele` CLI - list, describe, query with DuckDB SQL. Use whenever a question needs data that adele holds, before searching the web or downloading files.
+description: Answer questions with the curated datasets of adele (electricity prices, generation, load, flows and balancing, PV production, weather observations and forecasts, mostly for Switzerland and its neighbours) through the `adele` CLI - list, describe, query with DuckDB SQL. Use whenever a question needs data that adele holds, before searching the web or downloading files.
 ---
 
 # Using adele
@@ -46,8 +46,10 @@ and the server checks what the card states (key, codes, types, example queries) 
   wrong day.
 - A table without a time column (a list of stations, a register) holds what the source
   delivers now: a row that the source dropped is gone.
-- Results are capped (the result says "showing N of M rows"). Aggregate in SQL instead of
-  reading rows.
+- Results are capped at 1,000 rows (the result says "showing N of M rows"). Aggregate in SQL
+  instead of reading rows.
+- Send one query at a time. The server runs two at once for all its users; the others wait, and
+  after 60 s get "the server is busy".
 - If the status is not `ok`, tell the user and quote the problems: the data may be incomplete.
 - Give the unit and the time zone of every number you report, and the query that produced it.
 - When adele can't answer, say so. Don't give numbers from memory or from other sources unless
@@ -90,12 +92,20 @@ Limits:
 The CLI calls an HTTP API, which you can call directly (same output):
 
 ```bash
-curl -s -H "Authorization: Bearer $ADELE_API_KEY" "$ADELE_URL/datasets"
-curl -s -H "Authorization: Bearer $ADELE_API_KEY" "$ADELE_URL/datasets/<id>"
-curl -s -H "Authorization: Bearer $ADELE_API_KEY" -H 'Content-Type: application/json' \
+curl -s --cacert adele-ca.pem -H "Authorization: Bearer $ADELE_API_KEY" "$ADELE_URL/datasets"
+curl -s --cacert adele-ca.pem -H "Authorization: Bearer $ADELE_API_KEY" "$ADELE_URL/datasets/<id>"
+curl -s --cacert adele-ca.pem -H "Authorization: Bearer $ADELE_API_KEY" -H 'Content-Type: application/json' \
   -d '{"sql": "SELECT ..."}' "$ADELE_URL/query?format=text"
 ```
 
+`adele-ca.pem` is the root certificate of the server's authority:
+`client/src/adele/adele-ca.pem` in github.com/renaud/adele. Never use `curl -k` instead: it would
+send the API key to whoever answers.
+
 ## Setup
 
-`uv tool install <path to the adele repo>/client`, then set `ADELE_URL` and `ADELE_API_KEY`.
+```bash
+uv tool install "git+https://github.com/renaud/adele#subdirectory=client"
+```
+
+Then set `ADELE_URL` (https) and `ADELE_API_KEY`. Never print the key.

@@ -11,10 +11,20 @@ DEFAULT_PATH = "adele-server.toml"
 
 @dataclass
 class QueryLimits:
-    max_rows: int = 100
+    """Limits of one query, and of the queries together (D35). `[query]` in the config: the SQL of
+    agents. `[checks]`: the examples and published figures that run after each fetch."""
+    max_rows: int = 1000
     timeout_s: float = 30.0
-    memory_limit: str = "2GB"
+    memory_limit: str = "1GB"
+    temp_limit: str | None = "2GB"  # temporary files; None: DuckDB's default (90 % of the free disk)
     threads: int = 4
+    max_concurrent: int = 2  # queries of agents that run at once; the others wait (app.py)
+    max_wait_s: float = 60.0  # then "busy". max_wait_s + timeout_s must stay under the client's 120 s
+
+
+# The checks run in the fetch processes, which have their own memory cap: a limit set for the SQL of
+# agents must not turn a dataset failing.
+CHECK_DEFAULTS = {"memory_limit": "2GB", "temp_limit": None}
 
 
 @dataclass
@@ -27,6 +37,7 @@ class Config:
     admin_email: str | None
     keys: dict[str, str]  # key name (team member) --> API key
     query: QueryLimits = field(default_factory=QueryLimits)
+    checks: QueryLimits = field(default_factory=lambda: QueryLimits(**CHECK_DEFAULTS))
     fetch_timeout_s: float = 1800.0  # per call of fetch(start, end); a hung source must not go unnoticed
     cache_dir: Path | None = None  # files that the server can write again (the uv runners); see cache_path
 
@@ -76,6 +87,7 @@ def load(path: str | os.PathLike | None = None) -> Config:
         admin_email=raw.get("admin_email"),
         keys=keys,
         query=QueryLimits(**raw.get("query", {})),
+        checks=QueryLimits(**{**CHECK_DEFAULTS, **raw.get("checks", {})}),
         fetch_timeout_s=float(raw.get("fetch_timeout_s", 1800)),
         cache_dir=path_of("cache_dir"),
     )

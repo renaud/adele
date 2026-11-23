@@ -7,6 +7,14 @@ User=adele-query
 Group=adele
 ExecStart=/opt/adele/server/.venv/bin/adele-server --config /etc/adele/adele-server.toml serve --host 127.0.0.1 --port 8000
 Restart=on-failure
+RestartSec=2
+# Limits (D35, 2026-11-23). At most 2 queries run at once, with 1 GB each (config.py): 2.5 GB
+# measured on the Mac. Past MemoryMax the kernel kills the server and systemd starts it again.
+# No swap: a query that swaps holds the disk of the other services. If the whole machine runs
+# out of memory, the kernel kills a fetch first (1000), then this, then another service.
+MemoryMax=3G
+MemorySwapMax=0
+OOMScoreAdjust=900
 NoNewPrivileges=yes
 PrivateTmp=yes
 # DuckDB puts its temporary files in .tmp under the working directory; / is read-only here

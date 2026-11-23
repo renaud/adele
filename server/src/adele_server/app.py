@@ -28,6 +28,7 @@ _log_lock = threading.Lock()
 
 def create_app(cfg: Config, catalog: dict[str, Dataset]) -> FastAPI:
     app = FastAPI(title="adele", docs_url=None, redoc_url=None)
+    slots = threading.BoundedSemaphore(cfg.query.max_concurrent)  # each query has its own memory limit (D35)
 
     def key_name(request: Request) -> str:
         header = request.headers.get("authorization", "")
@@ -74,14 +75,22 @@ def create_app(cfg: Config, catalog: dict[str, Dataset]) -> FastAPI:
             entry["as_of"] = as_of
         try:
             when = engine.parse_as_of(as_of) if as_of is not None else None
-            res = engine.run(catalog, cfg.data_dir, cfg.query, sql, as_of=when)
+            if not slots.acquire(timeout=cfg.query.max_wait_s):
+                raise engine.Busy(f"the server is busy: other queries ran for {cfg.query.max_wait_s:g} s. "
+                                  "Try again, and send one query at a time.")
+            entry["waited_ms"] = int((time.monotonic() - t0) * 1000)
+            try:
+                res = engine.run(catalog, cfg.data_dir, cfg.query, sql, as_of=when)
+            finally:
+                slots.release()
         except engine.QueryError as e:
+            status = 503 if isinstance(e, engine.Busy) else 400
             entry.update(duration_ms=int((time.monotonic() - t0) * 1000), error=str(e).splitlines()[0])
             _log(cfg, entry)
             msg = f"error: {e}\n"
             if format == "text":
-                return PlainTextResponse(msg, status_code=400)
-            return JSONResponse({"error": str(e)}, status_code=400)
+                return PlainTextResponse(msg, status_code=status)
+            return JSONResponse({"error": str(e)}, status_code=status)
         footer = render.query_footer(cfg, catalog, res.datasets, res.versions, res.as_of)
         text = render.render_query(res, footer)
         entry.update(duration_ms=int((time.monotonic() - t0) * 1000), rows=len(res.rows), total=res.total,

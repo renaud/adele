@@ -23,8 +23,9 @@ Each query gets a fresh in-memory DuckDB connection:
   On the Linux server, the query process also runs as a user that can only read the data
   folder: the layer that doesn't depend on parsing.
 - settings: `lock_configuration = true` after the setup, so a query can't change them.
-- limits: rows returned (`max_rows`), memory (`memory_limit`), time (a timer calls
-  `interrupt()`; DuckDB has no time limit of its own).
+- limits: rows returned (`max_rows`), memory (`memory_limit`), temporary files (`temp_limit`),
+  time (a timer calls `interrupt()`; DuckDB has no time limit of its own). How many queries run
+  at once is limited in `app.py`.
 """
 from __future__ import annotations
 
@@ -67,6 +68,10 @@ class QueryError(Exception):
     pass
 
 
+class Busy(QueryError):
+    """Too many queries run at once, and none ended in time (app.py)."""
+
+
 @dataclass
 class QueryResult:
     columns: list[str]
@@ -101,6 +106,10 @@ def connect(catalog: dict[str, Dataset], data_dir: Path, limits: QueryLimits,
         "autoload_known_extensions": False,
     })
     con.execute("SET TimeZone = 'UTC'")
+    if limits.temp_limit is not None:
+        # SET, not the config of connect(): duckdb 2.0.0 shows the value given there as the current
+        # setting and doesn't apply it (tested in test_access.py).
+        con.execute("SET max_temp_directory_size = $s", {"s": limits.temp_limit})
     # The folders of the tables only: the data folder also holds logs/ and a state.json per dataset.
     # A folder that doesn't exist yet (a dataset that was never fetched) is accepted.
     folders = [str(table_dir(data_dir, t).resolve()) + "/" for ds in catalog.values() for t in ds.tables.values()]
@@ -258,7 +267,8 @@ def run(catalog: dict[str, Dataset], data_dir: Path, limits: QueryLimits, sql: s
             raise QueryError(f"query stopped after {limits.timeout_s:g} s (time limit). "
                              "Aggregate, or narrow the filter.") from None
         except duckdb.OutOfMemoryException:
-            raise QueryError(f"query stopped: memory limit ({limits.memory_limit}). "
+            temp = f" and {limits.temp_limit} of temporary files" if limits.temp_limit else ""
+            raise QueryError(f"query stopped: memory limit ({limits.memory_limit}{temp}). "
                              "Aggregate, or narrow the filter.") from None
         except duckdb.Error as e:
             raise QueryError(str(e)) from None

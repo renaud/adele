@@ -1,22 +1,46 @@
-# Reverse proxy with TLS in front of adele-server (draft, 2026-11-13, not tried yet).
-# uvicorn stays on 127.0.0.1:8000; only Caddy listens on the network (ports 80 and 443).
-#
-# Replace adele.example.org with the server's DNS name. Caddy gets and renews a Let's Encrypt
-# certificate by itself if that name resolves to this machine and port 80 or 443 is reachable
-# from the internet. Without that, use the university's certificate (`tls <cert> <key>`).
-adele.example.org {
+# HTTPS in front of adele-server (D35, 2026-11-23). deploy/access.sh writes it to
+# /etc/adele-caddy/Caddyfile with the DNS name of the server in place of ADELE_HOST (the name is
+# not in git). adele-server stays on 127.0.0.1:8000; only Caddy listens on the network, on 8443.
+# Ports 80 and 443 belong to another site, so there is no Let's Encrypt check: the certificate
+# comes from Caddy's own authority (`tls internal`), whose root is in the client package.
+{
+	# no admin API on localhost:2019: a change of this file needs a restart of the unit
+	admin off
+	persist_config off
+	# the root certificate is for the client package, not for the trust store of this machine
+	skip_install_trust
+	# no listener on port 80
+	auto_https disable_redirects
+	# the authority's private key: keep a backup, a new authority needs a new client for everyone
+	storage file_system /var/lib/adele-caddy
+	servers {
+		protocols h1 h2
+		# no limit on writing the answer: a query may wait 60 s and run 30 s
+		timeouts {
+			read_header 10s
+			read_body 10s
+			idle 2m
+		}
+	}
+	pki {
+		ca local {
+			name "adele"
+			root_cn "adele root CA"
+			intermediate_cn "adele intermediate CA"
+		}
+	}
+}
+
+https://ADELE_HOST:8443 {
+	tls internal
+
 	# agent SQL arrives as a small JSON body
 	request_body {
 		max_size 64KB
 	}
 
-	# Optional: only the university network and its VPN (fill in the real ranges).
-	# @outside not remote_ip 192.0.2.0/24 198.51.100.0/24
-	# respond @outside 403
-
 	reverse_proxy 127.0.0.1:8000
 
-	log {
-		output file /var/log/caddy/adele.log
-	}
+	# to the journal; Caddy writes REDACTED for the Authorization header
+	log
 }

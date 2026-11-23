@@ -905,3 +905,46 @@ covered.
 skip the check without a word. A key in `checks.yaml` that lists the other datasets: the SQL
 names them already, and nothing would read the key. Redacting in each `fetch.py` only (done in
 the two A69 datasets, `_redact`): the next dataset would forget it.
+
+## D35 - Access from outside: HTTPS with the root certificate in the client, limits on all queries together, 1,000 rows (2026-11-23)
+
+**Decision.**
+
+- HTTPS on port 8443 through Caddy with its own authority (`tls internal`, chosen 2026-11-15). The
+  root certificate, which is public, is a file of the client package (`adele-ca.pem`). The client
+  trusts it beside the authorities of the system, for its own calls only. This replaces the
+  setting `ADELE_CA_FILE` of the WP1 doc.
+- The client refuses `http://` except for this machine, and follows no redirect.
+- At most 2 queries of agents run at once (`max_concurrent`). The others wait, 60 s at most
+  (`max_wait_s`), then get a 503 "the server is busy".
+- Per query: 1 GB of memory (was 2 GB), 2 GB of temporary files (was 90 % of the free disk),
+  1,000 rows (was 100). `adele-server.service`: `MemoryMax=3G`, no swap.
+- The checks after a fetch have their own limits (`[checks]`: 2 GB, no cap on temporary files, as
+  before).
+- A key opens every dataset.
+
+Built: `server/src/adele_server/{config,engine,app,ingest}.py`, `client/src/adele/_api.py`,
+`server/tests/test_access.py`, `deploy/access.sh`, `deploy/add-key.sh`, `deploy/adele-caddy.service`,
+`deploy/Caddyfile`, `client/README.md`.
+
+**Why.** Renaud, 2026-11-23: a friend must be able to use the server with a URL and a key; "b2",
+answers and not whole series, the limit on rows "up", all datasets. With `ADELE_CA_FILE` the friend
+would need a third thing, and a person who has trouble with it turns the check off. Limits: each
+query has its own DuckDB, so a limit per query doesn't limit their sum. Measured on the Mac: 3
+heavy queries at 2 GB took the process to 5.8 GB; 2 at 1 GB to 2.5 GB, the same over 4 rounds. The
+server has 7.9 GB, shared. 1,000 rows is a month of hourly values; a row of prices is about 35
+characters, so a full result is about 35 KB. `max_temp_directory_size` is set with `SET`: duckdb
+2.0.0 shows the value given to `connect()` as the current setting and doesn't apply it (measured: 1.7 GB
+written with a cap of 200 MB).
+
+**Limits.** Caddy itself was not run before the deployment: `access.sh` checks it on the server.
+The caps can be reached together: 3 GB here and 4.5 GB for the fetches leave little of 7.9 GB for
+the other services (swap: 4 GB); the kernel then kills a fetch first, then the query server.
+Queries that wait hold a thread of the web server (40): 40 at once would also block `list`. There
+is no limit on requests per key. If the authority's key is lost, every client must be updated.
+
+**Rejected.** `ADELE_CA_FILE` (above). Let's Encrypt through DNS: a token on the server that can
+change the DNS of the domain. The Ubuntu package of Caddy: it starts a service on port 80.
+Refusing a query at once when 2 run: agents send queries in parallel, and a short wait is cheaper
+than a retry. One memory limit for agents and checks: a heavy check would turn its dataset
+`failing`.

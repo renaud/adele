@@ -173,8 +173,8 @@ holds for the SQL of `adele.examples` and `checks.yaml`.
 | `ingest.py` | fetch a window (child process, or `uv run --script`), check it against the schema, merge, run the checks, update the state; the scheduled window and its pieces |
 | `storage.py` | month or day partitions written by DuckDB, temp file + rename (D9); merge per revision policy; repartition |
 | `checks.py` | declared means checked: key, codes, stored types, example queries, published figures |
-| `engine.py` | agent SQL: locked-down DuckDB, caps on rows, time, memory (D10) |
+| `engine.py` | agent SQL: locked-down DuckDB, caps on rows, time, memory, temporary files (D10, D35) |
 | `render.py` | the text agents read: list, describe card, query footer |
-| `app.py` | HTTP API (bearer key per team member) |
+| `app.py` | HTTP API (bearer key per team member); how many queries run at once |
 | `state.py` | `state.json` per dataset; when a dataset is due (periods of `every` on the clock) |
 | `cli.py` | `adele-server validate / serve / fetch / backfill / check / repartition`; the cheap answer of `fetch <id> --if-due` |

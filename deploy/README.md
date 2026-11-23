@@ -5,6 +5,7 @@ POC step 6 (TODOs.md). The units share one install and one data folder:
 | unit | runs | user | data folder |
 |---|---|---|---|
 | `adele-server.service` | `adele-server serve` (agent SQL) | `adele-query` | read-only (`ReadOnlyPaths=`) |
+| `adele-caddy.service` | Caddy, HTTPS on 8443 (D35) | `adele-caddy` | none |
 | `adele-fetch@<id>.service` + `.timer`, one pair per dataset | `adele-server fetch <id> --if-due`, every minute | `adele` | read-write |
 
 One timer and one service per dataset (D27, 2026-11-15): fetches of different datasets run side
@@ -39,6 +40,9 @@ with datasets from other repositories).
                              weathernext3: GOOGLE_APPLICATION_CREDENTIALS=/etc/adele/gcloud-adc.json
 /etc/adele/gcloud-adc.json   Google credentials (WeatherNext 3)     root:adele 0640 (fetch units only)
 /var/cache/adele/uv/         uv cache of the fetch units (CacheDirectory=)
+/usr/local/bin/caddy         Caddy, pinned in access.sh  root:root 0755
+/etc/adele-caddy/            Caddyfile, root.crt         root:root 0755
+/var/lib/adele-caddy/        the authority of HTTPS      adele-caddy 0700
 /var/lib/adele/              data_dir                    adele:adele 2750
 /var/log/adele/              queries.jsonl, alerts.log   adele:adele 2770
 ```
@@ -158,25 +162,30 @@ its backfill, its timer (the items of a lane in `backfill.sh`).
 
 ## Access from outside: HTTPS through Caddy
 
-Not done, and out of date (2026-11-16). Ports 80 and 443 of the server serve another site, so
-adele gets another port with Caddy's own certificate authority (`tls internal`), not Let's
-Encrypt: way b of `docs/work-packages/WP1-server.md`, step 6, moved to
-`TODOs.md` (V1). The text below is the draft of 2026-11-13.
-
-Decided 2026-11-13: the server has a DNS name and can be reached from outside, so team members call
-the server over HTTPS. An SSH tunnel would need an SSH account per member, which is a shell: more
-access than an API key. uvicorn stays on 127.0.0.1:8000; Caddy (`deploy/Caddyfile`) terminates TLS
-and forwards. The API key travels in a header, so never over plain HTTP outside the machine.
+Decided 2026-11-13 (HTTPS and an API key per person; an SSH account would be a shell) and
+2026-11-23 (D35). uvicorn stays on 127.0.0.1:8000; Caddy (`adele-caddy.service`) listens on 8443
+and forwards. Ports 80 and 443 of the server belong to another site, so the certificate comes
+from Caddy's own authority (`tls internal`); its root certificate is in the client package.
 
 ```bash
-sudo apt install caddy
-sudo cp Caddyfile /etc/caddy/Caddyfile     # after replacing the host name
-sudo systemctl reload caddy
+# 1. after the push: limits on queries, Caddy, the authority, a check on the server
+ssh s 'sudo bash -s -- <dns name>' < deploy/access.sh 2>&1 | tee deploy/access.txt
+# 2. the root certificate (public) into the client package; commit, push
+ssh s 'cat /etc/adele-caddy/root.crt' > client/src/adele/adele-ca.pem
+# 3. the port: TCP 8443 from everywhere, in the panel of the hosting provider
+# 4. a key per person
+ssh s 'sudo bash -s -- <name>' < deploy/add-key.sh
 ```
 
-Clients: `ADELE_URL=https://<the server's DNS name>`, plus their own `ADELE_API_KEY` (one key per
-person in `[keys]`, so that `queries.jsonl` says who ran what, and one key can be revoked).
+What a person gets: the URL (`https://<dns name>:8443`), their key, and `client/README.md`.
 
-Before opening the ports: ask the university's IT whether ports 80 and 443 may be opened on
-the server, and whether to limit them to the university network and the VPN (the commented
-`remote_ip` block in the Caddyfile).
+The authority is in `/var/lib/adele-caddy` (with its private key, readable by `adele-caddy` only)
+and in the backup that `access.sh` writes to `/root`. If both are lost, Caddy makes a new
+authority and every client must be updated. The root certificate is valid for years (`access.sh` prints
+the date); Caddy renews the others by itself.
+
+Limits: `adele-server.service` may use 3 GB (`MemoryMax=`), two queries run at once with 1 GB of
+memory and 2 GB of temporary files each (`[query]` of the config, defaults in `config.py`). The
+checks after a fetch run in the fetch units, with their own limits (`[checks]`).
+Look: `journalctl -u adele-caddy`, `systemctl show -p MemoryPeak adele-server`,
+`/var/log/adele/queries.jsonl` (the key's name, the SQL, `waited_ms`).

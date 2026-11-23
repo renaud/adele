@@ -653,7 +653,7 @@ def _settle(cfg: Config, catalog: dict[str, Dataset], ds: Dataset, st: dict, out
     An interrupted fetch runs no checks (the command is stopping) and alerts on a change of
     status in any case, so that alerts.log shows why the status is failing."""
     if run_checks and not out.interrupted:
-        problems = checks.run_checks(catalog, ds, cfg.data_dir, cfg.query)
+        problems = checks.run_checks(catalog, ds, cfg.data_dir, cfg.checks)
         st["published_checks"] = {"count": len(ds.checks), "at": state.now().isoformat()}
     else:  # the known problems, without the line of an earlier fetch that failed
         problems = [p for p in st.get("problems", []) if not p.startswith("last fetch failed: ")]
@@ -710,7 +710,7 @@ def _recheck(cfg: Config, catalog: dict[str, Dataset], ds: Dataset, backfill: tu
         if st["last_attempt_at"] is None:
             del st["last_attempt_at"]
     old = st.get("status")
-    problems = checks.run_checks(catalog, ds, cfg.data_dir, cfg.query)
+    problems = checks.run_checks(catalog, ds, cfg.data_dir, cfg.checks)
     st["published_checks"] = {"count": len(ds.checks), "at": state.now().isoformat()}
     if st.get("last_error"):
         problems = [f"last fetch failed: {st['last_error']}"] + problems

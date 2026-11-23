@@ -9,11 +9,16 @@ env_file = "../.env"                 # source credentials (ENTSO_TOKEN); read by
 fetch_timeout_s = 1800                # per call of fetch(); a hung source sets status failing
 admin_email = "admin@example.org"    # POC: status changes go to alerts.log, no email yet
 
-[query]
-max_rows = 100
+[query]                              # the SQL of agents; these are the defaults
+max_rows = 1000
 timeout_s = 30
-memory_limit = "2GB"
+memory_limit = "1GB"                 # per query
+temp_limit = "2GB"                   # temporary files, per query
 threads = 4
+max_concurrent = 2                   # queries that run at once; the others wait
+max_wait_s = 60                      # then the server answers that it is busy
+
+# [checks]                           # the same keys, for the checks after each fetch (2GB, no temp_limit)
 
 [keys]
 # team member = API key (generate with: python -c "import secrets; print(secrets.token_urlsafe(24))")
