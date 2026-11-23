@@ -1,5 +1,6 @@
 """HTTP API. Every endpoint except /health needs `Authorization: Bearer <API key>`.
 
+GET  /health                            {"ok": true}; with a key, also the status of each dataset (D36)
 GET  /datasets                          list (text)
 GET  /datasets/{id}                     describe card (text, YAML)
 GET  /datasets/{id}/datapackage.json    authored descriptor plus computed fields (JSON)
@@ -27,7 +28,7 @@ _log_lock = threading.Lock()
 
 
 def create_app(cfg: Config, catalog: dict[str, Dataset]) -> FastAPI:
-    app = FastAPI(title="adele", docs_url=None, redoc_url=None)
+    app = FastAPI(title="adele", docs_url=None, redoc_url=None, openapi_url=None)
     slots = threading.BoundedSemaphore(cfg.query.max_concurrent)  # each query has its own memory limit (D35)
 
     def key_name(request: Request) -> str:
@@ -51,7 +52,10 @@ def create_app(cfg: Config, catalog: dict[str, Dataset]) -> FastAPI:
         return PlainTextResponse(f"error: {exc.detail}\n", status_code=exc.status_code)
 
     @app.get("/health")
-    def health():
+    def health(request: Request):
+        if "authorization" not in request.headers:
+            return {"ok": True}  # the port is open to the internet: no ids, no statuses (D36)
+        key_name(request)  # a wrong key is refused here too
         return {"ok": True, "datasets": {ds_id: state.load(cfg.data_dir, ds_id).get("status") for ds_id in catalog}}
 
     @app.get("/datasets", response_class=PlainTextResponse)

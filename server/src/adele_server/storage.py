@@ -24,7 +24,7 @@ from pathlib import Path
 
 import duckdb
 
-from .catalog import SUPERSEDED_FIELD, VERSION_FIELD, Table
+from .catalog import DELIVERY_FIELD, SUPERSEDED_FIELD, VERSION_FIELD, Table
 
 UTC = dt.timezone.utc
 PARTITION_FORMAT = {"month": "%Y-%m", "day": "%Y-%m-%d"}
@@ -37,10 +37,16 @@ class StorageError(Exception):
     pass
 
 
-def connect() -> duckdb.DuckDBPyConnection:
-    """A plain connection for the server's own work (ingestion, checks, stats). Never for agent SQL."""
+def connect(memory_limit: str | None = None, temp_limit: str | None = None) -> duckdb.DuckDBPyConnection:
+    """A plain connection for the server's own work (ingestion, checks, stats). Never for agent SQL.
+
+    The query server passes limits (render.py, D37): without one, DuckDB takes up to 80 % of the memory."""
     con = duckdb.connect(":memory:")
     con.execute("SET TimeZone = 'UTC'")
+    if memory_limit is not None:
+        con.execute("SET memory_limit = $m", {"m": memory_limit})
+    if temp_limit is not None:
+        con.execute("SET max_temp_directory_size = $t", {"t": temp_limit})
     return con
 
 
@@ -66,26 +72,26 @@ def ts_literal(v: dt.datetime) -> str:
     return f"'{v.astimezone(UTC).isoformat()}'::TIMESTAMPTZ"
 
 
-def _select(data_dir: Path, table: Table, cols: dict[str, str], tail: str = "") -> str:
-    if partitions(data_dir, table):
-        glob = table_dir(data_dir, table) / "*.parquet"
+def _select(data_dir: Path, table: Table, cols: dict[str, str], tail: str = "", file: Path | None = None) -> str:
+    if file or partitions(data_dir, table):
+        glob = file or table_dir(data_dir, table) / "*.parquet"
         return f"SELECT {', '.join(ident(c) for c in cols)} FROM read_parquet({sql_str(glob)}){tail}"
     return "SELECT " + ", ".join(f"NULL::{t} AS {ident(c)}" for c, t in cols.items()) + " WHERE false"
 
 
-def select_sql(data_dir: Path, table: Table, as_of: dt.datetime | None = None) -> str:
+def select_sql(data_dir: Path, table: Table, as_of: dt.datetime | None = None, file: Path | None = None) -> str:
     """SELECT over the stored table, declared columns in declared order. Empty but typed if no data yet.
 
     An append-only table: the latest version of each row (superseded_at is null). With `as_of`,
     the version that was the latest at that time: fetched at or before it, and not superseded
-    at or before it. `as_of` doesn't apply to the other tables.
+    at or before it. `as_of` doesn't apply to the other tables. `file`: one partition only.
     """
     if not table.versioned:
-        return _select(data_dir, table, table.storage_types())
+        return _select(data_dir, table, table.storage_types(), file=file)
     v, s = ident(VERSION_FIELD), ident(SUPERSEDED_FIELD)
     tail = (f" WHERE {v} <= {ts_literal(as_of)} AND ({s} IS NULL OR {s} > {ts_literal(as_of)})" if as_of
             else f" WHERE {s} IS NULL")
-    return _select(data_dir, table, table.storage_types(), tail)
+    return _select(data_dir, table, table.storage_types(), tail, file)
 
 
 def versions_sql(data_dir: Path, table: Table, as_of: dt.datetime | None = None) -> str:
@@ -394,29 +400,57 @@ def repartition(con: duckdb.DuckDBPyConnection, data_dir: Path, table: Table, wi
     return len(keys)
 
 
-@dataclass
-class TableStats:
+@dataclass(frozen=True)
+class FileFacts:
+    """What one partition file holds. The facts of a table are joined from those of its files (D37)."""
     rows: int
     # first and last value of the time field: interval start, instant (valid_at), or date of a
     # calendar period (a date); None for a table without a time column
-    first: dt.datetime | dt.date | None
-    last: dt.datetime | dt.date | None
-    duckdb_types: dict[str, str]
-    files: int
+    first: dt.datetime | dt.date | None = None
+    last: dt.datetime | dt.date | None = None
     versions: int | None = None  # append-only: every version stored (rows counts the latest ones)
-    changed_at: dt.datetime | None = None  # a table without a time column: when its file was last written
+    # first, last and number of distinct values of the window column, when it isn't the time field
+    # (forecasts). A file holds whole values of that column: the numbers of the files can be added.
+    window: tuple | None = None
+    # runs of contiguous rows with one resolution: (series, resolution, first, last, end), where end
+    # is the start of the interval that would come next
+    periods: tuple[tuple, ...] = ()
 
 
-def table_stats(con: duckdb.DuckDBPyConnection, data_dir: Path, table: Table) -> TableStats:
-    src = select_sql(data_dir, table)
-    types = {r[0]: r[1] for r in con.execute(f"DESCRIBE {src}").fetchall()}
-    files = partitions(data_dir, table)
+def file_facts(con: duckdb.DuckDBPyConnection, data_dir: Path, table: Table, file: Path) -> FileFacts:
+    src = select_sql(data_dir, table, file=file)
     if not table.has_time:
-        rows = con.execute(f"SELECT count(*) FROM ({src})").fetchone()[0]
-        changed = dt.datetime.fromtimestamp(max(p.stat().st_mtime for p in files), UTC) if files else None
-        return TableStats(rows, None, None, types, len(files), changed_at=changed)
-    rows, first, last = con.execute(
-        f"SELECT count(*), min({ident(table.time_field)}), max({ident(table.time_field)}) FROM ({src})").fetchone()
-    versions = con.execute(f"SELECT count(*) FROM ({versions_sql(data_dir, table)})").fetchone()[0] \
-        if table.versioned else None
-    return TableStats(rows, first, last, types, len(files), versions)
+        return FileFacts(con.execute(f"SELECT count(*) FROM ({src})").fetchone()[0])
+    tf, w = ident(table.time_field), ident(table.window)
+    has_window = table.window != table.time_field
+    extra = f", min({w}), max({w}), count(DISTINCT {w})" if has_window else ""
+    rows, first, last, *window = con.execute(f"SELECT count(*), min({tf}), max({tf}){extra} FROM ({src})").fetchone()
+    versions = (con.execute(f"SELECT count(*) FROM read_parquet({sql_str(file)})").fetchone()[0]
+                if table.versioned else None)
+    periods = ()
+    if table.time_field == DELIVERY_FIELD and "resolution" in table.field_names:
+        periods = tuple(_runs(con, src, [k for k in table.primary_key if k != DELIVERY_FIELD]))
+    return FileFacts(rows, first, last, versions, tuple(window) if has_window else None, periods)
+
+
+def _runs(con: duckdb.DuckDBPyConnection, src: str, series: list[str]) -> list[tuple]:
+    """A run ends where the resolution changes, and at a gap: a row that doesn't start where the
+    previous one of the series ended."""
+    keys = "".join(f"{ident(k)}, " for k in series)
+    d = ident(DELIVERY_FIELD)
+    w = (f"PARTITION BY {keys[:-2]} " if series else "") + f"ORDER BY {d}"
+    rows = con.execute(f"""
+        WITH r AS (
+          SELECT {keys} resolution, {d} AS d,
+                 CASE WHEN resolution IS DISTINCT FROM lag(resolution) OVER w
+                        OR {d} IS DISTINCT FROM lag({d} + resolution) OVER w
+                      THEN 1 ELSE 0 END AS chg
+          FROM ({src}) WINDOW w AS ({w})),
+        g AS (SELECT *, sum(chg) OVER ({w.replace(f"ORDER BY {d}", "ORDER BY d")}) AS grp FROM r)
+        SELECT {keys} resolution, min(d), max(d), max(d) + resolution FROM g GROUP BY {keys} resolution, grp
+    """).fetchall()
+    return [(tuple(r[:len(series)]), *r[len(series):]) for r in rows]
+
+
+def duckdb_types(con: duckdb.DuckDBPyConnection, data_dir: Path, table: Table) -> dict[str, str]:
+    return {r[0]: r[1] for r in con.execute(f"DESCRIBE {select_sql(data_dir, table)}").fetchall()}

@@ -948,3 +948,48 @@ change the DNS of the domain. The Ubuntu package of Caddy: it starts a service o
 Refusing a query at once when 2 run: agents send queries in parallel, and a short wait is cheaper
 than a retry. One memory limit for agents and checks: a heavy check would turn its dataset
 `failing`.
+
+## D36 - Without a key, the server says only that it is up (2026-11-23)
+
+**Decision.**
+
+- `GET /health` without a key answers `{"ok": true}`. With a key it adds the id and the status of each
+  dataset, as before. A wrong key gets 401.
+- The server has no `/openapi.json`.
+
+Built: `server/src/adele_server/app.py`, `server/tests/test_access.py`.
+
+**Why.** Renaud, 2026-11-23: port 8443 is open to the internet since that day (D35), and the two
+addresses answered without a key. The scripts of `deploy/` only need to know that the server is up.
+
+**Limits.** The user `claude` on the server has no key, so agents no longer read the statuses there;
+the changes of status are in the journal of each fetch unit (`ALERT`).
+
+**Rejected.** All of `/health` for callers on the machine itself: Caddy calls from there too, so the
+server would have to trust a header to tell them apart.
+
+## D37 - The facts of a table are computed per partition file (2026-11-23)
+
+**Decision.** Rows, coverage and resolution periods (`list`, `describe`, the footer of a query) are
+computed per partition file, kept in memory until that file changes, and joined per table. One
+computation at a time; the connections of `render.py` have 500 MB of memory and 1 GB of temporary
+files. Nothing is stored on disk.
+
+Built: `server/src/adele_server/{storage,render}.py`, `server/tests/test_facts.py`.
+
+**Why.** Renaud, 2026-11-23: "c". The limits of D35 covered only the queries of agents. On the server the
+first `list` took 21.9 s and 2.6 GB, close to the cap of 3 GB: a second one at the same time, or a heavy
+query, could have the server killed. It came back after a restart and after each hourly fetch of
+`entsoe_wind_solar_forecast_neighbours` (22.6 million rows, sorted whole for its resolution periods).
+Measured on the Mac with that table: 3,082 MB and 3.4 s before, 253 MB and 4.4 s now for the first
+`list`; about 0.05 s for a file that a fetch changed. The text of every list, card, descriptor and
+footer is the same on the 14 data folders of the Mac.
+
+**Limits.** The first `list` after a restart reads every file. The join of the periods is exact when
+the files don't overlap in time: so it is for every table with a `resolution` column today (each is
+split by `delivery_start`). In a table split by another column, rows of one series that overlap in
+time would give other periods than before; that is an error of the data.
+
+**Rejected.** The limits of `query` for the whole table (a): 7.5 s and 1.2 GB for each computation, still
+each hour. A `facts.json` per dataset, written by the fetch (b): a second copy of what the data says,
+which can disagree with it.

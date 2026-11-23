@@ -2,11 +2,14 @@
 from __future__ import annotations
 
 import http.server
+import json
 import shutil
 import socket
 import subprocess
 import threading
 import time
+import urllib.error
+import urllib.request
 
 import duckdb
 import pytest
@@ -184,6 +187,99 @@ def test_a_query_that_fails_gives_its_slot_back(start):
         with pytest.raises(adele.AdeleError, match="only SELECT"):
             adele.query("CREATE TABLE x(i int)")
     assert adele.query("SELECT 1 AS x").rows == [[1]]
+
+
+# what answers without a key
+
+
+def get(path, key=None):
+    url = _api.os.environ["ADELE_URL"] + path
+    req = urllib.request.Request(url, headers={"Authorization": f"Bearer {key}"} if key is not None else {})
+    try:
+        with urllib.request.urlopen(req, timeout=5) as resp:
+            return resp.status, resp.read().decode()
+    except urllib.error.HTTPError as e:
+        return e.code, e.read().decode()
+
+
+def test_health_names_the_datasets_only_with_a_key(start, env):
+    start()
+    _, catalog, key = env
+    assert get("/health") == (200, '{"ok":true}')
+    status, body = get("/health", key)
+    assert status == 200 and set(json.loads(body)["datasets"]) == set(catalog)
+    for wrong in ("wrong", ""):
+        assert get("/health", wrong)[0] == 401
+
+
+def test_nothing_else_answers_without_a_key(start, env):
+    cfg, catalog, _ = env
+    start()
+    routes = [r for r in create_app(cfg, catalog).routes]
+    assert {r.path for r in routes} == {"/health", "/datasets", "/datasets/{ds_id}",
+                                        "/datasets/{ds_id}/datapackage.json", "/query"}
+    for path in ("/openapi.json", "/docs", "/redoc"):
+        assert get(path)[0] == 404
+    for path in ("/datasets", "/datasets/test_prices", "/datasets/test_prices/datapackage.json"):
+        assert get(path)[0] == 401
+
+
+# the client, when the answer doesn't come
+
+
+@pytest.fixture
+def answers(monkeypatch):
+    """A server that sends the given bytes and closes the connection."""
+    running = []
+
+    def go(raw: bytes, wait: float = 0):
+        s = socket.create_server(("127.0.0.1", 0))
+
+        def serve_one():
+            con, _ = s.accept()
+            con.recv(65536)
+            time.sleep(wait)
+            con.sendall(raw)
+            con.close()
+
+        th = threading.Thread(target=serve_one, daemon=True)
+        th.start()
+        running.append((s, th))
+        monkeypatch.setenv("ADELE_URL", f"http://127.0.0.1:{s.getsockname()[1]}")
+        monkeypatch.setenv("ADELE_API_KEY", "k")
+
+    yield go
+    for s, th in running:
+        th.join(5)
+        s.close()
+
+
+@pytest.mark.parametrize("raw, message", [
+    (b"", "closed the connection before the end of the answer .RemoteDisconnected"),
+    (b"HTTP/1.1 200 OK\r\nContent-Length: 100\r\n\r\nshort", "closed the connection .* .IncompleteRead"),
+    (b"not http\r\n\r\n", "closed the connection .* .BadStatusLine"),
+    (b"HTTP/1.1 502 Bad Gateway\r\nContent-Length: 0\r\n\r\n", "HTTP 502 without a message; it may be restarting"),
+    (b"HTTP/1.1 500 Oops\r\nContent-Length: 0\r\n\r\n", "HTTP 500 without a message$"),
+    (b"HTTP/1.1 400 Bad Request\r\nContent-Length: 100\r\n\r\nshort", "HTTP 400 without a message$"),
+])
+def test_an_answer_that_is_cut_gives_a_message(answers, raw, message):
+    answers(raw)
+    with pytest.raises(adele.AdeleError, match=message):
+        adele.datasets()
+
+
+def test_an_answer_that_takes_too_long_gives_a_message(answers, monkeypatch):
+    monkeypatch.setattr(_api, "TIMEOUT_S", 0.3)
+    answers(b"", wait=1)
+    with pytest.raises(adele.AdeleError, match="no answer from .* within 0.3 s"):
+        adele.datasets()
+
+
+def test_a_port_that_is_not_a_number_gives_a_message(monkeypatch):
+    monkeypatch.setenv("ADELE_URL", "https://example.org:abc")
+    monkeypatch.setenv("ADELE_API_KEY", "k")
+    with pytest.raises(adele.AdeleError, match="ADELE_URL is not valid"):
+        adele.datasets()
 
 
 # the client's rules on URLs

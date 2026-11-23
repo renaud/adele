@@ -8,6 +8,7 @@ system, for the calls of this client only.
 """
 from __future__ import annotations
 
+import http.client
 import ipaddress
 import json
 import os
@@ -74,15 +75,28 @@ def _request(method: str, path: str, body: dict | None = None) -> tuple[str, byt
     except urllib.error.HTTPError as e:
         if 300 <= e.code < 400:
             raise AdeleError(f"{base} redirects to {e.headers.get('Location')}; check ADELE_URL") from None
-        raw = e.read().decode(errors="replace")
+        try:
+            raw = e.read().decode(errors="replace")
+        except (OSError, http.client.HTTPException):
+            raw = ""
         try:
             msg = json.loads(raw).get("error", raw)
         except ValueError:
             msg = raw
         msg = msg.strip()
+        if not msg:  # e.g. 502 from Caddy while the query server restarts
+            msg = f"the adele server at {base} answered HTTP {e.code} without a message"
+            msg += "; it may be restarting, try again in a few seconds" if e.code in (502, 503, 504) else ""
         raise AdeleError(msg[7:] if msg.startswith("error: ") else msg) from None
     except urllib.error.URLError as e:
         raise AdeleError(f"cannot reach the adele server at {base} ({e.reason}); check ADELE_URL") from None
+    except http.client.InvalidURL as e:
+        raise AdeleError(f"ADELE_URL is not valid: {e}") from None
+    except TimeoutError:
+        raise AdeleError(f"no answer from the adele server at {base} within {TIMEOUT_S} s") from None
+    except (OSError, http.client.HTTPException) as e:  # urllib wraps only the errors of sending the request
+        raise AdeleError(f"the adele server at {base} closed the connection before the end of the answer "
+                         f"({type(e).__name__}); try again in a few seconds") from None
 
 
 def datasets() -> str:

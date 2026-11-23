@@ -8,6 +8,7 @@ import copy
 import csv
 import datetime as dt
 import io
+import threading
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -77,83 +78,95 @@ def join_text(t: Table) -> str:
     return text
 
 
-# --- computed facts per table, cached until a partition file changes -------------------------
+# --- computed facts per table ---------------------------------------------------------------
+# Computed per partition file, kept in memory until the file changes, joined per table (D37): a
+# fetch changes one or two files of a table, and a whole table can take gigabytes.
+
+FACTS_MEMORY, FACTS_TEMP = "500MB", "1GB"  # beside the queries of agents, in the cap of the service (D35)
+
 
 @dataclass
 class TableFacts:
-    stats: storage.TableStats
+    rows: int
+    first: dt.datetime | dt.date | None  # of the time field, as in storage.FileFacts
+    last: dt.datetime | dt.date | None
+    duckdb_types: dict[str, str]
+    versions: int | None  # append-only: every version stored
+    changed_at: dt.datetime | None  # a table without a time column: when its file was last written
+    window: tuple | None  # (first, last, distinct values) of the window column, when it isn't the time field
     periods: list[dict]  # resolution periods: {series, resolution, first, last}
 
 
-_cache: dict[tuple, TableFacts] = {}
+_facts_lock = threading.Lock()  # one computation at a time: two would use twice the memory for one result
+_file_facts: dict[tuple, dict[str, tuple[int, storage.FileFacts]]] = {}  # per table: {file: (mtime, facts)}
+_table_facts: dict[tuple, tuple[tuple, TableFacts]] = {}  # per table: (files and mtimes, facts)
 
 
 def table_facts(data_dir: Path, t: Table) -> TableFacts:
-    files = storage.partitions(data_dir, t)
-    key = (t.sql_name, tuple((p.name, p.stat().st_mtime_ns) for p in files))
-    if key in _cache:
-        return _cache[key]
-    con = storage.connect()
-    try:
-        stats = storage.table_stats(con, data_dir, t)
-        if t.time_field != DELIVERY_FIELD:
-            periods = []  # instants, calendar periods, no time column: no resolution
-        elif "resolution" in t.field_names and stats.rows:
-            periods = resolution_periods(con, data_dir, t)
-        else:
-            periods = [{"series": None, "resolution": r["value"], "first": r["from"], "last": None}
-                       for r in t.resolution]
-    finally:
-        con.close()
-    if len(_cache) > 256:
-        _cache.clear()
-    _cache[key] = TableFacts(stats, periods)
-    return _cache[key]
-
-
-_window_cache: dict[tuple, tuple] = {}
-
-
-def window_range(data_dir: Path, t: Table, column: str) -> tuple:
-    """(first, last, distinct values) of the window column, when it isn't delivery_start (forecasts)."""
-    files = storage.partitions(data_dir, t)
-    key = (t.sql_name, column, tuple((p.name, p.stat().st_mtime_ns) for p in files))
-    if key not in _window_cache:
-        con = storage.connect()
+    # not the folder alone: a descriptor can change while the data stays (in the tests)
+    table = (str(storage.table_dir(data_dir, t)), t.versioned, t.window, t.time_field, tuple(t.primary_key),
+             tuple(t.field_names), repr(t.resolution))
+    files = tuple((p, p.stat().st_mtime_ns) for p in storage.partitions(data_dir, t))
+    cached = _table_facts.get(table)
+    if cached and cached[0] == files:
+        return cached[1]
+    with _facts_lock:
+        cached = _table_facts.get(table)  # another thread may have computed it
+        if cached and cached[0] == files:
+            return cached[1]
+        known = _file_facts.get(table, {})
+        con = storage.connect(FACTS_MEMORY, FACTS_TEMP)
         try:
-            _window_cache.clear() if len(_window_cache) > 256 else None
-            _window_cache[key] = con.execute(
-                f"SELECT min({ident(column)}), max({ident(column)}), count(DISTINCT {ident(column)}) "
-                f"FROM ({storage.select_sql(data_dir, t)})").fetchone()
+            new = {p.name: known[p.name] if known.get(p.name, (None,))[0] == mtime
+                   else (mtime, storage.file_facts(con, data_dir, t, p)) for p, mtime in files}
+            types = storage.duckdb_types(con, data_dir, t)
         finally:
             con.close()
-    return _window_cache[key]
+        facts = join_facts(t, [f for _, f in new.values()], types, [m for _, m in files])
+        _file_facts[table], _table_facts[table] = new, (files, facts)
+    return facts
 
 
-def resolution_periods(con, data_dir: Path, t: Table) -> list[dict]:
-    """Periods of constant resolution per series (the key without delivery_start), from the data.
+def join_facts(t: Table, files: list[storage.FileFacts], types: dict[str, str], mtimes: list[int]) -> TableFacts:
+    firsts = [f.first for f in files if f.first is not None]
+    lasts = [f.last for f in files if f.last is not None]
+    windows = [f.window for f in files if f.window and f.window[0] is not None]
+    if t.time_field != DELIVERY_FIELD:
+        periods = []  # instants, calendar periods, no time column: no resolution
+    elif "resolution" in t.field_names and any(f.rows for f in files):
+        periods = join_periods(files)
+    else:
+        periods = [{"series": None, "resolution": r["value"], "first": r["from"], "last": None} for r in t.resolution]
+    return TableFacts(
+        rows=sum(f.rows for f in files),
+        first=min(firsts, default=None), last=max(lasts, default=None),
+        duckdb_types=types,
+        versions=sum(f.versions for f in files) if t.versioned else None,
+        changed_at=(dt.datetime.fromtimestamp(max(mtimes) / 1e9, dt.timezone.utc)
+                    if mtimes and not t.has_time else None),
+        window=((min(w[0] for w in windows), max(w[1] for w in windows), sum(w[2] for w in windows))
+                if windows else None),
+        periods=periods)
 
-    A period also ends at a gap: a row that doesn't start where the previous one ended.
-    """
-    series = [k for k in t.primary_key if k != DELIVERY_FIELD]
-    part = ("PARTITION BY " + ", ".join(ident(k) for k in series)) if series else ""
-    keys = "".join(f"{ident(k)}, " for k in series)
-    d = ident(DELIVERY_FIELD)
-    rows = con.execute(f"""
-        WITH r AS (
-          SELECT {keys} resolution, {d} AS d,
-                 CASE WHEN resolution IS DISTINCT FROM lag(resolution) OVER ({part} ORDER BY {d})
-                        OR {d} IS DISTINCT FROM lag({d} + resolution) OVER ({part} ORDER BY {d})
-                      THEN 1 ELSE 0 END AS chg
-          FROM ({storage.select_sql(data_dir, t)})),
-        g AS (SELECT *, sum(chg) OVER ({part} ORDER BY d) AS grp FROM r)
-        SELECT {keys} resolution, min(d), max(d) FROM g GROUP BY {keys} resolution, grp ORDER BY {keys} min(d)
-    """).fetchall()
+
+def join_periods(files: list[storage.FileFacts]) -> list[dict]:
+    """Periods of constant resolution per series, over all files. A period that reaches the end of
+    a file goes on in the next one if the resolution is the same and no interval is missing."""
+    by_series: dict[tuple, list[tuple]] = {}
+    for f in files:
+        for series, *run in f.periods:
+            by_series.setdefault(series, []).append(run)
     out = []
-    for r in rows:
-        out.append({"series": " ".join(str(x) for x in r[:len(series)]) or None,
-                    "resolution": iso_duration(r[-3]) if r[-3] is not None else None,
-                    "first": r[-2], "last": r[-1]})
+    for series in sorted(by_series, key=lambda s: tuple((v is None, v) for v in s)):
+        joined: list[list] = []
+        for resolution, first, last, end in sorted(by_series[series], key=lambda run: run[1]):
+            if joined and joined[-1][0] == resolution and joined[-1][3] == first:
+                joined[-1][2:] = [last, end]
+            else:
+                joined.append([resolution, first, last, end])
+        out += [{"series": " ".join(str(x) for x in series) or None,
+                 "resolution": iso_duration(resolution) if resolution is not None else None,
+                 "first": first, "last": last} for resolution, first, last, _ in joined]
     return out
 
 
@@ -189,10 +202,9 @@ def render_list(cfg: Config, catalog: dict[str, Dataset]) -> str:
             else:
                 res |= {p["resolution"] for p in f.periods if p["resolution"]}
             if not t.has_time:
-                whole_rows += f.stats.rows
-            elif f.stats.first is not None:  # one coverage per window column (and zone, for a date)
-                rng = (window_range(cfg.data_dir, t, t.window)[:2] if t.window != t.time_field
-                       else (f.stats.first, f.stats.last))
+                whole_rows += f.rows
+            elif f.first is not None:  # one coverage per window column (and zone, for a date)
+                rng = f.window[:2] if t.window != t.time_field else (f.first, f.last)
                 cov.setdefault((t.window, t.period if t.window_is_date else None, t.timezone), []).append(rng)
         parts = []
         for (col, period, tz), rs in cov.items():
@@ -270,30 +282,30 @@ def describe_dict(cfg: Config, ds: Dataset) -> dict:
     if ds.warnings:
         card["warnings"] = ds.warnings
     tables = []
-    con = storage.connect()
+    con = storage.connect(FACTS_MEMORY, FACTS_TEMP)
     try:
         for t in ds.tables.values():
             facts = table_facts(cfg.data_dir, t)
             entry: dict = {"table": t.sql_name, "grain": f"one row per ({', '.join(t.primary_key)})",
-                           "rows": facts.stats.rows}
+                           "rows": facts.rows}
             if t.versioned:
-                entry["versions"] = (f"{facts.stats.versions} rows in {t.sql_name}{VERSIONS_SUFFIX}: one per version, "
+                entry["versions"] = (f"{facts.versions} rows in {t.sql_name}{VERSIONS_SUFFIX}: one per version, "
                                      f"key ({', '.join(t.primary_key)}, {VERSION_FIELD})")
             if t.description:
                 entry["description"] = t.description.strip()
             if not t.has_time:  # D22: the row count and the time of the last change, in place of a coverage
                 entry["coverage"] = (f"no time column: the whole table as the source delivers it; last changed "
-                                     f"{ts(facts.stats.changed_at)}" if facts.stats.changed_at else "no data")
+                                     f"{ts(facts.changed_at)}" if facts.changed_at else "no data")
             elif t.period:
-                entry["coverage"] = (f"{period_str(facts.stats.first, t.period)} .. {period_str(facts.stats.last, t.period)}"
+                entry["coverage"] = (f"{period_str(facts.first, t.period)} .. {period_str(facts.last, t.period)}"
                                      f" (first and last {t.time_field}, in {t.timezone})"
-                                     if facts.stats.first else "no data")
+                                     if facts.first else "no data")
             else:
                 what = "first and last valid_at" if t.is_instant else "first and last interval start"
-                entry["coverage"] = (f"{ts(facts.stats.first)} .. {ts(facts.stats.last)} ({what})"
-                                     if facts.stats.first else "no data")
-            if t.window and t.window != t.time_field and facts.stats.rows:
-                lo, hi, n = window_range(cfg.data_dir, t, t.window)
+                entry["coverage"] = (f"{ts(facts.first)} .. {ts(facts.last)} ({what})"
+                                     if facts.first else "no data")
+            if t.window and t.window != t.time_field and facts.rows:
+                lo, hi, n = facts.window
                 entry[f"{t.window} coverage"] = f"{ts(lo)} .. {ts(hi)} ({n} distinct values)"
             if t.is_instant:
                 entry["resolution"] = "none: values at instants (valid_at)"
@@ -311,7 +323,7 @@ def describe_dict(cfg: Config, ds: Dataset) -> dict:
             fields = []
             for f in t.fields:
                 fe: dict = {"name": f["name"],
-                            "type": f"{f['type']} ({facts.stats.duckdb_types.get(f['name'], '?')})"}
+                            "type": f"{f['type']} ({facts.duckdb_types.get(f['name'], '?')})"}
                 if f.get("unit"):
                     fe["unit"] = f["unit"]
                 if f.get("description"):
@@ -322,7 +334,7 @@ def describe_dict(cfg: Config, ds: Dataset) -> dict:
                                     else list(cats))
                 fields.append(fe)
             entry["fields"] = fields
-            if facts.stats.rows:
+            if facts.rows:
                 order = ", ".join(ident(c) for c in ([t.time_field] if t.has_time else t.primary_key))
                 cur = con.execute(f"SELECT * FROM ({storage.select_sql(cfg.data_dir, t)}) "
                                   f"USING SAMPLE reservoir(5 ROWS) REPEATABLE (42) ORDER BY {order}")
@@ -387,17 +399,17 @@ def merged_descriptor(cfg: Config, ds: Dataset) -> dict:
         t = ds.tables[res["name"]]
         facts = table_facts(cfg.data_dir, t)
         for f in res["schema"]["fields"]:
-            f["duckdb_type"] = facts.stats.duckdb_types.get(f["name"])
-        tables[t.name] = {"rows": facts.stats.rows}
+            f["duckdb_type"] = facts.duckdb_types.get(f["name"])
+        tables[t.name] = {"rows": facts.rows}
         if t.has_time:
-            tables[t.name]["coverage"] = [ts(facts.stats.first, False), ts(facts.stats.last, False)]
+            tables[t.name]["coverage"] = [ts(facts.first, False), ts(facts.last, False)]
         else:
-            tables[t.name]["last_changed_at"] = ts(facts.stats.changed_at, False)
+            tables[t.name]["last_changed_at"] = ts(facts.changed_at, False)
         tables[t.name]["resolution_periods"] = [  # empty for instants, calendar periods, no time column
             {**p, "first": ts(p["first"], False) if isinstance(p["first"], dt.datetime) else str(p["first"]),
              "last": ts(p["last"], False)} for p in facts.periods]
         if t.versioned:
-            tables[t.name]["versions"] = facts.stats.versions
+            tables[t.name]["versions"] = facts.versions
     computed["tables"] = tables
     d.setdefault("adele", {})["computed"] = computed
     return d
