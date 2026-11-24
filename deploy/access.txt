@@ -1,10 +1,10 @@
 == 1. checks
-runs: 292cc04 2026-11-23; 18 GB free
+runs: 459473e 2026-11-23; 18 GB free
                total        used        free      shared  buff/cache   available
-Mem:            7940        2090        3963          15        2211        5849
-Swap:           4095         730        3365
+Mem:            7940        2178        4180          15        1955        5761
+Swap:           4095         647        3448
 == 2. code
-now: 459473e 2026-11-23
+now: 7e1e95b 2026-11-23
 ok  swissgrid_tsi: tables swissgrid_tsi.tsi
 ok  weathernext3: tables weathernext3.solar_radiation, weathernext3.weather
 == 3. the query server, with its limits
@@ -20,10 +20,10 @@ uid=5102(adele-caddy) gid=985(adele-caddy) groups=985(adele-caddy)
 already there
 v2.11.9 h1:bhZtcRKQOq0fuLvEgCdPYvUxXyGn9kzjG4lh2332DTE=
 == 5. Caddyfile
-{"level":"info","ts":1795443062.087739,"logger":"http.auto_https","msg":"automatic HTTP->HTTPS redirects are disabled","server_name":"srv0"}
-{"level":"info","ts":1795443062.0876646,"logger":"tls.cache.maintenance","msg":"started background certificate maintenance","cache":"0x47efdc69700"}
-{"level":"info","ts":1795443062.0880067,"logger":"tls.cache.maintenance","msg":"stopped background certificate maintenance","cache":"0x47efdc69700"}
-{"level":"info","ts":1795443062.0880308,"logger":"http","msg":"servers shutting down with eternal grace period"}
+{"level":"info","ts":1795466877.7894442,"logger":"tls.cache.maintenance","msg":"started background certificate maintenance","cache":"0x8025b2bf600"}
+{"level":"info","ts":1795466877.7911224,"logger":"http.auto_https","msg":"automatic HTTP->HTTPS redirects are disabled","server_name":"srv0"}
+{"level":"info","ts":1795466877.7913275,"logger":"http","msg":"servers shutting down with eternal grace period"}
+{"level":"info","ts":1795466877.7914104,"logger":"tls.cache.maintenance","msg":"stopped background certificate maintenance","cache":"0x8025b2bf600"}
 Valid configuration
 == 6. adele-caddy.service
 active

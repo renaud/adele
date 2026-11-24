@@ -1,5 +1,5 @@
 == 1. checks (nothing is changed before they pass)
-13 daily datasets, 13 slots from 00:08 to 02:08 UTC
+14 daily datasets, 14 slots from 00:08 to 02:15 UTC
 timers enabled, calendar expressions valid, slice loaded
 == 2. the slots of the daily datasets
 example: /etc/systemd/system/adele-fetch@meteoswiss_smn_daily.timer.d/slot.conf
@@ -15,39 +15,40 @@ MemoryMax=4831838208
 MemorySwapMax=0
 (expected: CPUQuotaPerSecUSec=2.500s, CPUWeight=20, MemoryMax=4831838208, MemorySwapMax=0)
 == 4. the timers now
-NEXT                            LEFT LAST                           PASSED UNIT                               
-Mon 2026-11-23 10:19:00 UTC      24s Mon 2026-11-23 10:18:00 UTC   35s ago adele-fetch@ecmwf_ifs_ens.timer    
-Mon 2026-11-23 10:19:00 UTC      24s Mon 2026-11-23 10:18:00 UTC   35s ago adele-fetch@energy_charts_intraday_
-Mon 2026-11-23 10:19:00 UTC      24s Mon 2026-11-23 10:18:00 UTC   35s ago adele-fetch@entsoe_activated_balanc
-Mon 2026-11-23 10:19:00 UTC      24s Mon 2026-11-23 10:18:00 UTC   35s ago adele-fetch@entsoe_day_ahead_prices
-Mon 2026-11-23 10:19:00 UTC      24s Mon 2026-11-23 10:18:00 UTC   35s ago adele-fetch@entsoe_generation.timer
-Mon 2026-11-23 10:19:00 UTC      24s Mon 2026-11-23 10:18:00 UTC   35s ago adele-fetch@entsoe_imbalance_prices
-Mon 2026-11-23 10:19:00 UTC      24s Mon 2026-11-23 10:18:00 UTC   35s ago adele-fetch@entsoe_imbalance_volume
-Mon 2026-11-23 10:19:00 UTC      24s Mon 2026-11-23 10:18:00 UTC   35s ago adele-fetch@entsoe_imbalance_volume
-Mon 2026-11-23 10:19:00 UTC      24s Mon 2026-11-23 10:18:00 UTC   35s ago adele-fetch@entsoe_load.timer      
-Mon 2026-11-23 10:19:00 UTC      24s Mon 2026-11-23 10:18:00 UTC   35s ago adele-fetch@entsoe_physical_flows.t
-Mon 2026-11-23 10:19:00 UTC      24s Mon 2026-11-23 10:18:00 UTC   35s ago adele-fetch@entsoe_scheduled_exchan
-Mon 2026-11-23 10:19:00 UTC      24s Mon 2026-11-23 10:18:00 UTC   35s ago adele-fetch@entsoe_wind_solar_forec
-Mon 2026-11-23 10:19:00 UTC      24s Mon 2026-11-23 10:18:00 UTC   35s ago adele-fetch@entsoe_wind_solar_forec
-Mon 2026-11-23 10:19:00 UTC      24s Mon 2026-11-23 10:18:00 UTC   35s ago adele-fetch@openmeteo_single_runs.t
-Mon 2026-11-23 10:19:00 UTC      24s Mon 2026-11-23 10:18:00 UTC   35s ago adele-fetch@openmeteo_stations.time
-Mon 2026-11-23 10:19:00 UTC      24s Mon 2026-11-23 10:18:00 UTC   35s ago adele-fetch@swissgrid_balance.timer
-Mon 2026-11-23 10:19:00 UTC      24s Mon 2026-11-23 10:18:00 UTC   35s ago adele-fetch@swissgrid_balance_daily
-Mon 2026-11-23 10:19:00 UTC      24s Mon 2026-11-23 10:18:00 UTC   35s ago adele-fetch@swissgrid_tsi.timer    
-Mon 2026-11-23 10:22:00 UTC 3min 24s Mon 2026-11-23 10:18:00 UTC   35s ago adele-fetch@entsoe_balancing_state.
-Mon 2026-11-23 10:22:00 UTC 3min 24s Mon 2026-11-23 10:18:00 UTC   35s ago adele-fetch@entsoe_installed_capaci
-Mon 2026-11-23 10:22:00 UTC 3min 24s Mon 2026-11-23 10:18:00 UTC   35s ago adele-fetch@openmeteo_era5.timer   
-Mon 2026-11-23 10:22:00 UTC 3min 24s Mon 2026-11-23 10:18:00 UTC   35s ago adele-fetch@pronovo_production.time
-Mon 2026-11-23 10:25:00 UTC     6min Mon 2026-11-23 10:18:00 UTC   35s ago adele-fetch@meteoswiss_smn_daily.ti
-Mon 2026-11-23 10:25:00 UTC     6min Mon 2026-11-23 10:18:00 UTC   35s ago adele-fetch@openmeteo_cams.timer   
-Mon 2026-11-23 10:25:00 UTC     6min Mon 2026-11-23 10:18:00 UTC   35s ago adele-fetch@openmeteo_previous_runs
-Mon 2026-11-23 10:25:00 UTC     6min Mon 2026-11-23 10:18:00 UTC   35s ago adele-fetch@swissgrid_imbalance_pri
-Mon 2026-11-23 10:28:00 UTC     9min Mon 2026-11-23 10:18:00 UTC   35s ago adele-fetch@meteoswiss_nime_daily.t
-Mon 2026-11-23 10:28:00 UTC     9min Mon 2026-11-23 10:18:00 UTC   35s ago adele-fetch@meteoswiss_obs_daily.ti
-Mon 2026-11-23 10:28:00 UTC     9min Mon 2026-11-23 10:18:00 UTC   35s ago adele-fetch@meteoswiss_smn_hourly.t
-Mon 2026-11-23 10:28:00 UTC     9min Mon 2026-11-23 10:18:00 UTC   35s ago adele-fetch@meteoswiss_smn_stations
-Mon 2026-11-23 10:28:00 UTC     9min Mon 2026-11-23 10:18:00 UTC   35s ago adele-fetch@meteoswiss_smn_tenmin.t
-Mon 2026-11-23 10:30:00 UTC    11min Mon 2026-11-23 09:30:00 UTC 48min ago adele-fetch@weathernext3.timer     
+NEXT                            LEFT LAST                             PASSED UNIT                             
+Tue 2026-11-24 06:54:00 UTC      57s Tue 2026-11-24 06:53:00 UTC      2s ago adele-fetch@ecmwf_ifs_ens.timer  
+Tue 2026-11-24 06:54:00 UTC      57s Tue 2026-11-24 06:53:00 UTC      2s ago adele-fetch@energy_charts_intrada
+Tue 2026-11-24 06:54:00 UTC      57s Tue 2026-11-24 06:53:00 UTC      2s ago adele-fetch@entsoe_activated_bala
+Tue 2026-11-24 06:54:00 UTC      57s Tue 2026-11-24 06:53:00 UTC      2s ago adele-fetch@entsoe_day_ahead_pric
+Tue 2026-11-24 06:54:00 UTC      57s Tue 2026-11-24 06:53:00 UTC      2s ago adele-fetch@entsoe_generation.tim
+Tue 2026-11-24 06:54:00 UTC      57s Tue 2026-11-24 06:53:00 UTC      2s ago adele-fetch@entsoe_imbalance_pric
+Tue 2026-11-24 06:54:00 UTC      57s Tue 2026-11-24 06:53:00 UTC      2s ago adele-fetch@entsoe_imbalance_volu
+Tue 2026-11-24 06:54:00 UTC      57s Tue 2026-11-24 06:53:00 UTC      2s ago adele-fetch@entsoe_imbalance_volu
+Tue 2026-11-24 06:54:00 UTC      57s Tue 2026-11-24 06:53:00 UTC      2s ago adele-fetch@entsoe_load.timer    
+Tue 2026-11-24 06:54:00 UTC      57s Tue 2026-11-24 06:53:00 UTC      2s ago adele-fetch@entsoe_physical_flows
+Tue 2026-11-24 06:54:00 UTC      57s Tue 2026-11-24 06:53:00 UTC      2s ago adele-fetch@entsoe_scheduled_exch
+Tue 2026-11-24 06:54:00 UTC      57s Tue 2026-11-24 06:53:00 UTC      2s ago adele-fetch@entsoe_wind_solar_for
+Tue 2026-11-24 06:54:00 UTC      57s Tue 2026-11-24 06:53:00 UTC      2s ago adele-fetch@entsoe_wind_solar_for
+Tue 2026-11-24 06:54:00 UTC      57s Tue 2026-11-24 06:53:00 UTC      2s ago adele-fetch@openmeteo_single_runs
+Tue 2026-11-24 06:54:00 UTC      57s Tue 2026-11-24 06:53:00 UTC      2s ago adele-fetch@openmeteo_stations.ti
+Tue 2026-11-24 06:54:00 UTC      57s Tue 2026-11-24 06:53:00 UTC      2s ago adele-fetch@swissgrid_balance.tim
+Tue 2026-11-24 06:54:00 UTC      57s Tue 2026-11-24 06:53:00 UTC      2s ago adele-fetch@swissgrid_balance_dai
+Tue 2026-11-24 06:55:00 UTC 1min 57s Tue 2026-11-24 06:53:00 UTC      2s ago adele-fetch@iem_metar.timer      
+Tue 2026-11-24 06:55:00 UTC 1min 57s Tue 2026-11-24 06:45:00 UTC    8min ago adele-fetch@meteoswiss_smn_daily.
+Tue 2026-11-24 06:55:00 UTC 1min 57s Tue 2026-11-24 06:45:00 UTC    8min ago adele-fetch@openmeteo_cams.timer 
+Tue 2026-11-24 06:55:00 UTC 1min 57s Tue 2026-11-24 06:45:00 UTC    8min ago adele-fetch@openmeteo_previous_ru
+Tue 2026-11-24 06:55:00 UTC 1min 57s Tue 2026-11-24 06:45:00 UTC    8min ago adele-fetch@swissgrid_imbalance_p
+Tue 2026-11-24 06:58:00 UTC 4min 57s Tue 2026-11-24 06:48:00 UTC    5min ago adele-fetch@meteoswiss_nime_daily
+Tue 2026-11-24 06:58:00 UTC 4min 57s Tue 2026-11-24 06:48:00 UTC    5min ago adele-fetch@meteoswiss_obs_daily.
+Tue 2026-11-24 06:58:00 UTC 4min 57s Tue 2026-11-24 06:48:00 UTC    5min ago adele-fetch@meteoswiss_smn_hourly
+Tue 2026-11-24 06:58:00 UTC 4min 57s Tue 2026-11-24 06:48:00 UTC    5min ago adele-fetch@meteoswiss_smn_statio
+Tue 2026-11-24 06:58:00 UTC 4min 57s Tue 2026-11-24 06:48:00 UTC    5min ago adele-fetch@meteoswiss_smn_tenmin
+Tue 2026-11-24 07:02:00 UTC     8min Tue 2026-11-24 06:52:00 UTC 1min 2s ago adele-fetch@entsoe_balancing_stat
+Tue 2026-11-24 07:02:00 UTC     8min Tue 2026-11-24 06:52:00 UTC 1min 2s ago adele-fetch@entsoe_installed_capa
+Tue 2026-11-24 07:02:00 UTC     8min Tue 2026-11-24 06:52:00 UTC 1min 2s ago adele-fetch@openmeteo_era5.timer 
+Tue 2026-11-24 07:02:00 UTC     8min Tue 2026-11-24 06:52:00 UTC 1min 2s ago adele-fetch@pronovo_production.ti
+Tue 2026-11-24 07:30:00 UTC    36min Tue 2026-11-24 06:30:00 UTC   23min ago adele-fetch@weathernext3.timer   
+-                                  - Tue 2026-11-24 06:53:00 UTC      2s ago adele-fetch@swissgrid_tsi.timer  
 
-32 timers listed.
+33 timers listed.
 == done. Look at the first night with: sar -u, the kills in memory.events, the statuses in /health

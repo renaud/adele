@@ -80,12 +80,13 @@
 
 ## The server: what may still be open (Claude, 2026-11-23; tick what is done)
 
-- `iem_metar` on the server (Claude, 2026-11-23): built, backfilled and checked on the Mac (1.5
-  million rows, 12 requests, about 4 min). Left to do, in this order: push; `deploy/access.sh` (the pull;
-  not `update-main.sh`, which refuses while a backfill runs); `deploy/backfill.sh start metar`
-  between minute 35 and 50 (backfill, then the timer); `deploy/backfill.sh report`;
-  `deploy/spread-fetches.sh` on the same day (slot 02:15 UTC). Later: an hourly refresh
-  (`adele.refresh.every: PT1H`) for a live signal; its line then goes out of `SLOTS`.
+- `iem_metar` (Claude, 2026-11-24): on the server since 2026-11-23 (12 windows, 0 failed), first
+  scheduled fetch ok on 2026-11-24 at 00:00 UTC, slot 02:15 UTC set that morning. Open:
+  - [ ] The first fetch in its slot, on 2026-11-25 at 02:15 UTC: not seen yet.
+  - [ ] Renaud: review the drafts in `datapackage.yaml` (the 6 warnings and the labels of
+    `cloud_report` first), confirm the 2 unverified examples.
+  - [ ] Later: an hourly refresh (`adele.refresh.every: PT1H`) for a live signal; its line then
+    goes out of `SLOTS` in `deploy/spread-fetches.sh`.
 
 Read on the server on 2026-11-23, 09:00 UTC: it runs 89ebc25, 32 of 32 timers on, the lanes
 entsoe, files, swissgrid and ens done, 30 statuses ok (failing: `meteoswiss_smn_tenmin`,
@@ -95,7 +96,8 @@ described elsewhere are named, not repeated.
 Running:
 
 - [ ] The Open-Meteo backfill, until about 2026-12-17 to 12-22 ("The update of the server", below).
-- [ ] `backfill.sh report`, then compare the rows, first and last times with the Mac's (no output of it in `deploy/`).
+- [ ] `backfill.sh report`, then compare the rows, first and last times with the Mac's (output of 2026-11-23
+  20:48 UTC in `deploy/backfill-report.txt`, made while the lane metar ran; not compared yet).
   Count the rows per run too (`ecmwf_ifs_ens` 133,036, weathernext3 139,776): the freeze and the
   kills below may have left a run in part, and a run stored in part counts as stored
   (`revisions: none`, below).

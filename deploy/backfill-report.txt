@@ -1,0 +1,157 @@
+== 2026-11-23 20:48:31 UTC, lanes
+  adele-backfill-metar.service     loaded active running adele: backfill lane metar (deploy/backfill.sh)
+  adele-backfill-openmeteo.service loaded active running adele: backfill lane openmeteo (deploy/backfill.sh)
+== backfills running
+  adele-fetch@iem_metar.service          loaded activating start start adele: fetch the dataset iem_metar if its refresh is due
+  adele-fetch@openmeteo-backfill.service loaded activating start start adele: fetch the dataset openmeteo-backfill if its refresh is due
+== drop-ins
+/run/systemd/system/adele-fetch@iem_metar.service.d/:
+backfill.conf
+
+/run/systemd/system/adele-fetch@openmeteo-backfill.service.d/:
+backfill.conf
+== results (/var/lib/adele-deploy/backfill.tsv)
+2026-11-17T16:46:47Z	ok	openmeteo	timer openmeteo_stations
+2026-11-17T16:46:48Z	ok	openmeteo	timer openmeteo_previous_runs
+2026-11-17T16:46:48Z	ok	openmeteo	timer openmeteo_single_runs
+2026-11-17T16:46:49Z	ok	openmeteo	timer openmeteo_era5
+2026-11-17T16:46:49Z	ok	openmeteo	timer openmeteo_cams
+2026-11-17T16:46:58Z	ok	files	ds meteoswiss_smn_stations --start 2026-11-01 --step-days 30
+2026-11-17T16:47:19Z	ok	files	ds meteoswiss_obs_daily --start 2010-01-01 --step-days 7000
+2026-11-17T16:48:32Z	ok	files	ds meteoswiss_nime_daily --start 2010-01-01 --step-days 7000
+2026-11-17T16:50:11Z	ok	entsoe	ds entsoe_generation --start 2014-12-31
+2026-11-17T16:51:20Z	ok	files	ds meteoswiss_smn_daily --start 2009-12-31T23:40:00Z --step-days 7000
+2026-11-17T16:53:12Z	ok	entsoe	ds entsoe_wind_solar_forecast --start 2014-12-31
+2026-11-17T16:54:27Z	ok	files	bf meteoswiss_smn_hourly --start 2015-01-01 --end 2019-12-31T23:00:00Z --step-days 2000
+2026-11-17T16:57:20Z	ok	swissgrid	import swissgrid_tsi /srv/adele-import/swissgrid-poller/total-system-imbalance
+2026-11-17T16:57:21Z	ok	swissgrid	timer swissgrid_tsi
+2026-11-17T16:58:34Z	ok	files	bf meteoswiss_smn_hourly --start 2019-12-31T23:00:00Z --end 2025-12-31T23:00:00Z --step-days 2500
+2026-11-18T18:22:39Z	ok	swissgrid	import swissgrid_balance_daily /srv/adele-import/swissgrid-poller/control-area-balance-daily
+2026-11-18T18:22:39Z	ok	swissgrid	timer swissgrid_balance_daily
+2026-11-18T18:22:57Z	ok	swissgrid	ds swissgrid_balance --start 2024-10-31
+2026-11-18T18:49:25Z	ok	entsoe	ds entsoe_wind_solar_forecast_neighbours --start 2014-12-31
+2026-11-18T18:53:04Z	ok	entsoe	ds entsoe_load --start 2014-12-31
+2026-11-18T18:59:07Z	ok	entsoe	ds entsoe_physical_flows --start 2014-12-31
+2026-11-18T19:14:15Z	ok	entsoe	ds entsoe_scheduled_exchanges --start 2014-12-31
+2026-11-18T19:18:14Z	ok	entsoe	ds entsoe_imbalance_volume --start 2014-12-31
+2026-11-18T19:26:34Z	ok	entsoe	ds entsoe_imbalance_prices --start 2014-12-31
+2026-11-18T19:43:50Z	ok	entsoe	ds entsoe_imbalance_volume_neighbours --start 2014-12-31
+2026-11-18T19:53:20Z	ok	entsoe	ds entsoe_activated_balancing_prices --start 2014-12-31
+2026-11-18T20:08:54Z	ok	entsoe	ds entsoe_balancing_state --start 2014-12-31
+2026-11-18T20:11:24Z	ok	entsoe	ds entsoe_installed_capacity --start 2014-12-31
+2026-11-18T20:14:48Z	ok	files	bf meteoswiss_smn_hourly --start 2025-12-31T23:00:00Z --step-days 400
+2026-11-18T20:14:48Z	ok	files	timer meteoswiss_smn_hourly
+2026-11-18T20:17:58Z	ok	files	bf meteoswiss_smn_tenmin --start 2023-10-01 --end 2025-12-31T23:50:00Z --step-days 1000
+2026-11-18T20:19:19Z	ok	files	bf meteoswiss_smn_tenmin --start 2025-12-31T23:50:00Z --step-days 400
+2026-11-18T20:19:19Z	ok	files	timer meteoswiss_smn_tenmin
+2026-11-18T20:21:27Z	ok	files	ds pronovo_production --start 2019-12-31T23:00:00Z
+2026-11-18T20:22:00Z	ok	files	ds energy_charts_intraday_prices --start 2014-12-31T23:00:00Z
+2026-11-18T20:22:48Z	ok	files	ds swissgrid_imbalance_prices --start 2022-12-31T23:00:00Z
+2026-11-19T06:14:35Z	failed (exit 1)	ens	ds ecmwf_ifs_ens --start 2024-04-01
+2026-11-20T12:07:33Z	ok	ens	ds ecmwf_ifs_ens --start 2024-04-01
+== datasets: status from state.json, rows through the HTTP API
+ecmwf_ifs_ens: ok, last scheduled 2026-11-23T18:00:26+00:00, checks 0, versions_since -
+  ecmwf_ifs_ens.three_hourly: [62336688, '2024-04-01 00:00:00Z', '2026-11-23 00:00:00Z']
+  ecmwf_ifs_ens.instant: [66232731, '2024-04-01 00:00:00Z', '2026-11-23 00:00:00Z']
+  ecmwf_ifs_ens.stations: [79]
+energy_charts_intraday_prices: ok, last scheduled 2026-11-23T18:00:23+00:00, checks 12, versions_since -
+  energy_charts_intraday_prices.prices: [208512, '2014-12-31 23:00:00Z', '2026-11-22 22:00:00Z']
+entsoe_activated_balancing_prices: ok, last scheduled 2026-11-23T20:00:11+00:00, checks 0, versions_since -
+  entsoe_activated_balancing_prices.prices: [1621269, '2015-04-30 22:00:00Z', '2026-11-23 19:15:00Z']
+entsoe_balancing_state: ok, last scheduled 2026-11-23T00:00:27+00:00, checks 0, versions_since -
+  entsoe_balancing_state.state: [2995554, '2019-09-30 22:00:00Z', '2025-06-18 08:44:00Z']
+entsoe_day_ahead_prices: ok, last scheduled 2026-11-23T20:00:09+00:00, checks 82, versions_since -
+  entsoe_day_ahead_prices.prices: [374502, '2014-12-31 23:00:00Z', '2026-11-24 22:45:00Z']
+entsoe_generation: ok, last scheduled 2026-11-23T20:00:13+00:00, checks 40, versions_since 2026-11-17T16:50:04+00:00
+  entsoe_generation.generation: [611812, '2014-12-31 00:00:00Z', '2026-11-23 18:00:00Z']
+entsoe_imbalance_prices: ok, last scheduled 2026-11-23T18:00:17+00:00, checks 60, versions_since 2026-11-18T19:26:21+00:00
+  entsoe_imbalance_prices.prices: [1283848, '2014-12-31 00:00:00Z', '2026-11-23 17:30:00Z']
+entsoe_imbalance_volume: ok, last scheduled 2026-11-23T20:00:08+00:00, checks 0, versions_since 2026-11-18T19:18:12+00:00
+  entsoe_imbalance_volume.imbalance: [408454, '2015-03-25 23:00:00Z', '2026-11-23 16:15:00Z']
+entsoe_imbalance_volume_neighbours: ok, last scheduled 2026-11-23T18:00:18+00:00, checks 3, versions_since 2026-11-18T19:43:47+00:00
+  entsoe_imbalance_volume_neighbours.volumes: [2557409, '2014-12-31 00:00:00Z', '2026-11-23 17:30:00Z']
+entsoe_installed_capacity: ok, last scheduled 2026-11-23T00:00:30+00:00, checks 16, versions_since -
+  entsoe_installed_capacity.capacity: [48, '2015-01-01', '2026-01-01']
+entsoe_load: ok, last scheduled 2026-11-23T20:00:16+00:00, checks 50, versions_since 2026-11-18T18:52:53+00:00
+  entsoe_load.actual: [104276, '2014-12-31 22:00:00Z', '2026-11-23 18:00:00Z']
+  entsoe_load.forecast: [104280, '2014-12-31 23:00:00Z', '2026-11-24 22:00:00Z']
+entsoe_physical_flows: failing, last scheduled 2026-11-23T09:00:19+00:00, checks 19, versions_since 2026-11-18T18:59:03+00:00
+  problem: last fetch failed: FetchError: fetch.py exited with code 1: File "/opt/adele/datasets/entsoe_physical_flows/fetch.py", line 117, in _request | raise RuntimeError(f"A11 {frm} --> {to} [{s}, {e}): {type(ex).__name__} {_clean(ex)}") from None | RuntimeError: A11 CH --> DE [2025-10-19 09:00:00+00:00, 2026-10-19 09:00:00+00:00): HTTPError 599 Server Error: status code 599 for url: https://web-api.tp.entsoe.eu/api?documentType=A11&in_Domain=10Y1001A1001A83F&out_Domain=10YCH-SWISSGRIDZ&securityToken=***&periodStart=202510190900&periodEnd=202610190900
+  entsoe_physical_flows.flows: [555979, '2014-12-31 00:00:00Z', '2026-11-23 08:15:00Z']
+entsoe_scheduled_exchanges: ok, last scheduled 2026-11-23T20:00:16+00:00, checks 9, versions_since 2026-11-18T19:14:12+00:00
+  entsoe_scheduled_exchanges.day_ahead: [442305, '2018-02-27 23:00:00Z', '2026-11-24 22:45:00Z']
+  entsoe_scheduled_exchanges.total: [563315, '2014-12-31 00:00:00Z', '2026-11-24 22:45:00Z']
+entsoe_wind_solar_forecast: ok, last scheduled 2026-11-23T20:00:16+00:00, checks 25, versions_since 2026-11-17T16:53:05+00:00
+  entsoe_wind_solar_forecast.forecast: [237352, '2014-12-31 23:00:00Z', '2026-11-24 22:00:00Z']
+entsoe_wind_solar_forecast_neighbours: ok, last scheduled 2026-11-23T20:00:14+00:00, checks 100, versions_since 2026-11-18T18:48:53+00:00
+  entsoe_wind_solar_forecast_neighbours.forecast: [22645207, '2014-12-31 00:00:00Z', '2026-11-25 19:45:00Z']
+iem_metar: failing, last scheduled -, checks -, versions_since -
+  problem: never fetched
+  iem_metar.reports: [457356, '2015-01-01 00:20:00Z', '2019-01-03 23:50:00Z']
+  iem_metar.stations: [8]
+meteoswiss_nime_daily: ok, last scheduled 2026-11-23T00:00:29+00:00, checks 272, versions_since -
+  meteoswiss_nime_daily.measurements: [1677033, '2010-01-01 06:00:00Z', '2026-11-21 06:00:00Z']
+  meteoswiss_nime_daily.stations: [270]
+meteoswiss_obs_daily: ok, last scheduled 2026-11-23T00:00:30+00:00, checks 0, versions_since -
+  meteoswiss_obs_daily.measurements: [113052, '2010-01-01', '2026-11-21']
+meteoswiss_smn_daily: ok, last scheduled 2026-11-23T00:00:28+00:00, checks 859, versions_since -
+  meteoswiss_smn_daily.measurements: [966083, '2009-12-31 23:40:00Z', '2026-11-21 00:00:00Z']
+meteoswiss_smn_hourly: ok, last scheduled 2026-11-23T00:00:30+00:00, checks 762, versions_since -
+  meteoswiss_smn_hourly.measurements: [16282904, '2015-01-01 00:40:00Z', '2026-11-21 22:00:00Z']
+  meteoswiss_smn_hourly.snow_depth: [3994150, '2015-01-01 00:40:00Z', '2026-11-21 23:00:00Z']
+meteoswiss_smn_stations: ok, last scheduled 2026-11-23T00:00:29+00:00, checks 0, versions_since -
+  meteoswiss_smn_stations.stations: [158]
+  meteoswiss_smn_stations.parameters: [181]
+  meteoswiss_smn_stations.inventory: [19546]
+meteoswiss_smn_tenmin: failing, last scheduled 2026-11-22T00:00:29+00:00, checks 227, versions_since -
+  problem: last fetch failed: FetchError: fetch.py exited with code 137: no output
+  meteoswiss_smn_tenmin.measurements: [22199515, '2023-10-01 00:00:00Z', '2026-11-20 23:40:00Z']
+openmeteo_cams: ok, last scheduled 2026-11-23T00:00:29+00:00, checks 0, versions_since -
+  openmeteo_cams.instant: [46768, '2026-11-10 17:00:00Z', '2026-11-23 00:00:00Z']
+openmeteo_era5: ok, last scheduled 2026-11-23T00:00:29+00:00, checks 0, versions_since -
+  openmeteo_era5.hourly: [17538, '2026-11-07 17:00:00Z', '2026-11-16 22:00:00Z']
+  openmeteo_era5.instant: [17617, '2026-11-07 17:00:00Z', '2026-11-16 23:00:00Z']
+openmeteo_previous_runs: failing, last scheduled 2026-11-23T00:00:29+00:00, checks 0, versions_since -
+  problem: last fetch failed: FetchError: fetch.py exited with code 1: raise BudgetSpent(f"Open-Meteo budget spent until {until:%Y-%m-%dT%H:%MZ}: {day:,.0f} calls in the " | f"last 24 h on this machine (cap {_day_cap:,.0f}), {w:g} more needed") | adele_fetch.BudgetSpent: Open-Meteo budget spent until 2026-11-24T00:00Z: 7,340 calls in the last 24 h on this machine (cap 7,500), 196.8 more needed
+  openmeteo_previous_runs.hourly: [26081376, '2024-01-18 00:00:00Z', '2026-11-23 00:00:00Z']
+  openmeteo_previous_runs.instant: [30812133, '2024-01-18 00:00:00Z', '2026-11-23 00:00:00Z']
+openmeteo_single_runs: ok, last scheduled 2026-11-23T18:00:26+00:00, checks 0, versions_since -
+  openmeteo_single_runs.hourly: [110600, '2026-11-16 00:00:00Z', '2026-11-23 00:00:00Z']
+  openmeteo_single_runs.instant: [112496, '2026-11-16 00:00:00Z', '2026-11-23 00:00:00Z']
+openmeteo_stations: ok, last scheduled 2026-11-23T00:00:29+00:00, checks 6, versions_since -
+  openmeteo_stations.stations: [79]
+  openmeteo_stations.cells: [1106]
+pronovo_production: ok, last scheduled 2026-11-23T00:00:28+00:00, checks 168, versions_since 2026-11-18T20:20:48+00:00
+  pronovo_production.by_technology: [3485968, '2019-12-31 23:00:00Z', '2026-10-31 22:45:00Z']
+  pronovo_production.pv_by_canton: [3491520, '2022-12-31 23:00:00Z', '2026-10-31 22:45:00Z']
+  pronovo_production.capacity_by_technology: [789, '2023-01-01', '2026-10-01']
+  pronovo_production.pv_capacity_by_canton: [1196, '2023-01-01', '2026-10-01']
+swissgrid_balance: ok, last scheduled 2026-11-23T18:00:26+00:00, checks 0, versions_since 2026-11-18T18:22:55+00:00
+  swissgrid_balance.balance: [72192, '2024-10-31 23:00:00Z', '2026-11-22 22:45:00Z']
+swissgrid_balance_daily: ok, last scheduled 2026-11-23T20:45:04+00:00, checks 0, versions_since 2026-09-27T09:57:15+00:00
+  swissgrid_balance_daily.balance: [5472, '2026-09-26 09:00:00Z', '2026-11-23 20:00:00Z']
+swissgrid_imbalance_prices: ok, last scheduled 2026-11-23T00:00:29+00:00, checks 47, versions_since -
+  swissgrid_imbalance_prices.prices: [134400, '2022-12-31 23:00:00Z', '2026-10-31 22:45:00Z']
+swissgrid_tsi: ok, last scheduled 2026-11-23T20:49:04+00:00, checks 0, versions_since 2026-09-27T09:57:15+00:00
+  swissgrid_tsi.tsi: [16110, '2026-09-27 09:30:00Z', '2026-11-23 20:40:00Z']
+weathernext3: ok, last scheduled 2026-11-23T20:30:04+00:00, checks 0, versions_since -
+  weathernext3.solar_radiation: [19708416, '2024-11-12 00:00:00Z', '2026-11-23 14:00:00Z']
+  weathernext3.weather: [19708416, '2024-11-12 00:00:00Z', '2026-11-23 14:00:00Z']
+== timers
+ecmwf_ifs_ens energy_charts_intraday_prices entsoe_activated_balancing_prices entsoe_balancing_state entsoe_day_ahead_prices entsoe_generation entsoe_imbalance_prices entsoe_imbalance_volume entsoe_imbalance_volume_neighbours entsoe_installed_capacity entsoe_load entsoe_physical_flows entsoe_scheduled_exchanges entsoe_wind_solar_forecast entsoe_wind_solar_forecast_neighbours meteoswiss_nime_daily meteoswiss_obs_daily meteoswiss_smn_daily meteoswiss_smn_hourly meteoswiss_smn_stations meteoswiss_smn_tenmin openmeteo_cams openmeteo_era5 openmeteo_previous_runs openmeteo_single_runs openmeteo_stations pronovo_production swissgrid_balance swissgrid_balance_daily swissgrid_imbalance_prices swissgrid_tsi weathernext3 
+32 timers
+== disk, memory
+13M	/var/lib/adele/entsoe_balancing_state
+16M	/var/lib/adele/meteoswiss_smn_daily
+21M	/var/lib/adele/entsoe_imbalance_volume_neighbours
+22M	/var/lib/adele/meteoswiss_smn_tenmin
+27M	/var/lib/adele/swissgrid_tsi
+42M	/var/lib/adele/swissgrid_balance_daily
+62M	/var/lib/adele/entsoe_wind_solar_forecast_neighbours
+77M	/var/lib/adele/openmeteo_previous_runs
+102M	/var/lib/adele/pronovo_production
+140M	/var/lib/adele/meteoswiss_smn_hourly
+761M	/var/lib/adele/weathernext3
+1.1G	/var/lib/adele/ecmwf_ifs_ens
+/dev/sda1        48G   31G   18G  65% /
+Mem:            7940        2387        3722          15        2204        5552
